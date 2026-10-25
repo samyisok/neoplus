@@ -79,3 +79,14 @@ contextBridge.exposeInMainWorld('neo', {
   viewState: (st) => ipcRenderer.send('view:state', st),
   onMenu: (cb) => ipcRenderer.on('menu', (_e, msg) => cb(msg))
 });
+
+// NEO-EXT seam: the fork's own bridge. Inline, not a require: a sandboxed
+// preload cannot load a local file, only electron's built-ins.
+contextBridge.exposeInMainWorld('NeoForkNative', {
+  backupBook: (bookId) => ipcRenderer.invoke('neo-ext:backup-book', bookId),
+  getBackupSettings: () => ipcRenderer.invoke('neo-ext:get-backup-settings'),
+  pickBackupFolder: (current) => ipcRenderer.invoke('neo-ext:pick-backup-folder', current),
+  checkBackupFolder: (folder, bookId) => ipcRenderer.invoke('neo-ext:check-backup-folder', folder, bookId),
+  saveBackupSettings: (folder, bookId) => ipcRenderer.invoke('neo-ext:save-backup-settings', folder, bookId),
+  revealBackup: (folder) => ipcRenderer.invoke('neo-ext:reveal-backup', folder)
+});

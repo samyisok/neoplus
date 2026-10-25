@@ -1,0 +1,42 @@
+// NEO fork — the one adapter to core internals (adr-001)
+//
+// Everything here is a guarded read of bindings app.js declares globally. If
+// upstream renames one, this file fails with a clear "not settled" answer
+// instead of every feature breaking.
+
+'use strict';
+
+(function () {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  function pending() {
+    let waiting = false;
+    try {
+      if (typeof book !== 'undefined' && book && typeof chapterHTML !== 'undefined' && typeof savedHTML !== 'undefined') {
+        for (const c of book.chapterOrder) {
+          if (chapterHTML[c] !== undefined && chapterHTML[c] !== savedHTML[c]) { waiting = true; break; }
+        }
+      }
+      if (!waiting && typeof sidecarPending !== 'undefined' && Object.keys(sidecarPending).length) waiting = true;
+      if (!waiting && typeof auxPending !== 'undefined' && Object.keys(auxPending).length) waiting = true;
+    } catch { /* a missing binding means nothing to wait for */ }
+    return waiting;
+  }
+
+  // Save first, then confirm the disk caught up. A backup taken right after a
+  // keystroke must hold that keystroke, not yesterday's paragraph.
+  async function flushAndConfirm({ timeoutMs = 8000 } = {}) {
+    try { if (typeof flushAllSaves === 'function') flushAllSaves(); } catch { /* see below */ }
+    try {
+      if (typeof chapterChain !== 'undefined') await Promise.allSettled(Object.values(chapterChain));
+    } catch { /* a failed write is reported by NEO itself */ }
+    const until = Date.now() + timeoutMs;
+    while (pending()) {
+      if (Date.now() > until) return false;
+      await sleep(80);
+    }
+    return true;
+  }
+
+  window.NeoExtApi = { flushAndConfirm, pending };
+})();

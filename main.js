@@ -2099,7 +2099,7 @@ function dailyBackup() {
   let target;
   try {
     ensureLibrary();
-    const backupsDir = path.join(LIBRARY_DIR, 'Backups');
+    const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR); /* NEO-EXT seam */
     if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
     target = path.join(backupsDir, `neo-backup-${new Date().toISOString().slice(0, 10)}.zip`);
     if (fs.existsSync(target)) return Promise.resolve();
@@ -2966,6 +2966,7 @@ function buildMenu() {
       ]
     }
   ];
+  require('./neo-ext/main.js').appMenu(template, { more: moreState, bookOpen: bookOpenState }); /* NEO-EXT seam */
   const menu = Menu.buildFromTemplate(simpleTemplate(template, moreState));
   editMenuState.edit = null; // the old menu bar is going: forget its Edit menu first
   Menu.setApplicationMenu(menu);
@@ -3344,6 +3345,7 @@ app.whenReady().then(() => {
     try { initLanguage(); } catch (err) { logError('language', err); }
     try { checkLibraryWritable(); } catch (err) { logError('library check', err); }
     try { ensureLibrary(); } catch (err) { logError('library', err); }
+    try { require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, app, BrowserWindow, readSettings, writeSettings, logError, bookDir, libName, isCloudOnly, cloudOnlyAmong, requestDownload, libraryDir: () => LIBRARY_DIR }); } catch (err) { logError('neo-ext', err); } /* NEO-EXT seam */
     createWindow();
     try { announceLibraryFallback(); } catch (err) { logError('library notice', err); }
     try { initSpell(); } catch (err) { logError('spell', err); }

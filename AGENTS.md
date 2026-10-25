@@ -224,7 +224,9 @@ npm run package:mac        # macOS build; npm run package calls this
 npm run package:linux      # AppImage via electron-builder; also package, package:mac, package:win, package:all
 ```
 
-Tests use `node:test` and load `app.js` or `spell-worker.js` inside `vm`. They are not run by CI. The only CI check is a Windows smoke test that the packaged exe boots and creates a library (`.github/workflows/build.yml`, on `v*` tags). Pocket builds from `.github/workflows/pocket.yml`.
+Tests use `node:test` and load `app.js` or `spell-worker.js` inside `vm`. Nineteen of them cut `app.js` out by slicing between marker comments such as `// ---- daily words rules:` and `// ---- end of daily words rules ----`. Renaming or moving a marker breaks its test without a compile error; keep the pair together when refactoring. They are not run by CI. The only CI check is a Windows smoke test that the packaged exe boots and creates a library (`.github/workflows/build.yml`, on `v*` tags). Pocket builds from `.github/workflows/pocket.yml`.
+
+npm 11's allow-scripts default skips lifecycle scripts, so `npm install` leaves `node_modules/electron/dist` empty and `npm start` fails. Run `node node_modules/electron/install.js` once (as `~/.local/bin/neo-reinstall` does). `koffi`'s prebuilt binaries ship inside its package; only macOS loads them.
 
 `node scripts/check-romanian-package.js <Resources dir>` compares a packaged app's dictionaries to the source tree. `node scripts/benchmark-spellcheck.js` times the checker. Neither is an npm script.
 
@@ -239,3 +241,124 @@ Hugh pushes and releases himself and isn't a git user. Hand him work as a git bu
 - A new way to remove text needs a recovery path and a sentence in the UI that says where the words went.
 - Export formats are assembled in `app.js` and written by `export:save` in `main.js`. EPUB is a zip built in memory. PDF is printed from temporary HTML.
 - Errors in the main process are appended to `neo-errors.log` via `logError`. Renderer failures go through `window.neo.logError`. Do not swallow a save failure; `persistChapter` rolls `savedHTML` back so the next flush retries.
+
+## This checkout: fork and Linux install
+
+- `origin` is `samyisok/neoplus`, a fork. Upstream is `hughhowey/neo`; HEAD normally equals upstream `main`. Compare before branching: `git fetch https://github.com/hughhowey/neo main:refs/tmp/upstream && git rev-list --left-right --count refs/tmp/upstream...HEAD`. Never push to upstream or rewrite its history.
+- Installed for this user as an unpacked AppImage at `~/.local/opt/neo` (`AppRun`) plus `~/.local/share/applications/neo.desktop` (app id `neo`, matches the window's Wayland app id).
+- Fedora here has no `fuse-libs` and no passwordless sudo, so `dist/NEO-*.AppImage` cannot be run directly. `~/.local/bin/neo-reinstall [repo]` builds, stops NEO, re-extracts the x64 AppImage over `~/.local/opt/neo`, and rewrites the entry and icon; use it after every feature change. Never hand-edit the installed copy.
+- The extracted install has no `APPIMAGE` env, so `electron-updater` stays idle; upgrades happen only through that script.
+- A run creates `~/Documents/NEO Library` on first launch. Keep test runs out of it when possible (`NEO_TRY_DIR` for dev).
+
+## OpenSpec: no tickets, one `adr-NNN` change per feature
+
+There are no tickets. Every feature is an OpenSpec change in `openspec/changes/`, and its archived folder is the record of what was decided. `openspec/` and `.opencode/` are committed on `fork` only, never on `main`.
+
+- **Naming:** `adr-<next-number>-<slug>`, zero-padded to three digits, kebab-case slug, e.g. `adr-001-chapter-word-count`. One number per feature, never reused. The next number is the highest that exists anywhere:
+  ```
+  ls openspec/changes openspec/changes/archive 2>/dev/null | grep -oE 'adr-[0-9]{3}' | sort -u | tail -1
+  ```
+  No output yet means start at `adr-001`.
+- **Create:** `openspec new change adr-NNN-slug --description "one line"`. Then in order: `proposal.md` (the ADR: context, `## Decision`, `## Consequences`), `specs/<capability>/spec.md` with `## ADDED Requirements` and a `#### Scenario:` per requirement, `tasks.md` as the checklist. `design.md` only when the approach is not obvious from the proposal.
+- **Capabilities are fork capabilities:** `word-count`, `thesaurus`, `story-notes`, `inventory` (add more as they come). Archive updates `openspec/specs/<capability>/spec.md`. Upstream carries no `openspec/`, so this never merges into their tree.
+- **Flow:** branch `adr-NNN-slug` off `fork` → `openspec-propose` → planning review (GRASP/DDD, below) → red test → implement to green (TDD, below) → `openspec validate adr-NNN-slug` → `npm run lint && npm test` → code review gate (below) → `/opsx-sync` → `openspec archive adr-NNN-slug -y` → merge back into `fork`. Archive prepends the date (`openspec/changes/archive/YYYY-MM-DD-adr-NNN-slug`); keep the `adr-` prefix, never rename an archived folder.
+- **Commit subject:** `adr-NNN: <summary>`. `openspec archive --skip-specs` is only for tooling or doc-only changes.
+- **Helpers:** the OpenSpec skills (`openspec-propose`, `openspec-apply-change`, `openspec-update-change`, `openspec-sync-specs`, `openspec-archive-change`) and the `opsx-*` commands in `.opencode/commands/`. `openspec status --change adr-NNN-slug` names the next missing artifact; `openspec validate --all` before any upstream sync.
+
+### Planning review: right after propose
+
+`/opsx-propose` leaves the change untracked, so the verifiers would see an empty diff. Make the new files visible first, without staging content:
+
+```
+git add -N openspec/changes/adr-NNN-slug
+git diff HEAD            # what grasp-verify / ddd-verify read
+```
+
+Then run `grasp-verify` and `ddd-verify` on that diff and fix what they find in the artifacts, not later in code. Their class-level rules translate to planning as follows:
+
+- **GRASP → ownership:** one capability owns one behavior; a seam carries a line and no policy; fork code belongs in `neo-ext/`; no behavior is claimed by two capabilities; a "god class" reads as a god change (too many capabilities in one `adr-`).
+- **DDD → vocabulary and boundaries:** use the names the code already uses (book, chapter, section, snapshot, library, settings); a capability is the aggregate, and one capability may not reach into another's internals; no storage, IPC, or UI detail leaks into requirements; scenarios state observable behavior, not fields to add.
+
+Re-run both until no blocker remains; a finding that changes behavior goes back into `proposal.md`/`specs/` before `/opsx-apply`, so implementation never starts on a design the reviewers already rejected.
+
+### TDD: red first, then green
+
+Every coding task in an `adr-` change starts with a test that fails for the right reason.
+
+1. **Red.** Write the smallest test that expresses the next task's behavior, run it (`node --test scripts/<name>.test.js`, or the group's focused command), and read the failure: it must fail on the missing behavior, not on a typo or a bad import. A test that passes before the code exists is not a test.
+2. **Green.** Write only enough code to pass it, re-run the same test, then run the group's tests and `npm test` for regressions.
+3. **Refactor.** Clean up with the test green; never widen scope.
+
+Rules that keep this fork honest:
+
+- Bug fixes get a failing regression test first, in a new `scripts/*.test.js` file. Never edit an upstream test; keep `// ---- … rules ----` marker pairs intact.
+- `neo-ext/lib/*.js` is pure and must be fully unit-tested this way. A seam's line, a preload bridge, and menu wiring are covered by the smallest observable check the task names (a real launch, a `settings.json` read-back), written and observed failing before the wiring exists.
+- UI and filesystem e2e work that cannot be made deterministic gets a written repro in `tasks.md` before the code, then the manual check after it.
+- Use the `ts-tdd` skill (and the `tdd-guide` agent) for stack-level guidance; `java-tdd`/`rust-tdd` only in those stacks. They propose tests, they do not replace running them.
+- The commit carries the tests and the code together; a task is not done until its test has gone red and then green in this session.
+
+### Code review gate: after apply, before sync
+
+Runs on the implemented diff (`git diff fork...HEAD`) once lint and tests pass, and before `/opsx-sync`. Skip it only for a change that touched no code (`skip_specs`, docs, OpenSpec files alone).
+
+1. `grasp-verify` — responsibility assignment: does the new behavior live where it belongs (`neo-ext/` feature file vs `api.js` adapter vs a seam), and did any upstream file take on logic it should not own?
+2. `ddd-verify` — domain boundaries and language: book/chapter/backup/settings terms stay consistent, no storage or transport leak into the domain model.
+3. `ts-cop` — the cop for this stack (plain JavaScript/Electron). `java-cop`, `rust-cop`, and `react-cop` are used only when the change is actually in those stacks; do not run them here for ceremony.
+4. `code-reviewer` agent — bugs, regressions, and test gaps; read-only, findings only.
+5. `security-reviewer` agent — mandatory when the diff touches IPC/preload, filesystem paths, `settings.json`/secrets, network calls, or adds a dependency.
+6. Optional: `comment-judge` on the diff, and `refactor-cleaner` only when the change grew duplication or dead code.
+
+Reviewers propose, they never patch: fix blockers yourself, then re-run the failed reviewer plus `npm run lint && npm test`. Record the verdicts (and any accepted advisories with a reason) in the change's `tasks.md` or the commit body. Only then `/opsx-sync` → `/opsx-archive` → merge into `fork` → `~/.local/bin/neo-reinstall`.
+
+## Fork extension strategy (read before adding a feature)
+
+Every fork feature lives in `neo-ext/`. Upstream files get at most a one-line seam, so `git merge upstream/main` stays boring. Never rewrite a core function, never reformat an upstream file, never put plugin data in `book.json` or `library.json`.
+
+### Branches
+
+- `main` mirrors `hughhowey/neo`; never commit fork work there.
+- `fork` = upstream + seams + `neo-ext/`; one branch per feature off `fork`, merged back into `fork`.
+- `git remote add upstream https://github.com/hughhowey/neo` once. Sync: `git fetch upstream main && git switch fork && git merge upstream/main`. Conflicts should only touch seam lines and the end of this file. Then `node neo-ext/check-seams.js`, `npm run lint`, `npm test`, `~/.local/bin/neo-reinstall`.
+
+### The seams (the only upstream-file edits allowed)
+
+Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the index.html scripts), so `grep -rn "NEO-EXT seam" .` lists every divergence. The preload bridge is one marked block, inline because a sandboxed preload cannot `require` a local file.
+
+| # | File | Anchor to insert after/before | Line |
+|---|---|---|---|
+| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, settings, boot), last on the page; classic scripts share app.js's global scope |
+| 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
+| 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
+| 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
+| 5 | `main.js` | before `Menu.buildFromTemplate(items).popup(...)` in the `context-menu` handler | `require('./neo-ext/main.js').contextMenu(items, params, win);` *(planned)* |
+| 6 | `main.js` | immediately before `const menu = Menu.buildFromTemplate(simpleTemplate(template, moreState));` in `buildMenu` (not before `setApplicationMenu`: the menu is already built there) | `require('./neo-ext/main.js').appMenu(template, { more: moreState, bookOpen: bookOpenState });` |
+| 7 | `main.js` | inside `app.whenReady().then(...)`, after `ensureLibrary()`, before `createWindow()` | `require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, … })` — `shell` is not imported at the top of main.js |
+| 8 | `preload.js` | after the `window.neo` exposure | the inline `NeoForkNative` bridge — inline because a sandboxed preload cannot `require` a local file |
+| 9 | `main.js` | in `dailyBackup`, where `backupsDir` is computed | `const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR);` |
+
+Rows 1, 6, 7, 8, 9 exist today; 2–5 are added with the features that need them. `neo-ext/check-seams.js` asserts the five that exist.
+
+Right-click menus are Electron's, not the page's: renderer `preventDefault` cannot add to them, hence the `main.js` seam. Menu clicks send `{ type: 'neo-ext', … }` with `win.webContents.send('menu', …)`; `onMenu` in `app.js` is a chain of `if`s, so unknown types are ignored, and `boot.js` subscribes its own `window.neo.onMenu`.
+
+### Layout and rules
+
+- `neo-ext/boot.js` (registry, hook wiring, injects `neo-ext/neo-ext.css`), `neo-ext/main.js` (menus, main-process helpers), `neo-ext/api.js` (the only file allowed to touch core internals), `neo-ext/<feature>.js`, `neo-ext/locales/*.json`, `neo-ext/check-seams.js`. Fork strings are keyed by their English text; a translation can be injected through `window.NeoExtLocale` (no loader ships yet), and `t()` is the last fallback.
+- Core internals are reachable by name from `boot.js` because app.js is a classic script: top-level `let book`, `chapterHTML`, and functions `chapterWords`, `countWords`, `switchTab`, `t`, `$`. They are not public API — wrap each use in `api.js` with a guard, so an upstream rename breaks one file instead of ten.
+- Prefer no-seam injection first: the right pane (`#side-pane`) can take plugin tabs, buttons in `#side-head`, and its own sibling of `#sticky-list` with zero core edits. Core rewrites only `#sticky-list` and `#side-head`'s own span/pin, so leave those alone. Use seam 2 only when a feature needs the full paper width.
+- Storage: own sidecars, `window.neo.readJSON/writeJSON(bookId, 'neo-ext-<name>', …)`; one path segment (`libName`), so no subfolders. Debounce writes like `writeSidecar` in `app.js` does. Chapters are never rewritten to hold plugin data.
+- Merge-tolerant data: append-only, id-keyed records reconciled by union on read (`{id, chapterId, at, …}`). Two devices then add to each other instead of last-write-winning. Never store a mutable running total; compute it.
+- Anchors for character/item/world notes: `data-sec-id` (the same id `book.sectionNotes` uses) plus paragraph ordinal and a short text hash as fallback for finding the words again after edits or an upstream restore. Chapter id alone is too coarse.
+- Dictionary additions: reuse the existing path — `spell:learn` for the running checker plus `library.customWords` via the core `writeLibrary` generation check. Do not invent a second word list.
+- i18n: plugin strings stay in `neo-ext/locales/`, translated by a small key-equals-English helper in `boot.js`. Do not add files to `scripts/i18n.js`'s scanner (it would drag fork strings into upstream's template).
+- Pocket: `scripts/pocket-www.js` copies a fixed file list only, so fork features stay desktop-only. If a feature must reach Pocket, add its files to that copy list and guard missing DOM.
+- Never inline script or use `eval` (CSP `script-src 'self'`); all disk access stays behind `window.neo`.
+- Simple NEO: menu items added through seam 6 carry `more: true`, **except** everyday ones a simple writer still needs (Backup Book…, Settings…); plugin tabs and buttons check `moreOn()` (through `api.js`) and stay hidden while it is off.
+- Lint covers `neo-ext/` (`npm run lint`). Tests for pure plugin logic go in new `scripts/*.test.js` files; don't edit existing tests, and keep the `// ---- … rules ----` marker pairs intact.
+
+### How the planned features fit
+
+- **Per-chapter word count**: seam 3 plus `chapterWords(chId)`; render in the counter strip. Derived only, nothing stored, so nothing to sync.
+- **Thesaurus / synonyms**: seam 5 item on a word selection, popup in the renderer, replace through a `Range` over the selection. Keep the word data behind one module (`neo-ext/thesaurus.js`) so a local list, an offline dictionary, or an API each drop in without touching UI code.
+- **Character/item info and word links**: own sidecar (`neo-ext-notes.json`) keyed by section id and paragraph ordinal; right-pane tab injected without a seam; a link from a word is an anchor record, not markup in the chapter.
+- **Inventory / status across chapters**: append-only ledger (`neo-ext-ledger.json`) of `{id, chapterId, item, delta, at}`; totals are a running balance in chapter order, so "spent 100 of 150 in ch.1" blocks the ch.2 spend by arithmetic, and two devices merge by unioning entry ids.
+

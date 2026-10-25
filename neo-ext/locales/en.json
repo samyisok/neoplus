@@ -1,0 +1,6 @@
+{
+  "_meta": {
+    "name": "English",
+    "note": "The fork's strings are keyed by their English text, like the core. This file exists so a translation can drop in later; en is the fallback in code."
+  }
+}

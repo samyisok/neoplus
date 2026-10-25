@@ -1,0 +1,80 @@
+/* NEO fork — styles for the extension layer (adr-001)
+   Loaded by neo-ext/boot.js. Upstream styles.css is never edited. */
+
+/* the fork's toast: NEO's #hint carries text only, and this one has an action */
+.neo-ext-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(680px, calc(100vw - 48px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--panel, #2a2a2a);
+  color: var(--ink, #e9e6df);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.neo-ext-toast-action {
+  flex: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  background: var(--gold, #c9a227);
+  color: #1b1b1b;
+  font: inherit;
+  font-weight: 600;
+}
+
+/* settings window */
+.neo-ext-backdrop { z-index: 9500; }
+
+.neo-ext-settings {
+  width: min(560px, calc(100vw - 48px));
+  max-height: min(78vh, 720px);
+  overflow: auto;
+}
+
+.neo-ext-group { padding: 6px 0 14px; }
+.neo-ext-group:not(:last-child) { border-bottom: 1px solid var(--rule, rgba(255, 255, 255, 0.14)); padding-bottom: 16px; margin-bottom: 14px; }
+.neo-ext-group h3 { margin: 4px 0 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
+
+.neo-ext-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.neo-ext-row > label { font-size: 13px; }
+
+.neo-ext-pathline { display: flex; gap: 8px; align-items: center; }
+.neo-ext-path {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.2));
+  background: var(--field, rgba(0, 0, 0, 0.18));
+  color: inherit;
+}
+.neo-ext-choose, .neo-ext-reset {
+  flex: none;
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.2));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.neo-ext-reset { align-self: flex-start; }
+
+.neo-ext-hint { margin: 0; font-size: 12px; opacity: 0.65; word-break: break-all; }
+.neo-ext-error { margin: 6px 0 0; font-size: 13px; color: #e0736b; }
+
+.neo-ext-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; }
+.neo-ext-cancel { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--rule, rgba(255, 255, 255, 0.2)); background: transparent; color: inherit; cursor: pointer; }
