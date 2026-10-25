@@ -2244,6 +2244,7 @@ function createWindow() {
     items.push({ role: 'copy', label: t('Copy'), enabled: !!can.canCopy });
     if (params.isEditable) items.push({ role: 'paste', label: t('Paste'), enabled: !!can.canPaste });
     items.push({ type: 'separator' }, { role: 'selectAll', label: t('Select All') });
+    require('./neo-ext/main.js').contextMenu(items, params, win); /* NEO-EXT seam */
     Menu.buildFromTemplate(items).popup({ window: win });
   });
 

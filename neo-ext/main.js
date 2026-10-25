@@ -165,6 +165,10 @@ function init(injected) {
   if (!deps || !deps.ipcMain) return;
   const { ipcMain, dialog, shell, BrowserWindow } = deps;
 
+  // the thesaurus owns its own data, cache, and menu items; this file only
+  // hands it the process objects
+  try { require('./thesaurus-main.js').init({ ipcMain, logError: deps.logError }); } catch (err) { log('thesaurus init: ' + (err && err.message)); }
+
   ipcMain.handle('neo-ext:get-backup-settings', async () => {
     const lib = libraryDir();
     const defaultFolder = lib ? dirs.defaultBackupDir(lib) : '';
@@ -227,6 +231,12 @@ function init(injected) {
   });
 }
 
+// Seam 5: the native context menu is built in the main process, so the fork's
+// item has to be added here, in the same turn the renderer stored the word.
+function contextMenu(items, params, win) {
+  try { require('./thesaurus-main.js').contextMenu(items, params, win); } catch (err) { log('context menu: ' + (err && err.message)); }
+}
+
 // Called from the File-menu seam, before the template is turned into a menu.
 function appMenu(template, opts) {
   try {
@@ -266,4 +276,4 @@ function send(action) {
   }
 }
 
-module.exports = { init, appMenu, backupDir, backupBook, checkFolder, resolvedFolder };
+module.exports = { init, appMenu, contextMenu, backupDir, backupBook, checkFolder, resolvedFolder };

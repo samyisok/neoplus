@@ -2,5 +2,27 @@
   "_meta": {
     "name": "English",
     "note": "The fork's strings are keyed by their English text, like the core. This file exists so a translation can drop in later; en is the fallback in code."
-  }
+  },
+  "Thesaurus…": "Thesaurus…",
+  "{n} synonyms for “{word}”": "{n} synonyms for “{word}”",
+  "One synonym for “{word}”": "One synonym for “{word}”",
+  "Filter synonyms": "Filter synonyms",
+  "No synonym matches that filter": "No synonym matches that filter",
+  "Close": "Close",
+  "No synonyms for “{word}”": "No synonyms for “{word}”",
+  "Thesaurus data is missing": "Thesaurus data is missing",
+  "That word moved. Nothing was changed.": "That word moved. Nothing was changed.",
+  "That word could not be replaced.": "That word could not be replaced.",
+  "Thesaurus is not available": "Thesaurus is not available",
+  "Thesaurus is not available in this build": "Thesaurus is not available in this build",
+  "Close the other window first": "Close the other window first",
+  "Noun": "Noun",
+  "Verb": "Verb",
+  "Adjective": "Adjective",
+  "Adverb": "Adverb",
+  "Could not open the thesaurus": "Could not open the thesaurus",
+  "Broader term": "Broader term",
+  "Similar term": "Similar term",
+  "Related term": "Related term",
+  "Antonym": "Antonym"
 }

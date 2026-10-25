@@ -77,6 +77,7 @@
       if (!msg || msg.type !== 'neo-ext') return;
       if (msg.action === 'settings') window.NeoSettings.open();
       else if (msg.action === 'backup-book') backupBook();
+      else if (msg.action === 'thesaurus' && window.NeoThesaurus) window.NeoThesaurus.openWord(msg.word);
     });
   }
 
@@ -107,5 +108,11 @@
   css();
   registerGroups();
   wireMenu();
-  window.NeoExt = { toast, backupBook, openSettings: () => window.NeoSettings.open() };
+  window.NeoExt = {
+    toast,
+    backupBook,
+    openSettings: () => window.NeoSettings.open(),
+    lookUpMenu: (items, word) => (window.NeoThesaurus ? window.NeoThesaurus.lookUpMenu(items, word) : false),
+    lookUpChoice: (word) => { if (window.NeoThesaurus) window.NeoThesaurus.lookUpChoice(word); }
+  };
 })();

@@ -326,17 +326,18 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 
 | # | File | Anchor to insert after/before | Line |
 |---|---|---|---|
-| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, settings, boot), last on the page; classic scripts share app.js's global scope |
+| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, thesaurus lookup/window/editor, settings, boot), last on the page; classic scripts share app.js's global scope |
 | 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
 | 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
 | 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
-| 5 | `main.js` | before `Menu.buildFromTemplate(items).popup(...)` in the `context-menu` handler | `require('./neo-ext/main.js').contextMenu(items, params, win);` *(planned)* |
+| 5 | `main.js` | before `Menu.buildFromTemplate(items).popup(...)` in the `context-menu` handler | `require('./neo-ext/main.js').contextMenu(items, params, win);` |
 | 6 | `main.js` | immediately before `const menu = Menu.buildFromTemplate(simpleTemplate(template, moreState));` in `buildMenu` (not before `setApplicationMenu`: the menu is already built there) | `require('./neo-ext/main.js').appMenu(template, { more: moreState, bookOpen: bookOpenState });` |
 | 7 | `main.js` | inside `app.whenReady().then(...)`, after `ensureLibrary()`, before `createWindow()` | `require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, … })` — `shell` is not imported at the top of main.js |
 | 8 | `preload.js` | after the `window.neo` exposure | the inline `NeoForkNative` bridge — inline because a sandboxed preload cannot `require` a local file |
 | 9 | `main.js` | in `dailyBackup`, where `backupsDir` is computed | `const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR);` |
+| 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `…lookUpChoice(word)` |
 
-Rows 1, 6, 7, 8, 9 exist today; 2–5 are added with the features that need them. `neo-ext/check-seams.js` asserts the five that exist.
+Rows 1, 5, 6, 7, 8, 9, 10 exist today; 2–4 are added with the features that need them. `neo-ext/check-seams.js` asserts the seven that exist.
 
 Right-click menus are Electron's, not the page's: renderer `preventDefault` cannot add to them, hence the `main.js` seam. Menu clicks send `{ type: 'neo-ext', … }` with `win.webContents.send('menu', …)`; `onMenu` in `app.js` is a chain of `if`s, so unknown types are ignored, and `boot.js` subscribes its own `window.neo.onMenu`.
 

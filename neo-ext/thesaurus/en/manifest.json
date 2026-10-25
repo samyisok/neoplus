@@ -1,0 +1,11 @@
+{
+  "format": 2,
+  "language": "en",
+  "source": "https://raw.githubusercontent.com/LibreOffice/dictionaries/2f0ddaeeb4323ac99afd35d2c4fda643c9ee8bcf/en/th_en_US_v2.dat",
+  "commit": "2f0ddaeeb4323ac99afd35d2c4fda643c9ee8bcf",
+  "sha256": "8a3e4637450b7277428da248f0a604b5c92942bc30507220c051181462340f39",
+  "headwords": 144863,
+  "synonyms": 793623,
+  "shards": 26,
+  "gzBytes": 4469995
+}

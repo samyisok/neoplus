@@ -130,6 +130,13 @@
       {
         "from": "licenses/hunspell",
         "to": "licenses/hunspell"
+      },
+      {
+        "from": "neo-ext/thesaurus/en",
+        "to": "licenses/wordnet",
+        "filter": [
+          "WordNet_license.txt"
+        ]
       }
     ],
     "files": [
@@ -139,6 +146,7 @@
       "!Backups/**",
       "!*.md",
       "!.github/**",
+      "!neo-ext/tools/**",
       "!scripts/**",
       "!licenses/**",
       "!Claude outputs/**",

@@ -14654,8 +14654,11 @@ document.addEventListener('contextmenu', (e) => {
   const word = sel && sel.rangeCount && !sel.isCollapsed ? lookUpWord(sel.toString()) : null;
   if (!word) return;
   e.preventDefault();
-  popMenu(e.clientX, e.clientY, [{ label: t('Look Up “{word}”', { word }), value: 'lookup' }]).then((choice) => {
+  const items = [{ label: t('Look Up “{word}”', { word }), value: 'lookup' }];
+  if (window.NeoExtApi) window.NeoExtApi.lookUpMenu(items, word); /* NEO-EXT seam */
+  popMenu(e.clientX, e.clientY, items).then((choice) => {
     if (choice === 'lookup') window.neo.lookUpText();
+    else if (choice === 'thesaurus' && window.NeoExtApi) window.NeoExtApi.lookUpChoice(word); /* NEO-EXT seam */
   });
 });
 

@@ -38,5 +38,33 @@
     return true;
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending };
+  // NEO's spellcheck language is library-wide (library.json), not per book.
+  // Before the library loads, the interface locale is what NEO itself writes in.
+  function spellLanguage() {
+    try {
+      const saved = typeof library !== 'undefined' && library && typeof library.spellLanguage === 'string'
+        ? library.spellLanguage : '';
+      if (saved) return saved;
+      if (typeof NeoI18n !== 'undefined' && NeoI18n && typeof NeoI18n.getLocale === 'function') return NeoI18n.getLocale();
+    } catch { /* not loaded yet */ }
+    return '';
+  }
+
+  function moreFeatures() {
+    try { if (typeof moreOn === 'function') return !!moreOn(); } catch { /* fall through */ }
+    return false;
+  }
+
+  // Seam 10: app.js's macOS Look Up popup asks the fork for its extra item and
+  // for what to do when that item is chosen.
+  function lookUpMenu(items, word) {
+    try { if (window.NeoExt && typeof window.NeoExt.lookUpMenu === 'function') return window.NeoExt.lookUpMenu(items, word); } catch { /* no fork UI */ }
+    return false;
+  }
+
+  function lookUpChoice(word) {
+    try { if (window.NeoExt && typeof window.NeoExt.lookUpChoice === 'function') window.NeoExt.lookUpChoice(word); } catch { /* no fork UI */ }
+  }
+
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, moreFeatures, lookUpMenu, lookUpChoice };
 })();

@@ -78,3 +78,79 @@
 
 .neo-ext-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; }
 .neo-ext-cancel { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--rule, rgba(255, 255, 255, 0.2)); background: transparent; color: inherit; cursor: pointer; }
+
+/* thesaurus window */
+.neo-ext-thes-backdrop { z-index: 9500; }
+
+.neo-ext-thes {
+  position: relative;
+  width: min(560px, calc(100vw - 48px));
+  max-height: min(76vh, 680px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 18px 16px;
+}
+
+.neo-ext-thes-title { margin: 0; font-size: 15px; font-weight: 600; padding-right: 28px; }
+
+.neo-ext-thes-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.neo-ext-thes-close:hover, .neo-ext-thes-close:focus-visible { opacity: 1; background: var(--rule, rgba(255, 255, 255, 0.1)); }
+
+.neo-ext-thes-filter {
+  width: 100%;
+  font: inherit;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.2));
+  background: var(--field, rgba(0, 0, 0, 0.18));
+  color: inherit;
+}
+
+.neo-ext-thes-list {
+  overflow: auto;
+  min-height: 80px;
+  padding-right: 4px;
+}
+
+.neo-ext-thes-group { margin-bottom: 12px; }
+.neo-ext-thes-group h3 {
+  margin: 6px 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.neo-ext-thes-words { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.neo-ext-thes-word {
+  font: inherit;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--rule, rgba(255, 255, 255, 0.18));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.neo-ext-thes-word:hover, .neo-ext-thes-word:focus-visible {
+  border-color: var(--gold, #c9a227);
+  background: var(--gold, #c9a227);
+  color: #1b1b1b;
+  outline: none;
+}

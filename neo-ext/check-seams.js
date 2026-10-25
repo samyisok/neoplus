@@ -13,27 +13,41 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 // file -> substrings that must be present. Keep in step with the seam table
-// in AGENTS.md; future seams (switchTab, counters, openBook, context menu) are
-// added here when they are implemented.
+// in AGENTS.md; future seams (switchTab, counters, openBook) are added here
+// when they are implemented.
 const SEAMS = [
-  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js']],
+  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/thesaurus-lookup.js']],
   ['preload.js', ['NEO-EXT seam', "exposeInMainWorld('NeoForkNative'"]],
   ['main.js', [
     'NEO-EXT seam',
     'require(\'./neo-ext/main.js\').init({',
     '.appMenu(template, { more: moreState, bookOpen: bookOpenState });',
-    '.backupDir(LIBRARY_DIR);'
+    '.backupDir(LIBRARY_DIR);',
+    '.contextMenu(items, params, win);'
+  ]],
+  ['app.js', [
+    'NEO-EXT seam',
+    'NeoExtApi.lookUpMenu(items, word)',
+    'NeoExtApi.lookUpChoice(word)'
   ]]
 ];
 
-// order matters for the menu seam: adding items after buildFromTemplate is
-// the bug it exists to avoid
+// Order matters for both menu seams: adding items after the menu is built (or
+// after the Look Up popup is rendered) is the bug they exist to avoid.
 function orderProblem(file, text) {
-  if (file !== 'main.js') return null;
-  const seam = text.indexOf('.appMenu(template, { more: moreState, bookOpen: bookOpenState });');
-  const built = text.indexOf('Menu.buildFromTemplate(simpleTemplate(template, moreState))');
-  if (seam < 0 || built < 0) return null;
-  return seam < built ? null : 'appMenu seam must sit before Menu.buildFromTemplate(simpleTemplate(...))';
+  if (file === 'main.js') {
+    const seam = text.indexOf('.appMenu(template, { more: moreState, bookOpen: bookOpenState });');
+    const built = text.indexOf('Menu.buildFromTemplate(simpleTemplate(template, moreState))');
+    if (seam < 0 || built < 0) return null;
+    return seam < built ? null : 'appMenu seam must sit before Menu.buildFromTemplate(simpleTemplate(...))';
+  }
+  if (file === 'app.js') {
+    const add = text.indexOf('NeoExtApi.lookUpMenu(items, word)');
+    const menu = text.indexOf('popMenu(e.clientX, e.clientY, items)');
+    if (add < 0 || menu < 0) return null;
+    return add < menu ? null : 'lookUpMenu seam must sit before the Look Up popMenu call';
+  }
+  return null;
 }
 
 let missing = 0;
