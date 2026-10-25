@@ -338,7 +338,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 
 | # | File | Anchor to insert after/before | Line |
 |---|---|---|---|
-| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, thesaurus lookup, word context, thesaurus and dictionary windows and editors, settings, boot), last on the page; classic scripts share app.js's global scope |
+| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, side-pane rules, thesaurus lookup, word context, thesaurus and dictionary windows and editors, the side-pane handle, settings, boot), last on the page; classic scripts share app.js's global scope |
 | 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
 | 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
 | 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
@@ -367,6 +367,14 @@ Right-click menus are Electron's, not the page's: renderer `preventDefault` cann
 - Never inline script or use `eval` (CSP `script-src 'self'`); all disk access stays behind `window.neo`.
 - Simple NEO: menu items added through seam 6 carry `more: true`, **except** everyday ones a simple writer still needs (Backup Book…, Settings…); plugin tabs and buttons check `moreOn()` (through `api.js`) and stay hidden while it is off.
 - Lint covers `neo-ext/` (`npm run lint`). Tests for pure plugin logic go in new `scripts/*.test.js` files; don't edit existing tests, and keep the `// ---- … rules ----` marker pairs intact.
+
+### The right-hand pane's width (adr-004)
+
+`neo-ext/side-resize.js` prepends a 10 px separator to `#side-pane`; `neo-ext/lib/side-resize.js` holds the pure bounds, drag, key, and saved-value rules. The width is published as `--neo-side-w`; the six page offsets that assume core NEO's 250 px are overridden in `neo-ext/neo-ext.css` (`scripts/side-resize-css.test.js` fails if upstream renames one). The chosen width lives in this device's `localStorage` under `neo-ext-side-width`, never in `book.json` or `library.json`.
+
+The handle is a zero-height `position: sticky` element, not `fixed` like `#side-pin`: a fixed child inside the transformed, scrolling pane moves with the notes. Its pseudo-elements carry the hit area and the line, and a drag re-asserts `.open` on `pointermove`, `mouseleave`, and `blur` so the pane cannot slide away under the pointer. Pinned (and on Darlings, which holds the pane open) the width stops at the room the page leaves, measured from `#paper-scroll` and a pinned `#nav-pane`; the Outline's board is exempt because its cards are meant to shrink. Resize-driven re-clamps are skipped while `body.neo-ext-resizing` is set.
+
+The whole feature is behind Show More Features: with it off the handle is hidden and the pane stays 250 px, while the stored width waits for the switch's return. It adds no seam, no IPC, no storage in the library, and no entry to `scripts/pocket-www.js`, so Pocket keeps its own pane. `npm run test:sidepane` covers drag, keys, limits, persistence, page geometry, tabs, and the no-writes guarantee on a real launch.
 
 ### How the planned features fit
 

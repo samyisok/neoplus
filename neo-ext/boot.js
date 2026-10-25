@@ -110,6 +110,7 @@
   registerGroups();
   wireMenu();
   window.NeoExt = {
+    x,
     toast,
     backupBook,
     openSettings: () => window.NeoSettings.open(),

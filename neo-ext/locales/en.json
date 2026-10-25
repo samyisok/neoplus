@@ -32,5 +32,7 @@
   "Dictionary data is missing": "Dictionary data is missing",
   "Dictionary is not available": "Dictionary is not available",
   "Dictionary is not available in this build": "Dictionary is not available in this build",
-  "Could not open the dictionary": "Could not open the dictionary"
+  "Could not open the dictionary": "Could not open the dictionary",
+  "Resize the notes pane": "Resize the notes pane",
+  "Drag to resize the notes pane": "Drag to resize the notes pane"
 }

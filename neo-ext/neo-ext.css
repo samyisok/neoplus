@@ -211,3 +211,64 @@
   font-style: italic;
   opacity: 0.75;
 }
+
+/* ── adr-004: the right-hand pane's width ─────────────────────────────
+   The pane belongs to core NEO, which fixes it at 250px. The fork publishes
+   one variable and overrides the six page offsets that assume that number. */
+:root { --neo-side-w: 250px; }
+
+#side-pane { width: var(--neo-side-w); }
+
+/* A sticky zero-height element does not scroll away with the notes (a fixed
+   child inside this transformed, scrolling pane does). Its pseudo-elements
+   carry the hit area and the one-pixel line. */
+.neo-ext-side-grip {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 0;
+  z-index: 2;
+  cursor: col-resize;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  touch-action: none;
+}
+.neo-ext-side-grip::before,
+.neo-ext-side-grip::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* the pane's 36px top padding is inside the handle: start the visible
+     strip at the pane's own top edge, and let the sticky element carry it
+     when the notes scroll */
+  top: -36px;
+  height: calc(100vh / var(--ui-zoom, 1) - 4px);
+  pointer-events: auto;
+}
+.neo-ext-side-grip::before { width: 10px; background: transparent; cursor: col-resize; }
+.neo-ext-side-grip::after { width: 1px; background: transparent; }
+#side-pane:hover .neo-ext-side-grip::after,
+.neo-ext-side-grip:hover::after,
+.neo-ext-side-grip:focus-visible::after,
+body.neo-ext-resizing .neo-ext-side-grip::after {
+  background: var(--accent);
+  opacity: 0.7;
+}
+.neo-ext-side-grip:focus-visible { outline: none; }
+.neo-ext-side-grip:focus-visible::after { width: 2px; opacity: 1; }
+body.neo-ext-resizing { cursor: col-resize; user-select: none; }
+
+#editor-view.side-pinned #paper-scroll,
+#editor-view.darlings-tab #paper-scroll {
+  left: calc(50% - var(--neo-side-w) * 0.5 * var(--ui-zoom));
+}
+#editor-view.nav-pinned.side-pinned #paper-scroll,
+#editor-view.darlings-tab.nav-pinned #paper-scroll {
+  left: calc(50% - (var(--neo-side-w) - 248px) * 0.5 * var(--ui-zoom));
+}
+#editor-view.board-on.side-pinned #paper-scroll,
+#editor-view.board-on.nav-pinned.side-pinned #paper-scroll {
+  right: calc(var(--neo-side-w) * var(--ui-zoom));
+}
