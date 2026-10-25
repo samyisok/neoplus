@@ -320,6 +320,17 @@ Every fork feature lives in `neo-ext/`. Upstream files get at most a one-line se
 - `fork` = upstream + seams + `neo-ext/`; one branch per feature off `fork`, merged back into `fork`.
 - `git remote add upstream https://github.com/hughhowey/neo` once. Sync: `git fetch upstream main && git switch fork && git merge upstream/main`. Conflicts should only touch seam lines and the end of this file. Then `node neo-ext/check-seams.js`, `npm run lint`, `npm test`, `~/.local/bin/neo-reinstall`.
 
+### Versioning: upstream number, fork number
+
+`package.json` carries both numbers in one semver string: `<upstream>+fork.<n>`.
+
+- The first three numbers are upstream's release and nothing else: `1.6.0` today. Build metadata is ignored by npm and electron-updater, so the fork still reads as 1.6.0 to the update machinery.
+- `n` is the fork's feature count: the highest archived `adr-NNN` number. `1.6.0+fork.2` is upstream 1.6.0 with ADR-002 in it.
+- About NEO, the `.AppImage` name, and the desktop entry's `X-Neo-Version` all read this one string.
+- Merging an upstream release: take upstream's version and append `+fork.<n>` again.
+- Archiving an ADR: raise `n` (`npm pkg set version="<upstream>+fork.<n>"`, and the root version in `package-lock.json`), then `npm run check:version`. `scripts/version.test.js` runs in `npm test`.
+- Never change the three upstream numbers for a fork feature, and never use `-fork.<n>`: a prerelease sorts below the release it is based on.
+
 ### The seams (the only upstream-file edits allowed)
 
 Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the index.html scripts), so `grep -rn "NEO-EXT seam" .` lists every divergence. The preload bridge is one marked block, inline because a sandboxed preload cannot `require` a local file.
