@@ -1,11 +1,22 @@
 {
-  "format": 2,
+  "format": 3,
   "language": "en",
-  "source": "https://raw.githubusercontent.com/LibreOffice/dictionaries/2f0ddaeeb4323ac99afd35d2c4fda643c9ee8bcf/en/th_en_US_v2.dat",
-  "commit": "2f0ddaeeb4323ac99afd35d2c4fda643c9ee8bcf",
-  "sha256": "8a3e4637450b7277428da248f0a604b5c92942bc30507220c051181462340f39",
-  "headwords": 144863,
-  "synonyms": 793623,
+  "edition": "2025",
+  "source": "https://github.com/globalwordnet/english-wordnet/releases/download/2025-edition/english-wordnet-2025-json.zip",
+  "sha256": "7d749f6e2c39e6970e4997839dcf6e42fd281f3c2fae0171d2192bae8cfa4b51",
+  "headwords": 123673,
+  "relations": 648541,
   "shards": 26,
-  "gzBytes": 4469995
+  "gzBytes": 3754440,
+  "schema": {
+    "shard": 2,
+    "entry": "[{ pos, syns: [{ w, rel }] }]",
+    "rel": [
+      "",
+      "generic",
+      "similar",
+      "related",
+      "antonym"
+    ]
+  }
 }

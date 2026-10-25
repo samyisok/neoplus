@@ -1,15 +1,17 @@
-// NEO fork — Thesaurus… in the editor (adr-002)
+// NEO fork — Thesaurus… in the editor (adr-002, one shared word context in adr-003)
 //
-// Resolves the word under a right-click, hands it to the native menu before it
-// is built, and replaces the word when the synonym window returns a choice.
+// Reads the word the shared context resolved, hands its own menu item to the
+// native menu, and replaces the word when the synonym window returns a choice.
 // The window itself is neo-ext/thesaurus-window.js; the rules are in
-// neo-ext/lib/thesaurus-lookup.js.
+// neo-ext/lib/thesaurus-lookup.js; the word and its range are in
+// neo-ext/word-context.js.
 
 'use strict';
 
 (function () {
   const rules = window.NeoThesaurusRules;
-  if (!rules) return;
+  const context = window.NeoWordContext;
+  if (!rules || !context) return;
 
   const x = (s, vars) => {
     const dict = (typeof window !== 'undefined' && window.NeoExtLocale) || {};
@@ -24,34 +26,14 @@
   };
 
   const bridge = () => window.NeoForkNative || null;
-  const MAX_WORD = rules.MAX_WORD || 120;
-  const EDITOR = '.chapter-body, #aux-editor, .fn-text';
 
   function report(err) {
     try { if (window.neo && window.neo.logError) window.neo.logError('thesaurus: ' + ((err && err.message) || err)); } catch { /* logging is a nicety */ }
   }
 
-  let pending = null;
-  let stored = false;
-
-  function storeWord(word) {
-    const api = bridge();
-    if (!api || typeof api.setContextWord !== 'function') return;
-    stored = true;
-    api.setContextWord(word);
-  }
-
-  // Clearing is the common case (every right-click that is not on a word), so
-  // it uses the fire-and-forget channel: a synchronous IPC on the shelf would
-  // block the page on whatever the main process is writing.
-  function clearWord() {
-    const api = bridge();
-    if (!api) return;
-    if (!stored && typeof api.clearContextWord === 'function') return;
-    stored = false;
-    if (typeof api.clearContextWord === 'function') api.clearContextWord();
-    else if (typeof api.setContextWord === 'function') api.setContextWord('');
-  }
+  // The entry this feature is acting on. The shared context spends its word
+  // when the window opens, so the range lives here until the choice is made.
+  let active = null;
   let dataStatus = { available: false };
   let asked = false;
 
@@ -74,99 +56,30 @@
     } catch (err) { report(err); }
   }
 
-  function languageIsEnglish() {
-    const api = window.NeoExtApi;
-    const code = api && typeof api.spellLanguage === 'function' ? api.spellLanguage() : '';
-    return /^en(-|$)/i.test(code);
-  }
-
-  function menuAllowed() {
-    const api = window.NeoExtApi;
-    if (!api || typeof api.moreFeatures !== 'function' || !api.moreFeatures()) return false;
-    if (!languageIsEnglish()) return false;
+  function available() {
     return !!(dataStatus && dataStatus.available);
   }
 
-  function pointRange(x0, y0) {
+  function editorFor(range) {
     try {
-      if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x0, y0);
-      if (document.caretPositionFromPoint) {
-        const pos = document.caretPositionFromPoint(x0, y0);
-        if (!pos) return null;
-        const range = document.createRange();
-        range.setStart(pos.offsetNode, pos.offset);
-        range.collapse(true);
-        return range;
-      }
-    } catch { /* outside the page */ }
-    return null;
+      return range && range.startContainer && range.startContainer.parentElement
+        ? range.startContainer.parentElement.closest(context.EDITOR)
+        : null;
+    } catch { return null; }
   }
 
-  // A selection of one word wins. Two or more words suppress the feature: the
-  // writer asked about a word, not a phrase, and replacing a phrase would
-  // surprise them.
-  function resolveWord(event) {
-    const selection = window.getSelection();
-    const before = selection && selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-    let chosen = '';
-    if (selection && selection.rangeCount && !selection.isCollapsed) chosen = selection.toString().trim();
-    if (chosen && /\s/.test(chosen)) return null;
-
-    let node = null;
-    let bounds = null;
-    const at = pointRange(event.clientX, event.clientY);
-    if (at && at.startContainer && at.startContainer.nodeType === Node.TEXT_NODE) {
-      node = at.startContainer;
-      bounds = rules.wordBounds(node.data, at.startOffset);
-    }
-
-    if (chosen) {
-      const range = selection.getRangeAt(0);
-      if (range.startContainer.nodeType === Node.TEXT_NODE && range.endContainer === range.startContainer) {
-        const own = rules.wordBounds(range.startContainer.data, range.startOffset);
-        if (!own || rules.normalize(own.word) !== rules.normalize(chosen)) return null;
-        node = range.startContainer;
-        bounds = own;
-      } else if (!bounds || rules.normalize(bounds.word) !== rules.normalize(chosen)) {
-        return null;
-      }
-    }
-
-    if (!node || !bounds) return null;
-    const range = document.createRange();
-    range.setStart(node, bounds.start);
-    range.setEnd(node, bounds.end);
-    return { word: bounds.word, range, before, selected: !!chosen };
-  }
-
-  function onContextMenu(event) {
-    try {
-      pending = null;
-      const api = bridge();
-      if (!api || typeof api.setContextWord !== 'function') return;
-      const editor = event.target && event.target.closest && event.target.closest(EDITOR);
-      if (!editor || !editor.isContentEditable || !menuAllowed()) {
-        clearWord();
-        return;
-      }
-      const found = resolveWord(event);
-      if (!found || found.word.length > MAX_WORD) {
-        clearWord();
-        return;
-      }
-      pending = found;
-      storeWord(found.word);
-    } catch { /* a right-click must never throw */ }
+  function spend() {
+    active = null;
+    context.clear();
   }
 
   function restore(entry) {
-    pending = null;
+    spend();
     const range = entry && entry.range;
     if (!range) return;
     try {
       if (!document.contains(range.startContainer)) return;
-      const editor = range.startContainer.parentElement
-        && range.startContainer.parentElement.closest(EDITOR);
+      const editor = editorFor(range);
       if (editor && editor.focus) editor.focus({ preventScroll: true });
       let target = range;
       if (entry.before && document.contains(entry.before.startContainer)) target = entry.before;
@@ -178,7 +91,7 @@
   }
 
   function replace(entry, synonym) {
-    pending = null;
+    spend();
     const range = entry.range;
     let alive = false;
     try {
@@ -187,7 +100,7 @@
     if (!alive) {
       try {
         if (range && document.contains(range.startContainer)) {
-          const lost = range.startContainer.parentElement && range.startContainer.parentElement.closest(EDITOR);
+          const lost = editorFor(range);
           if (lost && lost.focus) lost.focus({ preventScroll: true });
         }
       } catch { /* the page moved on */ }
@@ -196,8 +109,7 @@
     }
 
     try {
-      const editor = range.startContainer.parentElement
-        && range.startContainer.parentElement.closest(EDITOR);
+      const editor = editorFor(range);
       if (editor && editor.focus) editor.focus({ preventScroll: true });
       const selection = window.getSelection();
       selection.removeAllRanges();
@@ -219,8 +131,16 @@
   }
 
   function openWord(word) {
-    if (!pending || rules.normalize(pending.word) !== rules.normalize(word)) return;
-    const entry = pending;
+    // The live context always wins: a Look Up popup the writer dismissed leaves
+    // its entry behind, and that entry may be the same word in another chapter.
+    // The stash is only the popup's own path, where the context was spent.
+    let entry = null;
+    if (context.matches(word)) entry = context.current();
+    else if (active && rules.normalize(active.word) === rules.normalize(word)) entry = active;
+    active = null;
+    context.clear();
+    if (!entry) return;
+    if (!entry) return;
     if (window.NeoThesaurusWindow && NeoThesaurusWindow.otherModalOpen()) {
       toast(x('Close the other window first'));
       return;
@@ -232,7 +152,6 @@
     }
     api.thesaurus(entry.word).then((res) => {
       if (!res || !res.ok) {
-        pending = null;
         toast(res && res.reason === 'unavailable'
           ? x('Thesaurus data is missing')
           : x('No synonyms for “{word}”', { word: entry.word }));
@@ -252,18 +171,16 @@
     });
   }
 
-  function lookUpMenu(items, word) {
-    if (!Array.isArray(items)) return false;
-    if (!pending || rules.normalize(pending.word) !== rules.normalize(word)) return false;
-    // the popup takes over from the native menu, so the stored word is spent
-    clearWord();
-    if (!menuAllowed()) return false;
-    items.push({ label: x('Thesaurus…'), value: 'thesaurus' });
-    return true;
+  // What the shared Look Up popup asks for. The range is kept here: the popup
+  // takes over from the native menu and the shared context spends its word
+  // once both features have offered theirs.
+  function lookUpItem() {
+    if (!available()) return null;
+    active = context.current();
+    return { label: x('Thesaurus…'), value: 'thesaurus' };
   }
 
   askStatus();
-  document.addEventListener('contextmenu', onContextMenu, true);
 
-  window.NeoThesaurus = { openWord, lookUpMenu, lookUpChoice: openWord };
+  window.NeoThesaurus = { openWord, lookUpItem, lookUpChoice: openWord };
 })();

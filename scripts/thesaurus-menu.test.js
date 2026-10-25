@@ -1,7 +1,8 @@
-// NEO fork — thesaurus main-process wiring (adr-002)
+// NEO fork — thesaurus main-process wiring (adr-002, shared word context in adr-003)
 //
 // Drives the real shards through the same handlers the window calls: status,
-// lookup, the context word, the native menu item, and the macOS Look Up item.
+// lookup, the menu item the shared registry asks for, and the renderer's Look
+// Up seam.
 
 'use strict';
 
@@ -10,33 +11,23 @@ const assert = require('node:assert');
 const path = require('node:path');
 
 const thes = require('../neo-ext/thesaurus-main.js');
+const context = require('../neo-ext/word-context-main.js');
 
-
-function fake() {
+function fake(extra) {
   const handlers = new Map();
   const listeners = new Map();
-  const sent = [];
   const deps = {
     ipcMain: {
       handle: (ch, fn) => handlers.set(ch, fn),
       on: (ch, fn) => listeners.set(ch, fn)
     },
-    logError: () => {}
+    logError: () => {},
+    ...(extra || {})
   };
   thes.init(deps);
-  const win = {
-    webContents: {
-      id: 1,
-      send: (channel, msg) => sent.push({ channel, msg })
-    }
-  };
-  const event = { sender: { id: 1 }, returnValue: undefined };
-  return { handlers, listeners, sent, win, event };
-}
-
-function seed(listeners, event, word) {
-  listeners.get('neo-ext:context-word')(event, word);
-  return event;
+  context.init(deps);
+  const win = { webContents: { id: 1, send: () => {} } };
+  return { handlers, listeners, win };
 }
 
 test('status: bundled data is available', async () => {
@@ -82,6 +73,15 @@ test('lookup: an inflected form resolves to its headword', async () => {
   assert.ok(res.count > 0);
 });
 
+test('lookup: a known opposite keeps its label and stays a word', async () => {
+  const { handlers } = fake();
+  const res = await handlers.get('neo-ext:thesaurus')({}, 'good');
+  assert.equal(res.ok, true);
+  const antonyms = res.groups.filter((g) => g.rel === 'antonym').flatMap((g) => g.syns);
+  assert.ok(antonyms.includes('bad'), `good antonyms: ${antonyms.slice(0, 5)}`);
+  assert.ok(antonyms.every((w) => !/[()]/.test(w)));
+});
+
 test('lookup: an unknown word and a non-letter word report no entry', async () => {
   const { handlers } = fake();
   for (const word of ['xyzzyplugh', '1990s', '', '   ']) {
@@ -101,68 +101,21 @@ test('lookup: a warm shard answers well under 150 ms', async () => {
   assert.ok(ms < 150, `warm lookup took ${ms.toFixed(1)} ms`);
 });
 
-test('context menu: a stored word adds the item first, with a rule after it', () => {
-  const { listeners, event, win } = fake();
-  seed(listeners, event, 'batch');
-  const items = [{ role: 'cut' }, { role: 'copy' }, { type: 'separator' }, { role: 'selectAll' }];
-  thes.contextMenu(items, {}, win);
-  assert.equal(items[0].label, 'Thesaurus…');
-  assert.equal(items[1].type, 'separator');
-  assert.equal(items[2].role, 'cut');
-  assert.equal(items.length, 6);
-});
+test('menu item: readable data offers the item; a missing directory offers none', () => {
+  const live = fake();
+  const item = thes.menuItem('batch');
+  assert.equal(item.label, 'Thesaurus…');
+  assert.equal(item.action, 'thesaurus');
+  assert.equal(item.word, 'batch');
+  assert.equal(live.handlers.size > 0, true);
 
-test('context menu: the stored word is consumed once', () => {
-  const { listeners, event, win } = fake();
-  seed(listeners, event, 'batch');
-  thes.contextMenu([{ role: 'copy' }], {}, win);
-  const second = [{ role: 'copy' }];
-  thes.contextMenu(second, {}, win);
-  assert.deepEqual(second, [{ role: 'copy' }]);
-});
-
-test('context menu: no word leaves the menu untouched', () => {
-  const { win } = fake();
-  const items = [{ role: 'cut' }, { role: 'copy' }];
-  thes.contextMenu(items, {}, win);
-  assert.deepEqual(items, [{ role: 'cut' }, { role: 'copy' }]);
-});
-
-test('context menu: the item sends the word to the window', () => {
-  const { listeners, event, win, sent } = fake();
-  seed(listeners, event, 'batch');
-  const items = [];
-  thes.contextMenu(items, {}, win);
-  items[0].click();
-  assert.deepEqual(sent, [{ channel: 'menu', msg: { type: 'neo-ext', action: 'thesaurus', word: 'batch' } }]);
-});
-
-test('context menu: windows do not share a stored word', () => {
-  const { listeners, win } = fake();
-  const other = { webContents: { id: 2, send: () => {} } };
-  const first = { sender: { id: 1 }, returnValue: undefined };
-  listeners.get('neo-ext:context-word')(first, 'batch');
-  const items = [{ role: 'copy' }];
-  thes.contextMenu(items, {}, other);
-  assert.deepEqual(items, [{ role: 'copy' }]);
-  const mine = [{ role: 'copy' }];
-  thes.contextMenu(mine, {}, win);
-  assert.equal(mine[0].label, 'Thesaurus…');
-});
-
-test('context menu: a word with no data leaves the menu untouched', () => {
   const handlers = new Map();
-  const listeners = new Map();
   thes.init({
-    ipcMain: { handle: (ch, fn) => handlers.set(ch, fn), on: (ch, fn) => listeners.set(ch, fn) },
+    ipcMain: { handle: (ch, fn) => handlers.set(ch, fn), on: () => {} },
     logError: () => {},
     dataDir: path.join(__dirname, 'no-such-thesaurus')
   });
-  const win = { webContents: { id: 1, send: () => {} } };
-  listeners.get('neo-ext:context-word')({ sender: { id: 1 } }, 'batch');
-  const items = [{ role: 'copy' }];
-  thes.contextMenu(items, {}, win);
-  assert.deepEqual(items, [{ role: 'copy' }]);
+  assert.equal(thes.menuItem('batch'), null);
 });
 
 test('lookup: overlong words are refused before any shard is read', async () => {
@@ -183,7 +136,8 @@ test('lookup: words absent from the data report none', async () => {
 test('renderer: the Look Up seam appends one item and spends the stored word', async () => {
   const vm = require('node:vm');
   const fs = require('node:fs');
-  const code = fs.readFileSync(path.join(__dirname, '..', 'neo-ext', 'thesaurus.js'), 'utf8');
+  const read = (name) => fs.readFileSync(path.join(__dirname, '..', 'neo-ext', name), 'utf8');
+  const forms = require('../neo-ext/lib/word-forms.js');
   const calls = [];
   const node = { nodeType: 3, data: 'batch' };
   const range = {
@@ -210,16 +164,19 @@ test('renderer: the Look Up seam appends one item and spends the stored word', a
     NeoForkNative: {
       thesaurusStatus: () => Promise.resolve({ available: true }),
       setContextWord: (word) => calls.push(['set', word]),
-      clearContextWord: () => calls.push(['clear'])
+      clearContextWord: () => calls.push(['clear']),
+      thesaurus: (word) => { calls.push(['lookup', word]); return Promise.resolve({ ok: false, reason: 'none' }); }
     },
     NeoExtApi: { moreFeatures: () => true, spellLanguage: () => 'en-US' },
     NeoExt: { toast: () => {} },
+    NeoWordForms: forms,
     NeoThesaurusRules: require('../neo-ext/lib/thesaurus-lookup.js')
   };
   context.window = context;
   context.getSelection = () => ({ rangeCount: 0, isCollapsed: true, toString: () => '' });
   vm.createContext(context);
-  vm.runInContext(code, context);
+  vm.runInContext(read('word-context.js'), context);
+  vm.runInContext(read('thesaurus.js'), context);
   await new Promise((resolve) => setImmediate(resolve));
 
   assert.equal(typeof listener, 'function');
@@ -227,11 +184,16 @@ test('renderer: the Look Up seam appends one item and spends the stored word', a
   assert.deepEqual(calls[0], ['set', 'batch']);
 
   const items = [];
-  assert.equal(context.NeoThesaurus.lookUpMenu(items, 'batch'), true);
+  assert.equal(context.NeoWordContext.lookUpMenu(items, 'batch'), true);
   assert.deepEqual(items, [{ label: 'Thesaurus…', value: 'thesaurus' }]);
   assert.deepEqual(calls[1], ['clear']);
-  assert.equal(context.NeoThesaurus.lookUpMenu(items, 'other'), false);
+  assert.equal(context.NeoWordContext.lookUpMenu(items, 'other'), false);
   assert.equal(items.length, 1);
+
+  // A popup the writer dismissed leaves its entry behind; a later open of a
+  // different word must not use it.
+  context.NeoThesaurus.openWord('other');
+  assert.ok(!calls.some((c) => c[0] === 'lookup'), 'no lookup for an unrelated word');
 });
 
 test('lookup: an exact entry with only itself answers none, not a fallback form', async () => {
@@ -239,4 +201,96 @@ test('lookup: an exact entry with only itself answers none, not a fallback form'
   const res = await handlers.get('neo-ext:thesaurus')({}, 'asap');
   assert.equal(res.ok, false);
   assert.equal(res.reason, 'none');
+});
+
+test('renderer: a dismissed Look Up does not replace the same word in an old chapter', async () => {
+  const vm = require('node:vm');
+  const fs = require('node:fs');
+  const read = (name) => fs.readFileSync(path.join(__dirname, '..', 'neo-ext', name), 'utf8');
+  const forms = require('../neo-ext/lib/word-forms.js');
+
+  const editor = (id) => ({ isContentEditable: true, dataset: { id }, focus() {} });
+  const nodeIn = (id) => {
+    const node = { nodeType: 3, data: 'batch' };
+    node.parentElement = { closest: (sel) => (String(sel).includes('chapter-body') ? editor(id) : null) };
+    return node;
+  };
+  const nodeA = nodeIn('a');
+  const nodeB = nodeIn('b');
+  let caret = nodeA;
+  let listener = null;
+  const added = [];
+  let picked = null;
+  const makeRange = (node) => ({
+    startContainer: node,
+    endContainer: node,
+    startOffset: 0,
+    endOffset: 5,
+    cloneRange() { return this; },
+    collapse() {},
+    toString() { return node.data; }
+  });
+  const selection = {
+    rangeCount: 0,
+    isCollapsed: true,
+    toString: () => '',
+    removeAllRanges() {},
+    addRange: (range) => added.push(range),
+    getRangeAt: () => makeRange(caret)
+  };
+  const document = {
+    addEventListener: (type, fn) => { if (type === 'contextmenu') listener = fn; },
+    createRange: () => ({
+      startContainer: null,
+      endContainer: null,
+      setStart(node, at) { this.startContainer = node; this.startOffset = at; },
+      setEnd(node, at) { this.endContainer = node; this.endOffset = at; },
+      collapse() {},
+      toString() { return 'batch'; }
+    }),
+    caretRangeFromPoint: () => ({ startContainer: caret, startOffset: 0 }),
+    contains: () => true,
+    execCommand: () => true
+  };
+  const context = {
+    console,
+    Node: { TEXT_NODE: 3 },
+    document,
+    NeoForkNative: {
+      thesaurusStatus: () => Promise.resolve({ available: true }),
+      setContextWord: () => {},
+      clearContextWord: () => {},
+      thesaurus: (word) => Promise.resolve({ ok: true, word, groups: [{ pos: 'noun', rel: '', syns: ['deal'] }], count: 1 })
+    },
+    NeoExtApi: { moreFeatures: () => true, spellLanguage: () => 'en-US' },
+    NeoExt: { toast: () => {} },
+    NeoWordForms: forms,
+    NeoThesaurusRules: require('../neo-ext/lib/thesaurus-lookup.js'),
+    NeoThesaurusWindow: {
+      otherModalOpen: () => false,
+      open: (opts) => { picked = opts; return true; }
+    }
+  };
+  context.window = context;
+  context.getSelection = () => selection;
+  vm.createContext(context);
+  vm.runInContext(read('word-context.js'), context);
+  vm.runInContext(read('thesaurus.js'), context);
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const rightClick = () => listener({ target: { closest: () => editor('x') }, clientX: 0, clientY: 0 });
+
+  // the writer right-clicks a word in chapter a, then dismisses the Look Up popup
+  rightClick();
+  assert.equal(context.NeoWordContext.lookUpMenu([], 'batch'), true);
+
+  // later, the same word is right-clicked in chapter b and opened from the native menu
+  caret = nodeB;
+  rightClick();
+  context.NeoThesaurus.openWord('batch');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(picked, 'the synonym window opened');
+  picked.onPick('deal');
+  assert.equal(added.length, 1);
+  assert.equal(added[0].startContainer, nodeB, 'the live word wins over the dismissed popup');
 });

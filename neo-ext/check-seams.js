@@ -16,7 +16,7 @@ const ROOT = path.join(__dirname, '..');
 // in AGENTS.md; future seams (switchTab, counters, openBook) are added here
 // when they are implemented.
 const SEAMS = [
-  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/thesaurus-lookup.js']],
+  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js']],
   ['preload.js', ['NEO-EXT seam', "exposeInMainWorld('NeoForkNative'"]],
   ['main.js', [
     'NEO-EXT seam',
@@ -28,7 +28,8 @@ const SEAMS = [
   ['app.js', [
     'NEO-EXT seam',
     'NeoExtApi.lookUpMenu(items, word)',
-    'NeoExtApi.lookUpChoice(word)'
+    "choice === 'dictionary'",
+    'NeoExtApi.lookUpChoice(choice, word)'
   ]]
 ];
 

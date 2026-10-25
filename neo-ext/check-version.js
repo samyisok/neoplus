@@ -3,7 +3,9 @@
 //
 // package.json carries upstream's version plus the fork's ADR number. This
 // check fails when the two drift, so an archived feature cannot ship under the
-// previous fork number. Run: node neo-ext/check-version.js
+// previous fork number. Only archived ADRs count: a change still in
+// openspec/changes/ has not shipped, so proposing one does not raise the
+// number (adr-003). Run: node neo-ext/check-version.js
 
 'use strict';
 

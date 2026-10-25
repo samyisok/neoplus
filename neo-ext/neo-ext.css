@@ -154,3 +154,60 @@
   color: #1b1b1b;
   outline: none;
 }
+
+/* dictionary window */
+.neo-ext-dict-backdrop { z-index: 9500; }
+
+.neo-ext-dict {
+  position: relative;
+  width: min(600px, calc(100vw - 48px));
+  max-height: min(78vh, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 18px 16px;
+}
+
+.neo-ext-dict-title { margin: 0; font-size: 15px; font-weight: 600; padding-right: 28px; }
+
+.neo-ext-dict-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.neo-ext-dict-close:hover, .neo-ext-dict-close:focus-visible { opacity: 1; background: var(--rule, rgba(255, 255, 255, 0.1)); }
+
+.neo-ext-dict-list {
+  overflow: auto;
+  min-height: 80px;
+  padding-right: 4px;
+}
+
+.neo-ext-dict-group { margin-bottom: 16px; }
+.neo-ext-dict-group:last-child { margin-bottom: 0; }
+.neo-ext-dict-group h3 {
+  margin: 6px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.neo-ext-dict-def { margin: 0 0 5px; line-height: 1.5; }
+.neo-ext-dict-ex {
+  margin: 0 0 4px;
+  padding-left: 16px;
+  font-style: italic;
+  opacity: 0.75;
+}

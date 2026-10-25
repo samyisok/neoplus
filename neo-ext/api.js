@@ -62,9 +62,21 @@
     return false;
   }
 
-  function lookUpChoice(word) {
-    try { if (window.NeoExt && typeof window.NeoExt.lookUpChoice === 'function') window.NeoExt.lookUpChoice(word); } catch { /* no fork UI */ }
+  function lookUpChoice(choice, word) {
+    try { if (window.NeoExt && typeof window.NeoExt.lookUpChoice === 'function') window.NeoExt.lookUpChoice(choice, word); } catch { /* no fork UI */ }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, moreFeatures, lookUpMenu, lookUpChoice };
+  // The dictionary's data probe. A bridge that is absent, refusing, or not yet
+  // listening reads as "not available", so a right-click never waits on it.
+  async function dictionaryStatus() {
+    const away = { ok: true, available: false };
+    try {
+      const native = window.NeoForkNative;
+      if (!native || typeof native.dictionaryStatus !== 'function') return away;
+      const res = await native.dictionaryStatus();
+      return res && typeof res === 'object' ? res : away;
+    } catch { return away; }
+  }
+
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, moreFeatures, lookUpMenu, lookUpChoice, dictionaryStatus };
 })();

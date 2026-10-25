@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add File → Backup Book… for a timestamped copy of the open book and File → Settings… with the backup folder used by manual and daily backups. (`2026-10-25-adr-001-book-backup-and-settings`)
 - Add an offline English Thesaurus… to the editor's right-click menu, with synonyms grouped by part of speech and relation, replacing the word as one undoable edit. (`2026-10-25-adr-002-thesaurus`)
+- Add an offline English Dictionary… to the editor's right-click menu and the macOS Look Up popup: definitions and usage examples grouped by part of speech, read-only, never touching the manuscript. (`2026-10-25-adr-003-dictionary`)
 
 ### Changed
+- Move the Thesaurus and the new Dictionary to the Open English WordNet 2025 edition, so both features share one maintained source and one licence story (CC BY 4.0 plus the WordNet notice, both shipped with the data). (`2026-10-25-adr-003-dictionary`)
 ### Deprecated
 ### Removed
 ### Fixed

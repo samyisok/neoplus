@@ -15,6 +15,8 @@ const names = require('./lib/backup-name.js');
 const dirs = require('./lib/backup-dir.js');
 const settings = require('./lib/settings-merge.js');
 const { copyBookDir } = require('./lib/copy-book.js');
+const menuRegistry = require('./lib/menu-registry.js').create();
+const contextWord = require('./word-context-main.js');
 const { t } = require('../i18n.js');
 
 let deps = null;
@@ -165,9 +167,22 @@ function init(injected) {
   if (!deps || !deps.ipcMain) return;
   const { ipcMain, dialog, shell, BrowserWindow } = deps;
 
-  // the thesaurus owns its own data, cache, and menu items; this file only
-  // hands it the process objects
-  try { require('./thesaurus-main.js').init({ ipcMain, logError: deps.logError }); } catch (err) { log('thesaurus init: ' + (err && err.message)); }
+  // the renderer stores the word in this same turn; the menu is built below
+  try { contextWord.init({ ipcMain, logError: deps.logError }); } catch (err) { log('word context init: ' + (err && err.message)); }
+
+  // each lexical feature owns its data, cache, and menu item; this file only
+  // hands it the process objects and its place in the menu
+  menuRegistry.clear();
+  try {
+    const dictionary = require('./dictionary-main.js');
+    dictionary.init({ ipcMain, logError: deps.logError });
+    menuRegistry.register({ id: 'dictionary', order: 10, menuItem: dictionary.menuItem });
+  } catch (err) { log('dictionary init: ' + (err && err.message)); }
+  try {
+    const thesaurus = require('./thesaurus-main.js');
+    thesaurus.init({ ipcMain, logError: deps.logError });
+    menuRegistry.register({ id: 'thesaurus', order: 20, menuItem: thesaurus.menuItem });
+  } catch (err) { log('thesaurus init: ' + (err && err.message)); }
 
   ipcMain.handle('neo-ext:get-backup-settings', async () => {
     const lib = libraryDir();
@@ -232,9 +247,20 @@ function init(injected) {
 }
 
 // Seam 5: the native context menu is built in the main process, so the fork's
-// item has to be added here, in the same turn the renderer stored the word.
+// items have to be added here, in the same turn the renderer stored the word.
+// The registry decides order and availability; one separator follows the pair.
 function contextMenu(items, params, win) {
-  try { require('./thesaurus-main.js').contextMenu(items, params, win); } catch (err) { log('context menu: ' + (err && err.message)); }
+  if (!Array.isArray(items)) return;
+  try {
+    const word = contextWord.take(win);
+    if (!word) return;
+    const present = menuRegistry.items(word);
+    if (!present.length) return;
+    const choose = (item) => () => {
+      try { win.webContents.send('menu', { type: 'neo-ext', action: item.action, word: item.word }); } catch { /* window closed */ }
+    };
+    items.unshift(...present.map((item) => ({ label: item.label, click: choose(item) })), { type: 'separator' });
+  } catch (err) { log('context menu: ' + (err && err.message)); }
 }
 
 // Called from the File-menu seam, before the template is turned into a menu.
@@ -276,4 +302,4 @@ function send(action) {
   }
 }
 
-module.exports = { init, appMenu, contextMenu, backupDir, backupBook, checkFolder, resolvedFolder };
+module.exports = { init, appMenu, contextMenu, menuRegistry, backupDir, backupBook, checkFolder, resolvedFolder };

@@ -24,5 +24,13 @@
   "Broader term": "Broader term",
   "Similar term": "Similar term",
   "Related term": "Related term",
-  "Antonym": "Antonym"
+  "Antonym": "Antonym",
+  "Dictionary…": "Dictionary…",
+  "{n} definitions for “{word}”": "{n} definitions for “{word}”",
+  "One definition for “{word}”": "One definition for “{word}”",
+  "No definition for “{word}”": "No definition for “{word}”",
+  "Dictionary data is missing": "Dictionary data is missing",
+  "Dictionary is not available": "Dictionary is not available",
+  "Dictionary is not available in this build": "Dictionary is not available in this build",
+  "Could not open the dictionary": "Could not open the dictionary"
 }

@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "language": "en",
+  "edition": "2025",
+  "source": "https://github.com/globalwordnet/english-wordnet/releases/download/2025-edition/english-wordnet-2025-json.zip",
+  "sha256": "7d749f6e2c39e6970e4997839dcf6e42fd281f3c2fae0171d2192bae8cfa4b51",
+  "headwords": 126595,
+  "senses": 184307,
+  "shards": 26,
+  "gzBytes": 5991540,
+  "schema": {
+    "entry": "headword -> [{ pos, def, ex? }]",
+    "pos": [
+      "noun",
+      "verb",
+      "adj",
+      "adv"
+    ],
+    "examples": 4
+  }
+}

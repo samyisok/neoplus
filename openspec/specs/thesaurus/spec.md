@@ -4,6 +4,7 @@
 Lets a writer look up English synonyms for a word in the open book without leaving NEO or reaching the internet, and replace the word with the chosen synonym in one undoable step.
 
 ## Requirements
+
 ### Requirement: Thesaurus entry in the editor's context menu
 
 The system SHALL offer **Thesaurus…** in the right-click menu of the manuscript and the notes page when a single word can be resolved and English thesaurus data is available.
@@ -66,7 +67,8 @@ The system SHALL resolve synonyms from data bundled with the application, withou
 - A word with no entry SHALL produce a short message naming the word, and SHALL NOT open an empty synonym window.
 - Lookup SHALL answer within 150 ms once the data for that word's first letter is in memory, and the first lookup for a letter SHALL answer within 500 ms from a local disk.
 - Lookup SHALL remain correct when the application is packaged and when the machine is offline.
-- The bundled data SHALL be accompanied by the license and attribution required by its source, and both SHALL ship in packaged builds.
+- The bundled data SHALL be the Open English WordNet 2025 edition, derived from Princeton WordNet: synonyms from a synset's members, broader terms from its direct hypernyms, similar terms from its `similar` links, related terms from its `also` links, and antonyms from the sense-level antonym links.
+- The data SHALL travel with the Creative Commons Attribution 4.0 attribution to the Open English WordNet team and Princeton University, and with the WordNet notice; both SHALL ship in packaged builds.
 
 #### Scenario: Word with several senses
 

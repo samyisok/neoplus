@@ -216,6 +216,7 @@ npm test                   # node --test scripts/*.test.js
 npm run test:coverage      # node --test --experimental-test-coverage scripts/*.test.js
 npm run lint               # oxlint, Electron's standard-style JavaScript rules
 npm run test:spellcheck    # node --test scripts/spellcheck.test.js
+npm run test:dictionary    # electron scripts/dictionary.e2e.js (real launch, throwaway library)
 npm run test:dashes        # node --test scripts/dashes.test.js
 npm run bundle             # Hugh: brings in the newest .bundle from ~/Downloads and pushes main
 npm run try                # Hugh: opens the newest .bundle's NEO on a copy of the library, pushes nothing (-- fresh: an empty library)
@@ -337,7 +338,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 
 | # | File | Anchor to insert after/before | Line |
 |---|---|---|---|
-| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, thesaurus lookup/window/editor, settings, boot), last on the page; classic scripts share app.js's global scope |
+| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, thesaurus lookup, word context, thesaurus and dictionary windows and editors, settings, boot), last on the page; classic scripts share app.js's global scope |
 | 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
 | 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
 | 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
@@ -346,7 +347,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 | 7 | `main.js` | inside `app.whenReady().then(...)`, after `ensureLibrary()`, before `createWindow()` | `require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, … })` — `shell` is not imported at the top of main.js |
 | 8 | `preload.js` | after the `window.neo` exposure | the inline `NeoForkNative` bridge — inline because a sandboxed preload cannot `require` a local file |
 | 9 | `main.js` | in `dailyBackup`, where `backupsDir` is computed | `const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR);` |
-| 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `…lookUpChoice(word)` |
+| 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `…lookUpChoice(choice, word)` — the choice, not the word, decides which feature opens |
 
 Rows 1, 5, 6, 7, 8, 9, 10 exist today; 2–4 are added with the features that need them. `neo-ext/check-seams.js` asserts the seven that exist.
 
@@ -360,7 +361,7 @@ Right-click menus are Electron's, not the page's: renderer `preventDefault` cann
 - Storage: own sidecars, `window.neo.readJSON/writeJSON(bookId, 'neo-ext-<name>', …)`; one path segment (`libName`), so no subfolders. Debounce writes like `writeSidecar` in `app.js` does. Chapters are never rewritten to hold plugin data.
 - Merge-tolerant data: append-only, id-keyed records reconciled by union on read (`{id, chapterId, at, …}`). Two devices then add to each other instead of last-write-winning. Never store a mutable running total; compute it.
 - Anchors for character/item/world notes: `data-sec-id` (the same id `book.sectionNotes` uses) plus paragraph ordinal and a short text hash as fallback for finding the words again after edits or an upstream restore. Chapter id alone is too coarse.
-- Dictionary additions: reuse the existing path — `spell:learn` for the running checker plus `library.customWords` via the core `writeLibrary` generation check. Do not invent a second word list.
+- Custom-word additions: reuse the existing path — `spell:learn` for the running checker plus `library.customWords` via the core `writeLibrary` generation check. Do not invent a second word list.
 - i18n: plugin strings stay in `neo-ext/locales/`, translated by a small key-equals-English helper in `boot.js`. Do not add files to `scripts/i18n.js`'s scanner (it would drag fork strings into upstream's template).
 - Pocket: `scripts/pocket-www.js` copies a fixed file list only, so fork features stay desktop-only. If a feature must reach Pocket, add its files to that copy list and guard missing DOM.
 - Never inline script or use `eval` (CSP `script-src 'self'`); all disk access stays behind `window.neo`.

@@ -92,5 +92,7 @@ contextBridge.exposeInMainWorld('NeoForkNative', {
   setContextWord: (word) => ipcRenderer.sendSync('neo-ext:context-word', typeof word === 'string' ? word : ''),
   clearContextWord: () => ipcRenderer.send('neo-ext:context-word', ''),
   thesaurus: (word) => ipcRenderer.invoke('neo-ext:thesaurus', word),
-  thesaurusStatus: () => ipcRenderer.invoke('neo-ext:thesaurus-status')
+  thesaurusStatus: () => ipcRenderer.invoke('neo-ext:thesaurus-status'),
+  dictionary: (word) => ipcRenderer.invoke('neo-ext:dictionary', word),
+  dictionaryStatus: () => ipcRenderer.invoke('neo-ext:dictionary-status')
 });

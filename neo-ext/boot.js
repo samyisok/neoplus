@@ -78,6 +78,7 @@
       if (msg.action === 'settings') window.NeoSettings.open();
       else if (msg.action === 'backup-book') backupBook();
       else if (msg.action === 'thesaurus' && window.NeoThesaurus) window.NeoThesaurus.openWord(msg.word);
+      else if (msg.action === 'dictionary' && window.NeoDictionary) window.NeoDictionary.openWord(msg.word);
     });
   }
 
@@ -112,7 +113,7 @@
     toast,
     backupBook,
     openSettings: () => window.NeoSettings.open(),
-    lookUpMenu: (items, word) => (window.NeoThesaurus ? window.NeoThesaurus.lookUpMenu(items, word) : false),
-    lookUpChoice: (word) => { if (window.NeoThesaurus) window.NeoThesaurus.lookUpChoice(word); }
+    lookUpMenu: (items, word) => (window.NeoWordContext ? window.NeoWordContext.lookUpMenu(items, word) : false),
+    lookUpChoice: (choice, word) => { if (window.NeoWordContext) window.NeoWordContext.lookUpChoice(choice, word); }
   };
 })();

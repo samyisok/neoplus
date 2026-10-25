@@ -25,18 +25,17 @@ function format(upstream, fork) {
   return `${upstream}+fork.${fork}`;
 }
 
-// The highest ADR number in either the active or the archived changes. A
-// change is a feature; its number is the fork's version.
+// The highest ADR number among the archived changes. A change is a feature;
+// its number is the fork's version once it ships. An active change has not
+// shipped yet, so it must not raise the number it is about to claim (adr-003).
 function highestAdr(root) {
-  const base = path.join(root || '.', 'openspec', 'changes');
+  const archive = path.join(root || '.', 'openspec', 'changes', 'archive');
   let best = 0;
-  for (const dir of [base, path.join(base, 'archive')]) {
-    let names = [];
-    try { names = fs.readdirSync(dir); } catch { continue; }
-    for (const name of names) {
-      const match = /(?:^|-)(adr-(\d{3}))(?:-|$)/.exec(name);
-      if (match) best = Math.max(best, Number(match[2]));
-    }
+  let names = [];
+  try { names = fs.readdirSync(archive); } catch { return best; }
+  for (const name of names) {
+    const match = /(?:^|-)(adr-(\d{3}))(?:-|$)/.exec(name);
+    if (match) best = Math.max(best, Number(match[2]));
   }
   return best;
 }

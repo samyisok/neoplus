@@ -29,6 +29,20 @@ test('format: round-trips and refuses nonsense', () => {
   assert.throws(() => version.format('1.6.0', 0));
 });
 
+test('highestAdr: an active change does not raise the fork number', () => {
+  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'neo-version-'));
+  fs.mkdirSync(path.join(root, 'openspec', 'changes', 'adr-009-in-flight'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'openspec', 'changes', 'archive', '2026-01-01-adr-002-thesaurus'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'openspec', 'changes', 'archive', '2026-01-02-adr-005-other'), { recursive: true });
+  try {
+    assert.equal(version.highestAdr(root), 5);
+    fs.mkdirSync(path.join(root, 'openspec', 'changes', 'adr-012-just-proposed'), { recursive: true });
+    assert.equal(version.highestAdr(root), 5, 'a proposed change must not claim the version');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('repository: the fork number is the highest archived ADR', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   const parsed = version.parse(pkg.version);

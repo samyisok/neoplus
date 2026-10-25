@@ -90,7 +90,8 @@ test('menu: a template without a File menu is left alone', async () => {
 test('init registers every fork channel', async () => {
   const { handlers } = fake(await tmpRoot());
   for (const ch of ['neo-ext:get-backup-settings', 'neo-ext:pick-backup-folder', 'neo-ext:check-backup-folder',
-    'neo-ext:save-backup-settings', 'neo-ext:backup-book', 'neo-ext:reveal-backup']) {
+    'neo-ext:save-backup-settings', 'neo-ext:backup-book', 'neo-ext:reveal-backup',
+    'neo-ext:thesaurus-status', 'neo-ext:thesaurus', 'neo-ext:dictionary-status', 'neo-ext:dictionary']) {
     assert.equal(typeof handlers.get(ch), 'function', ch);
   }
 });

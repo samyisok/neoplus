@@ -14658,7 +14658,7 @@ document.addEventListener('contextmenu', (e) => {
   if (window.NeoExtApi) window.NeoExtApi.lookUpMenu(items, word); /* NEO-EXT seam */
   popMenu(e.clientX, e.clientY, items).then((choice) => {
     if (choice === 'lookup') window.neo.lookUpText();
-    else if (choice === 'thesaurus' && window.NeoExtApi) window.NeoExtApi.lookUpChoice(word); /* NEO-EXT seam */
+    else if ((choice === 'dictionary' || choice === 'thesaurus') && window.NeoExtApi) window.NeoExtApi.lookUpChoice(choice, word); /* NEO-EXT seam */
   });
 });
 

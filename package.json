@@ -1,7 +1,7 @@
 {
   "name": "neo",
   "productName": "NEO",
-  "version": "1.6.0+fork.2",
+  "version": "1.6.0+fork.3",
   "description": "A word processor for authors. Distraction-free by default.",
   "homepage": "https://github.com/hughhowey/neo",
   "main": "main.js",
@@ -31,7 +31,8 @@
     "package:win": "electron-builder --win",
     "package:linux": "electron-builder --linux",
     "package:all": "electron-builder --mac --win --linux",
-    "check:version": "node neo-ext/check-version.js"
+    "check:version": "node neo-ext/check-version.js",
+    "test:dictionary": "electron scripts/dictionary.e2e.js"
   },
   "build": {
     "appId": "com.hughhowey.neo",
@@ -133,10 +134,19 @@
         "to": "licenses/hunspell"
       },
       {
-        "from": "neo-ext/thesaurus/en",
-        "to": "licenses/wordnet",
+        "from": "neo-ext/dictionary/en",
+        "to": "licenses/oewn-dictionary",
         "filter": [
-          "WordNet_license.txt"
+          "LICENSE.md",
+          "WNDB_License.txt"
+        ]
+      },
+      {
+        "from": "neo-ext/thesaurus/en",
+        "to": "licenses/oewn-thesaurus",
+        "filter": [
+          "LICENSE.md",
+          "WNDB_License.txt"
         ]
       }
     ],
