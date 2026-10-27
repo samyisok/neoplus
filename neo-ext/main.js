@@ -120,10 +120,16 @@ async function backupBookNow(bookId) {
     const meta = await readBookTitle(bookId);
     const taken = new Set(await fsp.readdir(dest));
     const folderName = names.folderName({ title: meta.title, id: meta.id, now: new Date(), taken });
+    const extras = [];
+    for (const name of ['records.json', 'records.json.bak']) {
+      const source = path.join(lib, name);
+      try { if (fs.existsSync(source)) extras.push({ src: source, name }); } catch { /* listed if it cannot be read */ }
+    }
     const res = await copyBookDir({
       src: dir,
       dest,
       folderName,
+      extraFiles: extras,
       isCloudOnly: (f) => (deps.isCloudOnly ? deps.isCloudOnly(f) : false),
       requestDownload: (files) => { try { deps.requestDownload && deps.requestDownload(files); } catch { /* listed as left out */ } },
       log
@@ -169,6 +175,19 @@ function init(injected) {
 
   // the renderer stores the word in this same turn; the menu is built below
   try { contextWord.init({ ipcMain, logError: deps.logError }); } catch (err) { log('word context init: ' + (err && err.message)); }
+
+  try {
+    require('./records-main.js').init({
+      ipcMain,
+      libraryDir: deps.libraryDir,
+      libName: deps.libName,
+      whenLocal: deps.whenLocal,
+      isCloudOnly: deps.isCloudOnly,
+      requestDownload: deps.requestDownload,
+      writeFileDurable: deps.writeFileDurable,
+      logError: deps.logError
+    });
+  } catch (err) { log('records init: ' + (err && err.message)); }
 
   // each lexical feature owns its data, cache, and menu item; this file only
   // hands it the process objects and its place in the menu

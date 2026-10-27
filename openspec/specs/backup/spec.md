@@ -4,12 +4,14 @@
 Lets a writer take a copy of the book they are writing to a folder they choose, and decides where NEO's automatic daily backup is written.
 
 ## Requirements
+
 ### Requirement: Manual backup of the open book
 
 The system SHALL copy the open book's entire folder to the backup folder as one plain, timestamped folder, so the copy can be opened, zipped, or read without NEO.
 
 - The copy SHALL be named `<book-slug>-YYYY-MM-DD-HHMMSS`, where `book-slug` is derived from the book title (or the book id when the title has no usable characters). A name that would begin `book-` SHALL be given a `backup-` prefix instead, so the library and the daily walk never mistake a backup for a book.
 - The copy SHALL contain the book folder's files as they are on disk: `book.json`, `chapters/`, notes pages, JSON sidecars, covers and painted art, and `snapshots/`.
+- The copy SHALL also contain the library's `records.json` and, when present, its `records.json.bak` in the new backup folder, so a book backup keeps the shared records and the last readable copy; a records file only in iCloud SHALL follow the same left-out rules.
 - Every pending chapter, notes, and sidecar write SHALL be written and confirmed before the copy starts, so the backup holds the words the writer last saw, not an earlier save.
 - An existing backup folder SHALL never be overwritten: the timestamp SHALL be advanced (or a numeric suffix appended) until the name is free.
 - The copy SHALL never be written inside the book being copied, nor inside any book folder of the library.
@@ -43,6 +45,11 @@ The system SHALL copy the open book's entire folder to the backup folder as one 
 - **WHEN** the backup folder is the open book's folder or another book's folder
 - **THEN** the backup is refused with a message naming the problem, and nothing is copied
 
+#### Scenario: Backup keeps the shared records
+
+- **WHEN** the library has records and the writer backs up a book
+- **THEN** `records.json` is in the new backup folder with the records the writer last saw, and its recovery copy is there when one exists
+
 ### Requirement: Files still in iCloud do not block a backup
 
 A manual backup of a book whose files are partly only in iCloud SHALL finish, naming what it could not copy.
@@ -50,12 +57,18 @@ A manual backup of a book whose files are partly only in iCloud SHALL finish, na
 - Files that exist as cloud placeholders SHALL be detected before reading, as the daily backup already does.
 - The system SHALL ask the cloud service to download them and wait a bounded time per file; a file that does not arrive SHALL be left out of the copy.
 - Left-out files SHALL be listed in `_left-out-of-this-backup.txt` inside the new backup folder and reported in the success message.
+- The library's `records.json` SHALL be copied by the same rule, and a records file that is only in iCloud SHALL be named rather than block the copy.
 - The copy SHALL NOT wait indefinitely on one file.
 
 #### Scenario: One chapter is only in iCloud
 
 - **WHEN** the writer backs up a book whose file is a placeholder the cloud service will not hand over quickly
 - **THEN** the rest of the book is copied, `_left-out-of-this-backup.txt` names that file, and the message says the copy is incomplete
+
+#### Scenario: The records file is only in iCloud
+
+- **WHEN** `records.json` is a placeholder the cloud service will not hand over quickly
+- **THEN** the book's files are copied, `_left-out-of-this-backup.txt` names `records.json`, and the message says the copy is incomplete
 
 ### Requirement: Backup folder resolution
 
@@ -85,7 +98,7 @@ The system SHALL resolve one backup folder for both manual and automatic backups
 #### Scenario: Folder chosen at the library root
 
 - **WHEN** the backup folder is a new folder beside the books rather than the default `Backups`
-- **THEN** manual copies go there and the daily archive still contains only NEO's books and catalogue, never the backups
+- **THEN** manual copies go there and the daily archive still contains only NEO's books, catalogue, and library records, never the backups
 
 ### Requirement: Automatic daily backup follows the configured folder
 
@@ -95,6 +108,7 @@ The existing daily backup SHALL write its dated zip to the resolved backup folde
 - An already present copy for today SHALL still short-circuit the run.
 - Rotation SHALL consider only files named `neo-backup-*.zip`; manual backup folders SHALL never be removed.
 - Manual book backups and daily zips SHALL coexist in the same folder without either cleaning up the other.
+- The archive SHALL include the library's `records.json` and, when present, `records.json.bak`, and SHALL NOT invent either when they do not exist.
 
 #### Scenario: Daily zip in a chosen folder
 
@@ -105,3 +119,8 @@ The existing daily backup SHALL write its dated zip to the resolved backup folde
 
 - **WHEN** the fourteen-day rotation runs in a folder that also holds manual book backups
 - **THEN** only `neo-backup-*.zip` files are considered for removal and every manual backup folder remains
+
+#### Scenario: Records in the daily zip
+
+- **WHEN** the day's backup runs for a library that has records
+- **THEN** the zip contains `records.json` and its recovery copy alongside the books and catalogue

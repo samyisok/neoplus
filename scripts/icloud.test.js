@@ -207,4 +207,5 @@ describe('files still in iCloud', { concurrency: 1 }, () => {
     assert.ok(zip.file(path.basename(bookDir) + '/book.json'), 'the rest is backed up');
     main.run('BACKUP_FILE_LIMIT_MS = 20000');
   });
+
 });

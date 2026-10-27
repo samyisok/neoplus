@@ -164,6 +164,49 @@ test('copy: a cloud-only file is named and left out', async () => {
   assert.equal(res.incomplete, true);
 });
 
+test('copy: extra library files travel beside the book, and a cloud extra is named', async () => {
+  const root = await tmpRoot();
+  const src = path.join(root, 'book-x');
+  const dest = path.join(root, 'out');
+  const lib = path.join(root, 'lib');
+  await fsp.mkdir(src, { recursive: true });
+  await fsp.mkdir(lib, { recursive: true });
+  await fsp.writeFile(path.join(src, 'book.json'), '{}');
+  await fsp.writeFile(path.join(lib, 'records.json'), '{"format":1}');
+  await fsp.writeFile(path.join(lib, 'records.json.bak'), '{"format":1}');
+  const res = await copyBook.copyBookDir({
+    src, dest, folderName: 'x-1',
+    extraFiles: [
+      { src: path.join(lib, 'records.json'), name: 'records.json' },
+      { src: path.join(lib, 'records.json.bak'), name: 'records.json.bak' }
+    ]
+  });
+  assert.equal(res.ok, true);
+  assert.equal(await fsp.readFile(path.join(dest, 'x-1', 'records.json'), 'utf8'), '{"format":1}');
+  assert.equal(await fsp.readFile(path.join(dest, 'x-1', 'records.json.bak'), 'utf8'), '{"format":1}');
+});
+
+test('copy: a cloud-only extra is named, not waited on forever', async () => {
+  const root = await tmpRoot();
+  const src = path.join(root, 'book-y');
+  const dest = path.join(root, 'out');
+  const lib = path.join(root, 'lib');
+  await fsp.mkdir(src, { recursive: true });
+  await fsp.mkdir(lib, { recursive: true });
+  await fsp.writeFile(path.join(src, 'book.json'), '{}');
+  await fsp.writeFile(path.join(lib, 'records.json'), '{}');
+  const res = await copyBook.copyBookDir({
+    src, dest, folderName: 'y-1',
+    extraFiles: [{ src: path.join(lib, 'records.json'), name: 'records.json' }],
+    isCloudOnly: async (f) => f.endsWith('records.json'),
+    requestDownload: () => {},
+    cloudWaitMs: 10
+  });
+  assert.equal(res.ok, true);
+  assert.equal(res.skipped.includes('records.json'), true);
+  assert.match(await fsp.readFile(path.join(dest, 'y-1', '_left-out-of-this-backup.txt'), 'utf8'), /records\.json/);
+});
+
 test('copy: a read-only destination fails whole, leaving nothing behind', async () => {
   const root = await tmpRoot();
   const src = path.join(root, 'book-e');

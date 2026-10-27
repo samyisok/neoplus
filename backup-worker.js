@@ -74,13 +74,15 @@ async function backup({ libraryDir, target, keep, fileLimitMs = FILE_LIMIT_MS })
       if (rel === '' && (name === 'Backups' || name === 'Exports')) continue;
       // only NEO's own things: a library kept in a busy folder (Dropbox,
       // Documents) doesn't zip everything else in there every day
-      if (rel === '' && !(name.startsWith('book-') || name.startsWith('library.json') || name === '_catalog.txt')) continue;
+      if (rel === '' && !(name.startsWith('book-') || name.startsWith('library.json') || name === '_catalog.txt' || (name.startsWith('records.json') && !name.endsWith('.tmp')))) continue;
       // a book's snapshots stay out: they're a history of their own
       if (name === 'snapshots' && rel.startsWith('book-') && !rel.includes('/')) continue;
       if (name === '.DS_Store' || /^\..+\.icloud$/.test(name)) continue; // Finder litter; iCloud's stand-in for a file
       const full = path.join(dir, name);
       const relPath = rel ? rel + '/' + name : name;
       try {
+        const lst = await fsp.lstat(full);
+        if (lst.isSymbolicLink()) { missed.push(`${relPath} (link)`); continue; }
         const st = await fsp.stat(full);
         if (st.isDirectory()) await walk(full, relPath);
         else if (st.isFile() || st.isFIFO()) files.push([full, relPath, (process.platform === 'darwin' || SPARSE_IS_CLOUD) && st.size > 0 && st.blocks === 0]);

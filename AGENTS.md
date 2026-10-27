@@ -338,7 +338,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 
 | # | File | Anchor to insert after/before | Line |
 |---|---|---|---|
-| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, side-pane rules, thesaurus lookup, word context, thesaurus and dictionary windows and editors, the side-pane handle, settings, boot), last on the page; classic scripts share app.js's global scope |
+| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, side-pane rules, thesaurus lookup, word context, thesaurus and dictionary windows and editors, the side-pane handle, record store/search/list, the records pane, settings, boot), last on the page; classic scripts share app.js's global scope |
 | 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
 | 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
 | 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
@@ -348,8 +348,9 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 | 8 | `preload.js` | after the `window.neo` exposure | the inline `NeoForkNative` bridge — inline because a sandboxed preload cannot `require` a local file |
 | 9 | `main.js` | in `dailyBackup`, where `backupsDir` is computed | `const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR);` |
 | 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `…lookUpChoice(choice, word)` — the choice, not the word, decides which feature opens |
+| 11 | `backup-worker.js` | the library-root allowlist in `walk`, after `_catalog.txt` | `name.startsWith('records.json') && !name.endsWith('.tmp')` — the shared records and their `.bak` travel in the daily zip |
 
-Rows 1, 5, 6, 7, 8, 9, 10 exist today; 2–4 are added with the features that need them. `neo-ext/check-seams.js` asserts the seven that exist.
+Rows 1, 5, 6, 7, 8, 9, 10 and 11 exist today; 2–4 are added with the features that need them. `neo-ext/check-seams.js` asserts the eight that exist.
 
 Right-click menus are Electron's, not the page's: renderer `preventDefault` cannot add to them, hence the `main.js` seam. Menu clicks send `{ type: 'neo-ext', … }` with `win.webContents.send('menu', …)`; `onMenu` in `app.js` is a chain of `if`s, so unknown types are ignored, and `boot.js` subscribes its own `window.neo.onMenu`.
 
@@ -375,6 +376,14 @@ Right-click menus are Electron's, not the page's: renderer `preventDefault` cann
 The handle is a zero-height `position: sticky` element, not `fixed` like `#side-pin`: a fixed child inside the transformed, scrolling pane moves with the notes. Its pseudo-elements carry the hit area and the line, and a drag re-asserts `.open` on `pointermove`, `mouseleave`, and `blur` so the pane cannot slide away under the pointer. Pinned (and on Darlings, which holds the pane open) the width stops at the room the page leaves, measured from `#paper-scroll` and a pinned `#nav-pane`; the Outline's board is exempt because its cards are meant to shrink. Resize-driven re-clamps are skipped while `body.neo-ext-resizing` is set.
 
 The whole feature is behind Show More Features: with it off the handle is hidden and the pane stays 250 px, while the stored width waits for the switch's return. It adds no seam, no IPC, no storage in the library, and no entry to `scripts/pocket-www.js`, so Pocket keeps its own pane. `npm run test:sidepane` covers drag, keys, limits, persistence, page geometry, tabs, and the no-writes guarantee on a real launch.
+
+### Records in the right-hand pane (adr-005)
+
+`neo-ext/records.js` injects `#neo-side-tabs` and `#neo-records-view` into `#side-pane`; `neo-ext/records-list.js` renders the grouped list, folder headings, search and rows; `neo-ext/lib/records-store.js` owns validation, merge and the record/folder mutations; `records-search.js` owns matching and ranges; `records-main.js` owns `records.json`. Tabs show on the Manuscript and Notes bottom tabs only; Outline and Darlings keep their pane. The pane's core lists are hidden with the `neo-records-open` class, never rewritten, so the Notes page and left nav are untouched.
+
+`records.json` is library-wide at the library root, written through `neo-ext:records-read/write` with a fixed name, `whenLocal`, core's `writeFileDurable`, a `.bak`, and a merge inside the write. Field stamps (`titleAt`, `bodyAt`, `folderAt`) merge per field; a deletion tombstone is final. Descriptions are plain text in `contenteditable="plaintext-only"`; titles and folder names use `textContent`. Search paints `::highlight(neo-record-search)` and never changes the file.
+
+The whole feature is behind Show More Features. With it off the tab strip is hidden and the pane stays on Notes; the file is untouched. Pocket's copy list is unchanged. `npm run test:records` covers the pane, editing, folders, search, two books, Esc and no book writes; `scripts/records-store.test.js`, `records-search.test.js`, `records-ipc.test.js`, and `records-backup.test.js` cover the store, search, IPC and backup.
 
 ### How the planned features fit
 

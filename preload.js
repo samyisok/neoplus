@@ -89,6 +89,8 @@ contextBridge.exposeInMainWorld('NeoForkNative', {
   checkBackupFolder: (folder, bookId) => ipcRenderer.invoke('neo-ext:check-backup-folder', folder, bookId),
   saveBackupSettings: (folder, bookId) => ipcRenderer.invoke('neo-ext:save-backup-settings', folder, bookId),
   revealBackup: (folder) => ipcRenderer.invoke('neo-ext:reveal-backup', folder),
+  recordsRead: () => ipcRenderer.invoke('neo-ext:records-read'),
+  recordsWrite: (store) => ipcRenderer.invoke('neo-ext:records-write', store),
   setContextWord: (word) => ipcRenderer.sendSync('neo-ext:context-word', typeof word === 'string' ? word : ''),
   clearContextWord: () => ipcRenderer.send('neo-ext:context-word', ''),
   thesaurus: (word) => ipcRenderer.invoke('neo-ext:thesaurus', word),

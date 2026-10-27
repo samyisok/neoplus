@@ -28,7 +28,7 @@ async function moveIntoPlace(partial, dest, name) {
   throw new Error('Could not find a free backup name');
 }
 
-async function copyBookDir({ src, dest, folderName, isCloudOnly, requestDownload, cloudWaitMs = 20000, log }) {
+async function copyBookDir({ src, dest, folderName, extraFiles = [], isCloudOnly, requestDownload, cloudWaitMs = 20000, log }) {
   const name = String(folderName || path.basename(src));
   // unique per run: a second request in the same second must never remove or
   // write into the first one's half-finished folder
@@ -87,6 +87,38 @@ async function copyBookDir({ src, dest, folderName, isCloudOnly, requestDownload
       }
     };
     await walk(src, '');
+
+    // the library's shared records travel beside the book's files. A name
+    // already copied from the book is never overwritten; the extra is named
+    // instead, so a book file and a shared file cannot silently swap.
+    for (const extra of extraFiles) {
+      if (!extra || typeof extra.src !== 'string' || typeof extra.name !== 'string') continue;
+      const name = path.basename(extra.name);
+      if (!name || name !== extra.name || name === '.' || name === '..') { skipped.push(String(extra.name)); continue; }
+      let st;
+      try { st = await fsp.lstat(extra.src); } catch (err) {
+        if (err.code === 'ENOENT') continue;
+        skipped.push(name);
+        continue;
+      }
+      if (!st.isFile()) { skipped.push(name); continue; }
+      const target = path.join(partial, name);
+      if (await fsp.stat(target).then(() => true, () => false)) { skipped.push(name); continue; }
+      if (isCloudOnly) {
+        const awayNow = async () => { try { return !!(await isCloudOnly(extra.src)); } catch { return false; } };
+        if (await awayNow()) {
+          try { requestDownload && requestDownload([extra.src]); } catch { /* the wait below decides */ }
+          while (Date.now() < cloudUntil && await awayNow()) await sleep(400);
+          if (await awayNow()) { skipped.push(name); continue; }
+        }
+      }
+      try {
+        await fsp.copyFile(extra.src, target);
+      } catch {
+        await sleep(150);
+        try { await fsp.copyFile(extra.src, target); } catch { skipped.push(name); }
+      }
+    }
 
     if (skipped.length) {
       await fsp.writeFile(path.join(partial, '_left-out-of-this-backup.txt'),
