@@ -13,11 +13,13 @@ const { MAX_WORD } = require('./lib/word-forms.js');
 const TTL_MS = 5000;
 
 let state = null;
+const MAX_PHRASE = 120;
 
 function init(deps) {
   state = {
     deps: deps || {},
     words: new Map(),
+    phrases: new Map(),
     now: (deps && typeof deps.now === 'function' && deps.now) || Date.now
   };
   const ipc = state.deps.ipcMain;
@@ -27,6 +29,13 @@ function init(deps) {
     const text = typeof word === 'string' ? word.slice(0, MAX_WORD) : '';
     if (text) state.words.set(key, { word: text, at: state.now() });
     else state.words.delete(key);
+    try { event.returnValue = true; } catch { /* fire-and-forget send */ }
+  });
+  ipc.on('neo-ext:context-phrase', (event, payload) => {
+    const key = senderKey(event);
+    const phrase = payload && typeof payload.phrase === 'string' ? payload.phrase.slice(0, MAX_PHRASE) : '';
+    if (phrase) state.phrases.set(key, { phrase, hasTag: !!(payload && payload.hasTag), at: state.now() });
+    else state.phrases.delete(key);
     try { event.returnValue = true; } catch { /* fire-and-forget send */ }
   });
 }
@@ -51,4 +60,12 @@ function take(win) {
   return held && state.now() - held.at < TTL_MS ? held.word : '';
 }
 
-module.exports = { init, take, MAX_WORD, TTL_MS };
+function takePhrase(win) {
+  if (!state) return null;
+  const key = windowKey(win);
+  const held = state.phrases.get(key);
+  state.phrases.delete(key);
+  return held && state.now() - held.at < TTL_MS ? { phrase: held.phrase, hasTag: !!held.hasTag } : null;
+}
+
+module.exports = { init, take, takePhrase, MAX_WORD, MAX_PHRASE, TTL_MS };

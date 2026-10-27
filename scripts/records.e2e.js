@@ -157,8 +157,10 @@ test('choosing Notes returns the pane to its notes', async () => {
 
 test('a record is added, opened, edited, and survives a reload', async () => {
   await recordsTab();
+  console.log('     ready-debug', JSON.stringify(await js(`({ loaded: document.getElementById('neo-records-add')?.disabled, status: document.getElementById('neo-records-status')?.textContent || '', tagReady: window.NeoRecords?.tagReady?.() })`)));
   await click('#neo-records-add');
   await tick(100);
+  console.log('     draft-debug', JSON.stringify(await js(`({ err: document.body.dataset.neoError, html: document.getElementById('neo-records-list').innerHTML.slice(0,200), state: document.body.dataset.neoDraft, draft: !!document.querySelector('.neo-record-draft input'), rows: document.querySelectorAll('.neo-record').length, view: document.getElementById('neo-records-view')?.hidden, status: document.querySelector('.neo-records-status-text')?.textContent || '' })`)));
   assert.equal(await js(`!!document.querySelector('.neo-record-draft input')`), true);
   await type('.neo-record-draft input', 'John Silver');
   await key('.neo-record-draft input', 'Enter');
@@ -282,6 +284,7 @@ test('+ Record shows a draft even with a search or a collapsed Unsorted', async 
   await tick(200);
   await click('#neo-records-add');
   await tick(100);
+  console.log('     draft-debug', JSON.stringify(await js(`({ err: document.body.dataset.neoError, html: document.getElementById('neo-records-list').innerHTML.slice(0,200), state: document.body.dataset.neoDraft, draft: !!document.querySelector('.neo-record-draft input'), rows: document.querySelectorAll('.neo-record').length, view: document.getElementById('neo-records-view')?.hidden, status: document.querySelector('.neo-records-status-text')?.textContent || '' })`)));
   assert.equal(await js(`!!document.querySelector('.neo-record-draft input')`), true);
   assert.equal(await js(`document.getElementById('neo-records-search').value`), '');
   await key('.neo-record-draft input', 'Escape');
@@ -296,6 +299,7 @@ test('+ Record shows a draft even with a search or a collapsed Unsorted', async 
   await tick(100);
   await click('#neo-records-add');
   await tick(100);
+  console.log('     draft-debug', JSON.stringify(await js(`({ err: document.body.dataset.neoError, html: document.getElementById('neo-records-list').innerHTML.slice(0,200), state: document.body.dataset.neoDraft, draft: !!document.querySelector('.neo-record-draft input'), rows: document.querySelectorAll('.neo-record').length, view: document.getElementById('neo-records-view')?.hidden, status: document.querySelector('.neo-records-status-text')?.textContent || '' })`)));
   assert.equal(await js(`!!document.querySelector('.neo-record-draft input')`), true);
   await key('.neo-record-draft input', 'Escape');
 });
@@ -401,6 +405,7 @@ async function main() {
     while (!(await js(`typeof library !== 'undefined' && !!library`).catch(() => false))) await tick(50);
     await tick(300);
     await openBook(BOOK1);
+    await js(`window.addEventListener('error', (e) => { document.body.dataset.neoError = e.message + ' @ ' + e.filename + ':' + e.lineno; })`);
     win.focus();
     for (const t of tests) {
       try {

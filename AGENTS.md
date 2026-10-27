@@ -338,7 +338,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 
 | # | File | Anchor to insert after/before | Line |
 |---|---|---|---|
-| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, side-pane rules, thesaurus lookup, word context, thesaurus and dictionary windows and editors, the side-pane handle, record store/search/list, the records pane, settings, boot), last on the page; classic scripts share app.js's global scope |
+| 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, side-pane rules, thesaurus lookup, word context, thesaurus and dictionary windows and editors, the side-pane handle, record store/search/list, record tags, the records pane, settings, boot), last on the page; classic scripts share app.js's global scope |
 | 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
 | 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
 | 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
@@ -347,7 +347,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 | 7 | `main.js` | inside `app.whenReady().then(...)`, after `ensureLibrary()`, before `createWindow()` | `require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, … })` — `shell` is not imported at the top of main.js |
 | 8 | `preload.js` | after the `window.neo` exposure | the inline `NeoForkNative` bridge — inline because a sandboxed preload cannot `require` a local file |
 | 9 | `main.js` | in `dailyBackup`, where `backupsDir` is computed | `const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR);` |
-| 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `…lookUpChoice(choice, word)` — the choice, not the word, decides which feature opens |
+| 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `else if (window.NeoExtApi) …lookUpChoice(choice, word)` — every non-lookup choice is forwarded; the choice, not the word, decides which feature opens |
 | 11 | `backup-worker.js` | the library-root allowlist in `walk`, after `_catalog.txt` | `name.startsWith('records.json') && !name.endsWith('.tmp')` — the shared records and their `.bak` travel in the daily zip |
 
 Rows 1, 5, 6, 7, 8, 9, 10 and 11 exist today; 2–4 are added with the features that need them. `neo-ext/check-seams.js` asserts the eight that exist.
@@ -384,6 +384,14 @@ The whole feature is behind Show More Features: with it off the handle is hidden
 `records.json` is library-wide at the library root, written through `neo-ext:records-read/write` with a fixed name, `whenLocal`, core's `writeFileDurable`, a `.bak`, and a merge inside the write. Field stamps (`titleAt`, `bodyAt`, `folderAt`) merge per field; a deletion tombstone is final. Descriptions are plain text in `contenteditable="plaintext-only"`; titles and folder names use `textContent`. Search paints `::highlight(neo-record-search)` and never changes the file.
 
 The whole feature is behind Show More Features. With it off the tab strip is hidden and the pane stays on Notes; the file is untouched. Pocket's copy list is unchanged. `npm run test:records` covers the pane, editing, folders, search, two books, Esc and no book writes; `scripts/records-store.test.js`, `records-search.test.js`, `records-ipc.test.js`, and `records-backup.test.js` cover the store, search, IPC and backup.
+
+### Record tags (adr-006)
+
+`neo-ext/lib/record-tags.js` owns tag keys, active tags, and one paragraph scanner; `records-store.js` stores `tags: [{ text, at, removedAt }]` inside each record, merges per tag, and caps a record at 50 tags. A removed tag keeps its tombstone. `records-search.js` matches active tag text as well as title/description, so Find Record and the records field both find a tag.
+
+`word-context.js` keeps its single-word lexical context and adds a phrase side-channel: a selection in one chapter paragraph (≤120 chars, no line break) is stored with `hasTag` through `setContextPhrase`; `word-context-main.js` keeps it per window with the same 5 s TTL; `lib/record-tags-main.js` turns it into **Create Record…** or **Find Record…**. The native menu no longer returns on an empty word when a phrase exists. The macOS Look Up seam forwards every non-lookup choice, so a one-word selection carries the same item. The English spellcheck gate stays on lexical items only.
+
+Choosing Create pins the right pane and creates the title/first tag from the phrase; choosing Find fills the records search. A tag chip calls `api.openFind(tag)`, which switches to Manuscript and reuses the core Find bar. The status-bar eye (`#records-eye`, per-device `neo-record-tag-highlight`, default off) paints `CSS.highlights` `neo-record-tag` from a per-paragraph scan, rescans tag changes/book open/edited chapters/`#chapters` replacement, and stops at 2,000 ranges. No tag or highlight writes a chapter or `library.json`; `records.json` carries tags into both backups.
 
 ### How the planned features fit
 

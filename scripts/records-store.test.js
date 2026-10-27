@@ -165,3 +165,44 @@ test('records-store: a store with too many items is refused before it is parsed'
   assert.equal(out.ok, false);
   assert.equal(out.reason, 'count');
 });
+
+test('records-store: tags normalize, add, remove, and dedupe by key', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [record('r1', 'John')] }).store;
+  assert.deepEqual(store.activeTags(store.activeRecords(s)[0]), []);
+  assert.equal(store.addTag(s, 'r1', '  Long   Chen ', at).ok, true);
+  assert.equal(store.addTag(s, 'r1', 'long chen', at + 1).existing, true);
+  assert.deepEqual(store.activeTags(store.activeRecords(s)[0]), ['Long Chen']);
+  assert.equal(store.tagExists(s, 'LONG CHEN'), true);
+  assert.equal(store.recordsWithTag(s, 'long chen')[0].title, 'John');
+  assert.equal(store.removeTag(s, 'r1', 'Long Chen', at + 2).ok, true);
+  assert.deepEqual(store.activeTags(store.activeRecords(s)[0]), []);
+  assert.equal(store.tagExists(s, 'Long Chen'), false);
+});
+
+test('records-store: tag additions and removals merge with the newer event', () => {
+  const a = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'Long Chen', at: at, removedAt: 0 }] })] }).store;
+  const b = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'Silver', at: at + 1, removedAt: 0 }] })] }).store;
+  const both = store.merge(a, b, at + 2).store;
+  assert.deepEqual(store.activeTags(store.activeRecords(both)[0]).sort(), ['Long Chen', 'Silver']);
+  const dead = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'Long Chen', at: at, removedAt: at + 3 }] })] }).store;
+  const merged = store.merge(both, dead, at + 4).store;
+  assert.deepEqual(store.activeTags(store.activeRecords(merged)[0]), ['Silver']);
+});
+
+test('records-store: old files without tags stay valid', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [{ id: 'r1', title: 'Old', createdAt: at, deletedAt: 0 }] });
+  assert.equal(s.ok, true);
+  assert.deepEqual(s.store.records[0].tags, []);
+});
+
+test('records-store: a record stops at 50 active tags, and a removed tag can return', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [record('r1', 'John')] }).store;
+  for (let i = 0; i < 50; i++) assert.equal(store.addTag(s, 'r1', 'tag ' + i, at + i).ok, true);
+  const overflow = store.addTag(s, 'r1', 'tag 51', at + 60);
+  assert.equal(overflow.ok, false);
+  assert.equal(overflow.reason, 'many');
+  assert.equal(store.addTag(s, 'r1', 'TAG 1', at + 61).ok, true, 'an existing key stays allowed at the cap');
+  assert.equal(store.removeTag(s, 'r1', 'tag 1', at + 62).ok, true);
+  assert.equal(store.addTag(s, 'r1', 'Tag 1', at + 63).ok, true);
+  assert.ok(store.activeTags(store.activeRecords(s)[0]).includes('Tag 1'));
+});

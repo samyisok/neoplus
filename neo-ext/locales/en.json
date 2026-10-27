@@ -67,5 +67,19 @@
   "Try again": "Try again",
   "Add a record to this folder": "Add a record to this folder",
   "Add a record to {name}": "Add a record to {name}",
-  "Records could not be read: the file is too large.": "Records could not be read: the file is too large."
+  "Records could not be read: the file is too large.": "Records could not be read: the file is too large.",
+  "Create Record…": "Create Record…",
+  "Find Record…": "Find Record…",
+  "Tag": "Tag",
+  "New tag for {title}": "New tag for {title}",
+  "Remove tag “{tag}”": "Remove tag “{tag}”",
+  "Remove tag “{tag}”?": "Remove tag “{tag}”?",
+  "Remove": "Remove",
+  "Find “{tag}” in the manuscript": "Find “{tag}” in the manuscript",
+  "A record can have 50 tags.": "A record can have 50 tags.",
+  "That tag is too long.": "That tag is too long.",
+  "That tag already has a record. Showing it.": "That tag already has a record. Showing it.",
+  "Highlight record names": "Highlight record names",
+  "Find is not available": "Find is not available",
+  "A record needs a title.": "A record needs a title."
 }

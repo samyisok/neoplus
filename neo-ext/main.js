@@ -272,13 +272,22 @@ function contextMenu(items, params, win) {
   if (!Array.isArray(items)) return;
   try {
     const word = contextWord.take(win);
-    if (!word) return;
-    const present = menuRegistry.items(word);
-    if (!present.length) return;
+    const phrase = contextWord.takePhrase(win);
+    const present = word ? menuRegistry.items(word) : [];
+    const record = phrase ? require('./lib/record-tags-main.js').menuItem(phrase, t) : null;
+    if (!present.length && !record) return;
     const choose = (item) => () => {
-      try { win.webContents.send('menu', { type: 'neo-ext', action: item.action, word: item.word }); } catch { /* window closed */ }
+      try {
+        const msg = { type: 'neo-ext', action: item.action };
+        if (item.word !== undefined) msg.word = item.word;
+        if (item.phrase !== undefined) msg.phrase = item.phrase;
+        win.webContents.send('menu', msg);
+      } catch { /* window closed */ }
     };
-    items.unshift(...present.map((item) => ({ label: item.label, click: choose(item) })), { type: 'separator' });
+    const extras = [];
+    if (record) extras.push({ label: record.label, click: choose(record) });
+    extras.push(...present.map((item) => ({ label: item.label, click: choose(item) })));
+    items.unshift(...extras, { type: 'separator' });
   } catch (err) { log('context menu: ' + (err && err.message)); }
 }
 

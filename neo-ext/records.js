@@ -9,6 +9,7 @@
 (function () {
   const model = window.NeoRecordsStore;
   const search = window.NeoRecordsSearch;
+  const tagRules = window.NeoRecordTags;
   const listFactory = window.NeoRecordsList;
   const api = window.NeoExtApi;
   if (!model || !search || !listFactory || !api) return;
@@ -20,6 +21,7 @@
 
   const x = (s, vars) => (window.NeoExt && typeof window.NeoExt.x === 'function' ? window.NeoExt.x(s, vars) : s);
   const SAVE_MS = 600;
+  const TAG_HIGHLIGHT_KEY = 'neo-record-tag-highlight';
 
   const state = {
     store: model.empty(),
@@ -31,9 +33,12 @@
     confirming: null,
     folderConfirm: null,
     pendingFolder: null,
-    renaming: null
+    renaming: null,
+    tagConfirm: null,
+    tagDraft: null
   };
   let loaded = false;
+  let tagReady = false;
   let readOnly = false;
   let statusText = '';
   let statusKind = '';
@@ -43,6 +48,11 @@
   let sentChanges = 0;
   let pendingAdopt = null;
   let searchTimer = 0;
+  let tagScanTimer = 0;
+  let chapterScanTimer = 0;
+  let tagPaint = new Map();
+  let tagHighlight = false;
+  try { tagHighlight = localStorage.getItem(TAG_HIGHLIGHT_KEY) === '1'; } catch { /* storage can be off */ }
 
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -123,9 +133,11 @@
     if (statusKind === 'save') setStatus('');
   }
 
-  function hasFocusedBody() {
+  function hasFocusedField() {
     const active = document.activeElement;
-    return !!(active && active.classList && active.classList.contains('neo-record-text'));
+    return !!(active && viewEl.contains(active) && (
+      active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA'
+    ));
   }
 
   async function flush() {
@@ -153,8 +165,9 @@
     const merged = model.merge(res.store, state.store, Date.now());
     if (!merged.ok) { setStatus(x('Records could not be saved.'), 'error'); return; }
     state.store = merged.store;
+    if (tagHighlight) scheduleTagScan(50);
     if (changes === gen) {
-      if (hasFocusedBody()) pendingAdopt = state.store;
+      if (hasFocusedField()) pendingAdopt = state.store;
       else { pendingAdopt = null; render(); }
     } else {
       setTimeout(flush, 20);
@@ -164,10 +177,12 @@
   async function loadStore(showStatus = true) {
     if (saving || changes !== sentChanges) return false;
     if (!bridge.recordsRead) { readOnly = true; if (showStatus) setStatus(x('Records are not available in this build'), 'error'); return false; }
+    const gen = changes;
     let res;
     try { res = await bridge.recordsRead(); } catch (err) { res = { ok: false, reason: String(err && err.message || err) }; }
     if (!res || !res.ok) {
       readOnly = true;
+      tagReady = false;
       if (res && res.reason === 'cloud') setStatus(x('Records are in iCloud and not available yet.'), 'cloud');
       else if (res && res.reason === 'unreadable') setStatus(x('Records could not be read. The file has been left untouched.'), 'unreadable');
       else if (res && res.reason === 'large') { readOnly = true; setStatus(x('Records could not be read: the file is too large.'), 'unreadable'); }
@@ -175,16 +190,159 @@
       render();
       return false;
     }
+    if (saving || changes !== gen) return false;
     readOnly = false;
     loaded = true;
+    tagReady = true;
     state.store = res.store;
+    if (tagHighlight) scheduleTagScan(50);
     setStatus('');
     render();
     return true;
   }
 
+  function activeTagList() {
+    const seen = new Set();
+    const out = [];
+    for (const rec of model.activeRecords(state.store)) {
+      const list = tagRules ? tagRules.activeTags(rec) : [];
+      for (const tag of list) {
+        if (out.length >= 2000) return out;
+        const key = tagRules ? tagRules.tagKey(tag) : tag.toLocaleLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        out.push(tag);
+      }
+    }
+    return out;
+  }
+
+  function eyeIcon() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 20 20');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('fill', 'currentColor');
+    path.setAttribute('d', 'M10 4c4.5 0 7.6 4.1 8.6 5.6.2.3.2.6 0 .9C17.6 12 14.5 16 10 16S2.4 12 1.4 10.5a.9.9 0 0 1 0-.9C2.4 8.1 5.5 4 10 4Zm0 2C6.9 6 4.4 8.7 3.4 10c1 1.3 3.5 4 6.6 4s5.6-2.7 6.6-4c-1-1.3-3.5-4-6.6-4Zm0 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z');
+    svg.appendChild(path);
+    return svg;
+  }
+
+  const eye = el('button', 'neo-records-eye');
+  eye.id = 'records-eye';
+  eye.type = 'button';
+  eye.hidden = true;
+  eye.appendChild(eyeIcon());
+  eye.setAttribute('aria-pressed', 'false');
+  eye.setAttribute('aria-label', x('Highlight record names'));
+  eye.title = x('Highlight record names');
+  const counters = document.getElementById('counters');
+  if (counters) {
+    const zoom = document.getElementById('zoom-control');
+    counters.insertBefore(eye, zoom || null);
+  }
+
+  function updateEye() {
+    if (!eye) return;
+    const tags = activeTagList();
+    let pocket = false;
+    try { pocket = !!IS_POCKET; } catch { /* not settled */ }
+    const show = moreOn() && !pocket && !!book && tags.length > 0;
+    eye.hidden = !show;
+    eye.setAttribute('aria-pressed', tagHighlight && show ? 'true' : 'false');
+    if (!show) clearTagHighlight();
+  }
+
+  function clearTagHighlight() {
+    tagPaint = new Map();
+    if (window.CSS && CSS.highlights) CSS.highlights.delete('neo-record-tag');
+  }
+
+  function locate(root, offset, end) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let at = 0;
+    let node;
+    while ((node = walker.nextNode())) {
+      const len = node.data.length;
+      if (end ? (offset > at && offset <= at + len) : (offset >= at && offset < at + len)) return { node, offset: offset - at };
+      at += len;
+    }
+    return null;
+  }
+
+  function quoteRanges(block, matcher, out) {
+    const text = block.textContent;
+    if (!text) return;
+    for (const hit of matcher.ranges(text, 2000 - out.length)) {
+      const start = locate(block, hit.start, false);
+      const end = locate(block, hit.end, true);
+      if (!start || !end) continue;
+      try {
+        const range = document.createRange();
+        range.setStart(start.node, start.offset);
+        range.setEnd(end.node, end.offset);
+        out.push(range);
+      } catch { /* a block changed under us */ }
+      if (out.length >= 2000) return;
+    }
+  }
+
+  function scanBody(body, matcher, out) {
+    for (const block of body.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6')) quoteRanges(block, matcher, out);
+  }
+
+  function paintTags() {
+    if (window.CSS && CSS.highlights) {
+      const all = [];
+      for (const ranges of tagPaint.values()) all.push(...ranges);
+      if (all.length) CSS.highlights.set('neo-record-tag', new Highlight(...all.slice(0, 2000)));
+      else CSS.highlights.delete('neo-record-tag');
+    }
+  }
+
+  function scanTags() {
+    tagScanTimer = 0;
+    if (!tagHighlight || !tagRules) { clearTagHighlight(); return; }
+    const tags = activeTagList();
+    if (!tags.length) { clearTagHighlight(); return; }
+    const matcher = tagRules.buildMatcher(tags);
+    tagPaint = new Map();
+    const out = [];
+    for (const body of document.querySelectorAll('.chapter-body')) {
+      const chapter = body.closest('.chapter')?.dataset.id || '';
+      const ranges = [];
+      scanBody(body, matcher, ranges);
+      if (ranges.length) tagPaint.set(chapter, ranges);
+      for (const range of ranges) { out.push(range); if (out.length >= 2000) break; }
+      if (out.length >= 2000) break;
+    }
+    paintTags();
+    if (eye) eye.setAttribute('aria-pressed', tagHighlight ? 'true' : 'false');
+  }
+
+  function scanChapter(body) {
+    if (!tagHighlight || !tagRules || !body) return;
+    const tags = activeTagList();
+    if (!tags.length) { clearTagHighlight(); return; }
+    const matcher = tagRules.buildMatcher(tags);
+    const ranges = [];
+    scanBody(body, matcher, ranges);
+    const chapter = body.closest('.chapter')?.dataset.id || '';
+    if (ranges.length) tagPaint.set(chapter, ranges); else tagPaint.delete(chapter);
+    paintTags();
+  }
+
+  function scheduleTagScan(ms = 0) {
+    if (tagScanTimer) clearTimeout(tagScanTimer);
+    tagScanTimer = setTimeout(scanTags, ms);
+  }
+
   function render() {
+    document.body.dataset.neoDraft = JSON.stringify(state.draft);
     applyTabs();
+    updateEye();
+    addButton.disabled = !loaded;
+    folderButton.disabled = !loaded;
     if (state.view !== 'records') { viewEl.hidden = true; return; }
     viewEl.hidden = false;
     list.render(listEl, state, actions);
@@ -249,6 +407,7 @@
       state.openRows.add(res.record.id);
       markChanged();
       render();
+      if (tagHighlight) scheduleTagScan(50);
     },
     cancelDraft() { state.draft = null; render(); },
     toggleRecord(id) {
@@ -310,7 +469,30 @@
       model.moveRecord(state.store, id, folderId, Date.now());
       markChanged();
       render();
-    }
+    },
+    findTag(text) {
+      if (!api.openFind || !api.openFind(text)) setStatus(x('Find is not available'), 'error');
+    },
+    confirmTag(id, text) { state.tagConfirm = { id, text }; state.tagDraft = null; render(); },
+    cancelTag() { state.tagConfirm = null; render(); },
+    removeTag(id, text) {
+      const res = model.removeTag(state.store, id, text, Date.now());
+      state.tagConfirm = null;
+      if (res.ok) { markChanged(); scheduleTagScan(50); }
+      render();
+    },
+    startTagAdd(id) { state.tagDraft = { id, text: '' }; state.tagConfirm = null; render(); },
+    tagTyped(text) { if (state.tagDraft) state.tagDraft.text = text; },
+    commitTag(id, text) {
+      const clean = String(text || '').trim();
+      if (!clean) { state.tagDraft = null; render(); return; }
+      const res = model.addTag(state.store, id, clean, Date.now());
+      state.tagDraft = null;
+      if (!res.ok) setStatus(res.reason === 'many' ? x('A record can have 50 tags.') : x('That tag is too long.'), 'error');
+      else { markChanged(); scheduleTagScan(50); }
+      render();
+    },
+    cancelTagEdit() { state.tagDraft = null; render(); }
   };
 
   function tabList() {
@@ -352,7 +534,13 @@
   });
   addButton.addEventListener('click', () => actions.addRecord(null));
   folderButton.addEventListener('click', () => { state.pendingFolder = { kind: 'new' }; render(); });
-  retry.addEventListener('click', () => { readOnly = false; if (changes !== sentChanges) flush(); else loadStore(); });
+  eye.addEventListener('click', () => {
+    tagHighlight = !tagHighlight;
+    try { localStorage.setItem(TAG_HIGHLIGHT_KEY, tagHighlight ? '1' : '0'); } catch { /* fine */ }
+    eye.setAttribute('aria-pressed', tagHighlight ? 'true' : 'false');
+    if (tagHighlight) scheduleTagScan(); else clearTagHighlight();
+  });
+  retry.addEventListener('click', () => { readOnly = false; if (!loaded) loadStore(); else if (changes !== sentChanges) flush(); else loadStore(); });
 
   // window capture runs before NEO's document capture listeners, which can
   // otherwise turn a bare Esc into "back to the shelf"
@@ -375,12 +563,17 @@
     if (state.folderConfirm) { actions.cancelFolderConfirm(); return; }
     if (state.pendingFolder) { actions.cancelFolderEdit(); return; }
     if (state.renaming) { actions.cancelRecordRename(); return; }
+    if (state.tagConfirm) { actions.cancelTag(); return; }
+    if (state.tagDraft) { actions.cancelTagEdit(); return; }
     if (state.query) { searchInput.value = ''; actions.setQuery(''); }
   }, true);
 
   new MutationObserver(() => {
     if (!allowedTab() && state.view === 'records') setView('notes');
+    if (moreOn() && !loaded) loadStore(false);
     applyTabs();
+    updateEye();
+    if (tagHighlight) scheduleTagScan(100);
   }).observe(document.getElementById('editor-view'), { attributes: true, attributeFilter: ['class', 'hidden'] });
 
   new MutationObserver(() => {
@@ -393,21 +586,25 @@
       if (!msg) return;
       if (msg.type === 'moreFeatures') {
         if (!moreOn() && state.view === 'records') setView('notes');
+        if (moreOn() && !loaded) loadStore(false);
         applyTabs();
+        updateEye();
+        if (!moreOn()) clearTagHighlight();
+        else if (tagHighlight) scheduleTagScan(50);
       }
     });
   }
 
   window.addEventListener('focus', () => {
-    if (state.view === 'records' && !readOnly && !hasFocusedBody() && changes === sentChanges) loadStore(false);
+    if (state.view === 'records' && !readOnly && !hasFocusedField() && changes === sentChanges) loadStore(false);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) flush();
-    else if (state.view === 'records' && changes === sentChanges) loadStore(false);
+    else if (state.view === 'records' && !hasFocusedField() && changes === sentChanges) loadStore(false);
   });
   viewEl.addEventListener('focusout', () => {
     setTimeout(() => {
-      if (state.view === 'records' && pendingAdopt && !hasFocusedBody()) {
+      if (state.view === 'records' && pendingAdopt && !hasFocusedField()) {
         state.store = pendingAdopt;
         pendingAdopt = null;
         render();
@@ -415,12 +612,76 @@
     }, 0);
   });
   window.addEventListener('blur', () => {
-    if (state.view === 'records' && pendingAdopt && !hasFocusedBody()) {
+    if (state.view === 'records' && pendingAdopt && !hasFocusedField()) {
       state.store = pendingAdopt;
       pendingAdopt = null;
       render();
     }
   });
 
+  const chapters = document.getElementById('chapters');
+  if (chapters) {
+    chapters.addEventListener('input', (e) => {
+      const body = e.target && e.target.closest && e.target.closest('.chapter-body');
+      if (!body || !tagHighlight) return;
+      clearTimeout(chapterScanTimer);
+      chapterScanTimer = setTimeout(() => scanChapter(body), 600);
+    });
+    new MutationObserver(() => { if (tagHighlight) scheduleTagScan(250); })
+      .observe(chapters, { childList: true, subtree: true });
+  }
+  window.addEventListener('resize', () => { if (tagHighlight) scheduleTagScan(250); });
+
   applyTabs();
+  if (moreOn()) loadStore(false);
+
+  window.NeoRecords = {
+    tagReady: () => tagReady,
+    tagExists: (text) => tagReady && model.tagExists(state.store, text),
+    lookUpItem(word) {
+      try {
+        if (!moreOn() || !tagReady || currentTab !== 'manuscript' || !word || word.length > 120) return null;
+        const find = model.tagExists(state.store, word);
+        return { label: x(find ? 'Find Record…' : 'Create Record…'), value: find ? 'record-find' : 'record-create' };
+      } catch { return null; }
+    },
+    async openFromSelection(phrase, mode) {
+      if (!moreOn() || !phrase) return false;
+      try { if (typeof pinPane === 'function') pinPane('side', true); } catch { /* not settled */ }
+      setView('records');
+      if (!loaded) await loadStore(false);
+      if (!loaded) return false;
+      let next = mode === 'find' ? 'find' : 'create';
+      if (next === 'create') {
+        // Re-read before deciding: another device may have added the tag while
+        // the menu was open. A stale index would create a duplicate record.
+        if (!saving && changes === sentChanges) await loadStore(false);
+        if (!tagReady) return false;
+        if (model.tagExists(state.store, phrase)) {
+          next = 'find';
+          setStatus(x('That tag already has a record. Showing it.'), '');
+        }
+      }
+      if (next === 'find') {
+        state.query = phrase;
+        searchInput.value = phrase;
+        render();
+        setTimeout(() => searchInput.focus({ preventScroll: true }), 0);
+        return true;
+      }
+      state.query = '';
+      searchInput.value = '';
+      const res = model.addRecord(state.store, phrase, null, Date.now(), [phrase]);
+      if (!res.ok) { setStatus(x('A record needs a title.'), 'error'); render(); return false; }
+      state.openRows.add(res.record.id);
+      markChanged();
+      render();
+      if (tagHighlight) scheduleTagScan(50);
+      setTimeout(() => {
+        const text = listEl.querySelector(`.neo-record[data-id="${CSS.escape(res.record.id)}"] .neo-record-text`);
+        if (text) text.focus({ preventScroll: true });
+      }, 0);
+      return true;
+    }
+  };
 })();

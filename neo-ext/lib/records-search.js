@@ -27,10 +27,17 @@
     return out;
   }
 
-  function test(title, body, query) {
+  function tagTexts(record) {
+    return (record && Array.isArray(record.tags) ? record.tags : [])
+      .filter((tag) => tag && !tag.removedAt && typeof tag.text === 'string')
+      .map((tag) => tag.text);
+  }
+
+  function test(title, body, query, tags = []) {
     const q = normalizeQuery(query);
     if (!q) return true;
-    return lowerSameLength(String(title || '')).includes(q) || lowerSameLength(String(body || '')).includes(q);
+    if (lowerSameLength(String(title || '')).includes(q) || lowerSameLength(String(body || '')).includes(q)) return true;
+    return (tags || []).some((tag) => lowerSameLength(String(tag || '')).includes(q));
   }
 
   function ranges(text, query) {
@@ -51,12 +58,17 @@
 
   function matches(record, query) {
     const q = normalizeQuery(query);
-    if (!q) return { title: false, body: false };
+    if (!q) return { title: false, body: false, tags: false };
     return {
       title: lowerSameLength(String(record.title || '')).includes(q),
-      body: lowerSameLength(String(record.body || '')).includes(q)
+      body: lowerSameLength(String(record.body || '')).includes(q),
+      tags: tagTexts(record).some((tag) => lowerSameLength(tag).includes(q))
     };
   }
 
-  return { normalizeQuery, test, ranges, matches, lowerSameLength };
+  function testRecord(record, query) {
+    return test(record.title, record.body, query, tagTexts(record));
+  }
+
+  return { normalizeQuery, test, testRecord, ranges, matches, tagTexts, lowerSameLength };
 });

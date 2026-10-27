@@ -37,7 +37,14 @@ test('records-search: a query with no match has no ranges', () => {
 });
 
 test('records-search: a title match and a body match are told apart', () => {
-  assert.deepEqual(search.matches({ title: 'John Silver', body: 'a parrot' }, 'silver'), { title: true, body: false });
-  assert.deepEqual(search.matches({ title: 'John Silver', body: 'a parrot' }, 'parrot'), { title: false, body: true });
-  assert.deepEqual(search.matches({ title: 'John Silver', body: 'a parrot' }, 'xyzzy'), { title: false, body: false });
+  assert.deepEqual(search.matches({ title: 'John Silver', body: 'a parrot' }, 'silver'), { title: true, body: false, tags: false });
+  assert.deepEqual(search.matches({ title: 'John Silver', body: 'a parrot' }, 'parrot'), { title: false, body: true, tags: false });
+  assert.deepEqual(search.matches({ title: 'John Silver', body: 'a parrot' }, 'xyzzy'), { title: false, body: false, tags: false });
+});
+
+test('records-search: a tag-only match is found', () => {
+  const rec = { title: 'John Silver', body: 'a parrot', tags: [{ text: 'Long Chen', at: 1, removedAt: 0 }, { text: 'Gone', at: 1, removedAt: 2 }] };
+  assert.equal(search.testRecord(rec, 'long chen'), true);
+  assert.equal(search.testRecord(rec, 'gone'), false);
+  assert.deepEqual(search.matches(rec, 'long chen'), { title: false, body: false, tags: true });
 });

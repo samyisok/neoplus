@@ -16,7 +16,7 @@ const ROOT = path.join(__dirname, '..');
 // in AGENTS.md; future seams (switchTab, counters, openBook) are added here
 // when they are implemented.
 const SEAMS = [
-  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/records-store.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js']],
+  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/records-store.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js']],
   ['backup-worker.js', ['records.json', "!name.endsWith('.tmp')"]],
   ['preload.js', ['NEO-EXT seam', "exposeInMainWorld('NeoForkNative'"]],
   ['main.js', [
@@ -29,8 +29,7 @@ const SEAMS = [
   ['app.js', [
     'NEO-EXT seam',
     'NeoExtApi.lookUpMenu(items, word)',
-    "choice === 'dictionary'",
-    'NeoExtApi.lookUpChoice(choice, word)'
+    'window.NeoExtApi) window.NeoExtApi.lookUpChoice(choice, word)'
   ]]
 ];
 

@@ -79,6 +79,7 @@
       else if (msg.action === 'backup-book') backupBook();
       else if (msg.action === 'thesaurus' && window.NeoThesaurus) window.NeoThesaurus.openWord(msg.word);
       else if (msg.action === 'dictionary' && window.NeoDictionary) window.NeoDictionary.openWord(msg.word);
+      else if ((msg.action === 'record-create' || msg.action === 'record-find') && window.NeoRecords) window.NeoRecords.openFromSelection(msg.phrase, msg.action === 'record-find' ? 'find' : 'create');
     });
   }
 

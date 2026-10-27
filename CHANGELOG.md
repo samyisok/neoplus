@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add an offline English Thesaurus… to the editor's right-click menu, with synonyms grouped by part of speech and relation, replacing the word as one undoable edit. (`2026-10-25-adr-002-thesaurus`)
 - Add an offline English Dictionary… to the editor's right-click menu and the macOS Look Up popup: definitions and usage examples grouped by part of speech, read-only, never touching the manuscript. (`2026-10-25-adr-003-dictionary`)
 - Add a draggable right-hand pane with a keyboard resize handle: its width is remembered per device, and the page, Darlings, and Outline cards follow it. (`2026-10-25-adr-004-resizable-side-pane`)
+- Add record tags: select a phrase in a chapter to create or find its tagged record, keep several multi-word tags on a record, search the book from a tag, and optionally tint tagged names with the status-bar eye. (`2026-10-28-adr-006-record-tags`)
 
 ### Changed
 - Include the library's `records.json` and its recovery copy in daily and book backups. (`2026-10-27-adr-005-records-tab`)
 - Move the Thesaurus and the new Dictionary to the Open English WordNet 2025 edition, so both features share one maintained source and one licence story (CC BY 4.0 plus the WordNet notice, both shipped with the data). (`2026-10-25-adr-003-dictionary`)
+- Let the Records search match a record's tags as well as its title and description, and forward every fork choice from the macOS Look Up popup to its feature. (`2026-10-28-adr-006-record-tags`)
 
 ### Deprecated
 ### Removed

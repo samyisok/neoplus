@@ -22,6 +22,7 @@
 
   let pending = null;
   let stored = false;
+  let phraseStored = false;
 
   function storeWord(word) {
     const api = bridge();
@@ -33,6 +34,13 @@
   // Clearing is the common case (every right-click that is not on a word), so
   // it uses the fire-and-forget channel: a synchronous IPC on the shelf would
   // block the page on whatever the main process is writing.
+  function clearPhrase() {
+    const api = bridge();
+    if (!api || !phraseStored) return;
+    phraseStored = false;
+    if (typeof api.clearContextPhrase === 'function') api.clearContextPhrase();
+  }
+
   function clearWord() {
     const api = bridge();
     if (!api) return;
@@ -48,10 +56,46 @@
     return /^en(-|$)/i.test(code);
   }
 
-  function menuAllowed() {
+  function moreAllowed() {
     const api = window.NeoExtApi;
-    if (!api || typeof api.moreFeatures !== 'function' || !api.moreFeatures()) return false;
-    return languageIsEnglish();
+    return !!(api && typeof api.moreFeatures === 'function' && api.moreFeatures());
+  }
+
+  function menuAllowed() {
+    return moreAllowed() && languageIsEnglish();
+  }
+
+  function recordsReady() {
+    return !!(window.NeoRecords && typeof window.NeoRecords.tagReady === 'function' && window.NeoRecords.tagReady());
+  }
+
+  function recordTag(text) {
+    try { return !!(window.NeoRecords && typeof window.NeoRecords.tagExists === 'function' && window.NeoRecords.tagExists(text)); } catch { return false; }
+  }
+
+  function storePhrase(phrase) {
+    const api = bridge();
+    if (!api || typeof api.setContextPhrase !== 'function') return;
+    api.setContextPhrase(phrase, recordTag(phrase));
+    phraseStored = true;
+  }
+
+  function selectedPhrase(event) {
+    if (!moreAllowed() || !recordsReady()) return '';
+    const body = event.target && event.target.closest && event.target.closest('.chapter-body');
+    if (!body || !body.isContentEditable) return '';
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount || selection.isCollapsed) return '';
+    const text = selection.toString().replace(/\s+/g, ' ').trim();
+    if (!text || text.length > 120 || /[\r\n]/.test(selection.toString())) return '';
+    try {
+      const range = selection.getRangeAt(0);
+      const element = (node) => (node && node.nodeType === Node.TEXT_NODE ? node.parentElement : node);
+      const start = element(range.startContainer)?.closest('p, li, h1, h2, h3, h4, h5, h6');
+      const end = element(range.endContainer)?.closest('p, li, h1, h2, h3, h4, h5, h6');
+      if (!start || start !== end) return '';
+    } catch { return ''; }
+    return text;
   }
 
   function pointRange(x0, y0) {
@@ -109,8 +153,11 @@
   function onContextMenu(event) {
     try {
       pending = null;
+      clearPhrase();
       const api = bridge();
       if (!api || typeof api.setContextWord !== 'function') return;
+      const phrase = selectedPhrase(event);
+      if (phrase) storePhrase(phrase);
       const editor = event.target && event.target.closest && event.target.closest(EDITOR);
       if (!editor || !editor.isContentEditable || !menuAllowed()) {
         clearWord();
@@ -152,6 +199,7 @@
   function clear() {
     pending = null;
     clearWord();
+    clearPhrase();
   }
 
   // The macOS Look Up popup is the other place the same word is offered. Each
@@ -164,6 +212,9 @@
   function lookUpMenu(items, word) {
     if (!Array.isArray(items) || !matches(word)) return false;
     const offered = [];
+    const record = pending && pending.selected && window.NeoRecords && typeof window.NeoRecords.lookUpItem === 'function'
+      ? window.NeoRecords.lookUpItem(word) : null;
+    if (record) offered.push(record);
     for (const feature of features()) {
       let item = null;
       try { item = feature.lookUpItem(word); } catch { item = null; }
@@ -179,6 +230,10 @@
   // both would put one window on top of the other and, for the thesaurus,
   // replace a word the writer never asked about.
   function lookUpChoice(choice, word) {
+    if ((choice === 'record-create' || choice === 'record-find') && window.NeoRecords && typeof window.NeoRecords.openFromSelection === 'function') {
+      try { window.NeoRecords.openFromSelection(word, choice === 'record-find' ? 'find' : 'create'); } catch { /* the page moved on */ }
+      return;
+    }
     const feature = choice === 'dictionary' ? window.NeoDictionary
       : choice === 'thesaurus' ? window.NeoThesaurus
         : null;

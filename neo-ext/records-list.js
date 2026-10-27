@@ -8,6 +8,7 @@
 (function (root) {
   const model = root.NeoRecordsStore;
   const search = root.NeoRecordsSearch;
+  const tagRules = root.NeoRecordTags;
 
   function create(x) {
     const tx = (s, vars) => (typeof x === 'function' ? x(s, vars) : s);
@@ -71,7 +72,7 @@
 
       let shown = 0;
       for (const group of groups) {
-        const matches = group.records.filter((rec) => search.test(rec.title, rec.body, q));
+        const matches = group.records.filter((rec) => search.testRecord(rec, q));
         const draftHere = !!(state.draft && state.draft.folderId === group.id);
         if (q && !matches.length && !draftHere) continue;
         if (!q && !group.records.length && !group.id && !draftHere) {
@@ -205,7 +206,7 @@
 
     function recordRow(rec, state, actions, q) {
       const matches = search.matches(rec, q);
-      const open = state.openRows.has(rec.id) || (!!q && matches.body);
+      const open = state.openRows.has(rec.id) || (!!q && (matches.body || matches.tags));
       const row = el('div', 'neo-record' + (open ? ' open' : ''));
       row.dataset.id = rec.id;
       if (state.confirming === rec.id) {
@@ -279,8 +280,68 @@
       select.value = model.folderOf(state.store, rec) || '';
       select.addEventListener('change', () => actions.moveRecord(rec.id, select.value || null));
       body.appendChild(select);
+      body.appendChild(tagStrip(rec, state, actions));
       row.appendChild(body);
       return row;
+    }
+
+    function tagStrip(rec, state, actions) {
+      const strip = el('div', 'neo-record-tags');
+      const list = tagRules ? tagRules.activeTags(rec) : [];
+      for (const text of list) {
+        const chip = el('span', 'neo-tag');
+        const go = el('button', 'neo-tag-name', text);
+        go.type = 'button';
+        go.title = tx('Find “{tag}” in the manuscript', { tag: text });
+        go.addEventListener('click', () => actions.findTag(text));
+        const cross = el('button', 'neo-tag-remove', '×');
+        cross.type = 'button';
+        cross.setAttribute('aria-label', tx('Remove tag “{tag}”', { tag: text }));
+        cross.addEventListener('click', (e) => { e.stopPropagation(); actions.confirmTag(rec.id, text); });
+        chip.append(go, cross);
+        strip.appendChild(chip);
+      }
+      if (state.tagConfirm && state.tagConfirm.id === rec.id) {
+        const ask = el('div', 'neo-tag-confirm');
+        ask.append(el('span', '', tx('Remove tag “{tag}”?', { tag: state.tagConfirm.text })));
+        const yes = el('button', 'neo-tag-confirm-remove', tx('Remove'));
+        yes.type = 'button';
+        yes.addEventListener('click', () => actions.removeTag(rec.id, state.tagConfirm.text));
+        const no = el('button', 'neo-tag-confirm-cancel', tx('Cancel'));
+        no.type = 'button';
+        no.addEventListener('click', () => actions.cancelTag());
+        ask.append(yes, no);
+        strip.appendChild(ask);
+        queueMicrotask(() => yes.focus());
+      }
+      if (state.tagDraft && state.tagDraft.id === rec.id) {
+        const input = el('input', 'neo-tag-input');
+        input.type = 'text';
+        input.value = state.tagDraft.text || '';
+        input.placeholder = tx('Tag');
+        input.setAttribute('aria-label', tx('New tag for {title}', { title: rec.title }));
+        let finished = false;
+        const done = (save) => {
+          if (finished) return;
+          finished = true;
+          if (save) actions.commitTag(rec.id, input.value);
+          else actions.cancelTagEdit();
+        };
+        input.addEventListener('input', () => actions.tagTyped(input.value));
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); done(true); }
+          else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+        });
+        input.addEventListener('blur', () => { if (!finished) done(true); });
+        strip.appendChild(input);
+        queueMicrotask(() => input.focus());
+      } else {
+        const add = el('button', 'neo-tag-add', '+ ' + tx('Tag'));
+        add.type = 'button';
+        add.addEventListener('click', () => actions.startTagAdd(rec.id));
+        strip.appendChild(add);
+      }
+      return strip;
     }
 
     function renameInput(value) {

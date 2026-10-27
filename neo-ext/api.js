@@ -55,6 +55,22 @@
     return false;
   }
 
+  // A tag chip asks for every mention in the manuscript: switch to the
+  // manuscript and reuse the core Find bar rather than a second scanner.
+  function openFind(query) {
+    try {
+      if (typeof book === 'undefined' || !book || typeof openSearch !== 'function') return false;
+      if (typeof currentTab !== 'undefined' && currentTab !== 'manuscript' && typeof switchTab === 'function') switchTab('manuscript');
+      openSearch();
+      const input = document.querySelector('#search-input');
+      if (!input) return false;
+      input.value = String(query || '');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      if (typeof runSearch === 'function') runSearch();
+      return true;
+    } catch { return false; }
+  }
+
   // Seam 10: app.js's macOS Look Up popup asks the fork for its extra item and
   // for what to do when that item is chosen.
   function lookUpMenu(items, word) {
@@ -78,5 +94,5 @@
     } catch { return away; }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, moreFeatures, lookUpMenu, lookUpChoice, dictionaryStatus };
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
 })();
