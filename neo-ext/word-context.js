@@ -14,9 +14,11 @@
 (function () {
   const forms = window.NeoWordForms || null;
   if (!forms) return;
+  const tagRules = window.NeoRecordTags || null;
 
   const EDITOR = '.chapter-body, #aux-editor, .fn-text';
   const MAX_WORD = forms.MAX_WORD || 120;
+  const MAX_PHRASE = tagRules && tagRules.MAX_PHRASE ? tagRules.MAX_PHRASE : 120;
 
   const bridge = () => window.NeoForkNative || null;
 
@@ -31,9 +33,10 @@
     api.setContextWord(word);
   }
 
-  // Clearing is the common case (every right-click that is not on a word), so
-  // it uses the fire-and-forget channel: a synchronous IPC on the shelf would
-  // block the page on whatever the main process is writing.
+  // The word clear is the common case and is fire-and-forget, so a right-click
+  // on the shelf never waits on the main process. The phrase clear is
+  // synchronous on purpose: it runs in the same turn as the set below it, so
+  // the menu being built can never read a phrase the writer did not select.
   function clearPhrase() {
     const api = bridge();
     if (!api || !phraseStored) return;
@@ -44,7 +47,7 @@
   function clearWord() {
     const api = bridge();
     if (!api) return;
-    if (!stored && typeof api.clearContextWord === 'function') return;
+    if (!stored) return;
     stored = false;
     if (typeof api.clearContextWord === 'function') api.clearContextWord();
     else if (typeof api.setContextWord === 'function') api.setContextWord('');
@@ -69,14 +72,14 @@
     return !!(window.NeoRecords && typeof window.NeoRecords.tagReady === 'function' && window.NeoRecords.tagReady());
   }
 
-  function recordTag(text) {
+  function hasTag(text) {
     try { return !!(window.NeoRecords && typeof window.NeoRecords.tagExists === 'function' && window.NeoRecords.tagExists(text)); } catch { return false; }
   }
 
   function storePhrase(phrase) {
     const api = bridge();
     if (!api || typeof api.setContextPhrase !== 'function') return;
-    api.setContextPhrase(phrase, recordTag(phrase));
+    api.setContextPhrase(phrase, hasTag(phrase));
     phraseStored = true;
   }
 
@@ -87,7 +90,7 @@
     const selection = window.getSelection();
     if (!selection || !selection.rangeCount || selection.isCollapsed) return '';
     const text = selection.toString().replace(/\s+/g, ' ').trim();
-    if (!text || text.length > 120 || /[\r\n]/.test(selection.toString())) return '';
+    if (!text || text.length > MAX_PHRASE || /[\r\n]/.test(selection.toString())) return '';
     try {
       const range = selection.getRangeAt(0);
       const element = (node) => (node && node.nodeType === Node.TEXT_NODE ? node.parentElement : node);
@@ -205,8 +208,13 @@
   // The macOS Look Up popup is the other place the same word is offered. Each
   // lexical feature contributes its own item; the context is spent once, after
   // both have had their look at it.
+  // Each one-word feature contributes its item and knows how to answer its
+  // own choice, so a fourth feature joins the table instead of the if-chain.
   function features() {
-    return [window.NeoDictionary, window.NeoThesaurus].filter((feature) => feature && typeof feature.lookUpItem === 'function');
+    return [
+      { action: 'dictionary', feature: window.NeoDictionary },
+      { action: 'thesaurus', feature: window.NeoThesaurus }
+    ].filter((entry) => entry.feature && typeof entry.feature.lookUpItem === 'function');
   }
 
   function lookUpMenu(items, word) {
@@ -215,9 +223,9 @@
     const record = pending && pending.selected && window.NeoRecords && typeof window.NeoRecords.lookUpItem === 'function'
       ? window.NeoRecords.lookUpItem(word) : null;
     if (record) offered.push(record);
-    for (const feature of features()) {
+    for (const entry of features()) {
       let item = null;
-      try { item = feature.lookUpItem(word); } catch { item = null; }
+      try { item = entry.feature.lookUpItem(word); } catch { item = null; }
       if (item) offered.push(item);
     }
     clear();
@@ -230,14 +238,18 @@
   // both would put one window on top of the other and, for the thesaurus,
   // replace a word the writer never asked about.
   function lookUpChoice(choice, word) {
-    if ((choice === 'record-create' || choice === 'record-find') && window.NeoRecords && typeof window.NeoRecords.openFromSelection === 'function') {
-      try { window.NeoRecords.openFromSelection(word, choice === 'record-find' ? 'find' : 'create'); } catch { /* the page moved on */ }
+    const mode = tagRules && typeof tagRules.tagMode === 'function' ? tagRules.tagMode(choice) : '';
+    if (mode) {
+      if (window.NeoRecords && typeof window.NeoRecords.openFromSelection === 'function') {
+        try {
+          const opened = window.NeoRecords.openFromSelection(word, mode);
+          if (opened && typeof opened.catch === 'function') opened.catch(() => {});
+        } catch { /* the page moved on */ }
+      }
       return;
     }
-    const feature = choice === 'dictionary' ? window.NeoDictionary
-      : choice === 'thesaurus' ? window.NeoThesaurus
-        : null;
-    try { if (feature && typeof feature.lookUpChoice === 'function') feature.lookUpChoice(word); } catch { /* the page moved on */ }
+    const entry = features().find((candidate) => candidate.action === choice);
+    try { if (entry && typeof entry.feature.lookUpChoice === 'function') entry.feature.lookUpChoice(word); } catch { /* the page moved on */ }
   }
 
   document.addEventListener('contextmenu', onContextMenu, true);

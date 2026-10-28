@@ -206,3 +206,96 @@ test('records-store: a record stops at 50 active tags, and a removed tag can ret
   assert.equal(store.addTag(s, 'r1', 'Tag 1', at + 63).ok, true);
   assert.ok(store.activeTags(store.activeRecords(s)[0]).includes('Tag 1'));
 });
+
+test('records-store: removed tags free a place at the cap, so a record cannot freeze', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [record('r1', 'John')] }).store;
+  for (let i = 0; i < 50; i++) store.addTag(s, 'r1', 'tag ' + i, at + i);
+  for (let i = 0; i < 3; i++) assert.equal(store.removeTag(s, 'r1', 'tag ' + i, at + 50 + i).ok, true);
+  const added = store.addTag(s, 'r1', 'a brand new tag', at + 60);
+  assert.equal(added.ok, true, 'a removal frees a place for a new tag');
+  assert.equal(store.activeTags(store.activeRecords(s)[0]).length, 48);
+});
+
+test('records-store: a merge keeps every tag from both copies, past the limit', () => {
+  const tagsA = Array.from({ length: 30 }, (_, i) => ({ text: 'alpha ' + i, at: at + i, removedAt: 0 }));
+  const tagsB = Array.from({ length: 30 }, (_, i) => ({ text: 'beta ' + i, at: at + i, removedAt: 0 }));
+  const a = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: tagsA })] }).store;
+  const b = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: tagsB })] }).store;
+  const merged = store.merge(a, b, at + 100).store;
+  const active = store.activeTags(store.activeRecords(merged)[0]);
+  assert.equal(active.length, 60, 'no live tag is dropped by the merge');
+  assert.ok(active.includes('alpha 29') && active.includes('beta 29'));
+});
+
+test('records-store: a merge keeps a tombstone even past the limit', () => {
+  const tagsA = [
+    ...Array.from({ length: 50 }, (_, i) => ({ text: 'live ' + i, at: at + i, removedAt: 0 })),
+    { text: 'gone', at: at, removedAt: at + 10 }
+  ];
+  const b = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'other', at: at + 60, removedAt: 0 }] })] }).store;
+  const a = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: tagsA })] }).store;
+  const merged = store.merge(a, b, at + 100).store;
+  const tags = store.activeRecords(merged)[0].tags;
+  assert.ok(tags.some((t) => t.text === 'gone' && t.removedAt), 'the tombstone survives the merge');
+  assert.equal(store.activeTags(store.activeRecords(merged)[0]).length, 51);
+});
+
+test('records-store: one unreadable tag is dropped, the record is kept', () => {
+  const long = 'x'.repeat(121);
+  const s = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [
+    { text: 'Long Chen', at, removedAt: 0 },
+    { text: long, at, removedAt: 0 },
+    { text: 42, at, removedAt: 0 }
+  ] })] });
+  assert.equal(s.ok, true);
+  assert.deepEqual(store.activeTags(s.store.records[0]), ['Long Chen']);
+});
+
+test('records-store: a create whose first tag cannot be stored fails instead of making an untagged record', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [] }).store;
+  const out = store.addRecord(s, 'Long Chen', null, at, ['x'.repeat(121)]);
+  assert.equal(out.ok, false);
+  assert.equal(out.reason, 'tag');
+  assert.equal(store.activeRecords(s).length, 0);
+});
+
+test('records-store: a removal beats an addition at the same time, and a re-add survives', () => {
+  const added = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'Long Chen', at: at + 5, removedAt: 0 }] })] }).store;
+  const removed = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'Long Chen', at: at, removedAt: at + 5 }] })] }).store;
+  const tie = store.merge(added, removed, at + 10).store;
+  assert.deepEqual(store.activeTags(store.activeRecords(tie)[0]), [], 'an equal stamp does not revive the tag');
+  const readded = store.normalize({ format: 1, folders: [], records: [record('r1', 'John', at, { tags: [{ text: 'Long Chen', at: at + 6, removedAt: 0 }] })] }).store;
+  const back = store.merge(tie, readded, at + 20).store;
+  assert.deepEqual(store.activeTags(store.activeRecords(back)[0]), ['Long Chen'], 'a later add wins over an older removal');
+});
+
+test('records-store: store tags and tagExists agree, and the add reasons are distinct', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [record('r1', 'John')] }).store;
+  store.addTag(s, 'r1', 'Long Chen', at);
+  store.addTag(s, 'r1', 'Silver Series', at);
+  const fromStore = store.storeTags(s).map((tag) => tag.toLocaleLowerCase()).sort();
+  const asked = ['long chen', 'silver series', 'nope'].filter((tag) => store.tagExists(s, tag)).sort();
+  assert.deepEqual(fromStore, asked);
+  assert.equal(store.addTag(s, 'missing', 'x', at).reason, 'missing');
+  assert.equal(store.addTag(s, 'r1', 'x'.repeat(121), at).reason, 'long');
+});
+
+test('records-store: re-adding a removed tag cannot push a record past the active cap', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [record('r1', 'John')] }).store;
+  for (let i = 0; i < 50; i++) store.addTag(s, 'r1', 'tag ' + i, at + i);
+  store.removeTag(s, 'r1', 'tag 0', at + 60);
+  assert.equal(store.addTag(s, 'r1', 'filler', at + 61).ok, true, '49 + 1 = 50');
+  const back = store.addTag(s, 'r1', 'tag 0', at + 62);
+  assert.equal(back.ok, false);
+  assert.equal(back.reason, 'many');
+  assert.equal(store.activeTags(store.activeRecords(s)[0]).length, 50);
+});
+
+test('records-store: a create cannot carry more than 50 active tags', () => {
+  const s = store.normalize({ format: 1, folders: [], records: [] }).store;
+  const tags = Array.from({ length: 51 }, (_, i) => 'tag ' + i);
+  const out = store.addRecord(s, 'Crowded', null, at, tags);
+  assert.equal(out.ok, false);
+  assert.equal(out.reason, 'many');
+  assert.equal(store.activeRecords(s).length, 0);
+});

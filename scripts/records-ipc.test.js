@@ -13,6 +13,7 @@ const os = require('node:os');
 const path = require('node:path');
 const records = require('../neo-ext/records-main.js');
 const model = require('../neo-ext/lib/records-store.js');
+const fileRules = require('../neo-ext/lib/records-file.js');
 
 const at = 1_700_000_000_000;
 
@@ -56,7 +57,7 @@ test('records-ipc: an invalid or oversized payload is refused', async () => {
 
 test('records-ipc: an oversized file is refused before it is parsed', async () => {
   const { deps, file } = room();
-  fs.writeFileSync(file, 'x'.repeat(model.MAX_BYTES + 1));
+  fs.writeFileSync(file, 'x'.repeat(fileRules.MAX_BYTES + 1));
   const read = await records.readStore(deps);
   assert.equal(read.ok, false);
   assert.equal(read.reason, 'large');
@@ -127,4 +128,19 @@ test('records-ipc: the path never comes from the caller', async () => {
   const { deps } = room();
   await records.writeStore(deps, { ...sample('One'), name: '../../outside' });
   assert.equal(fs.existsSync(path.join(path.dirname(deps.libraryDir()), 'outside')), false);
+});
+
+test('records-ipc: a corrupt file falls back on the last version that read whole', async () => {
+  const { deps, file } = room();
+  await records.writeStore(deps, sample('John Silver'));
+  fs.copyFileSync(file, file + '.bak');
+  fs.writeFileSync(file, '{ half a write');
+  const read = await records.readStore(deps);
+  assert.equal(read.ok, true);
+  assert.equal(read.recovered, true);
+  assert.deepEqual(read.store.records.map((r) => r.title), ['John Silver']);
+  const write = await records.writeStore(deps, sample('The parrot'));
+  assert.equal(write.ok, true, 'the next save repairs the file');
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).records.length, 2);
+  assert.equal(JSON.parse(fs.readFileSync(file + '.bak', 'utf8')).records.length, 1, 'the good copy is not overwritten with the corrupt one');
 });

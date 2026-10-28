@@ -1,7 +1,8 @@
-// NEO fork — record tags and the manuscript scanner (adr-006)
+// NEO fork — record tags and the manuscript scanner (adr-006, adr-007)
 //
-// Pure: tag keys, active tags, and one combined paragraph scan. The record
-// store owns the stamps; this module owns matching.
+// Pure: no DOM, no filesystem. This module owns what a tag is: its key, its
+// active form, the limits, and the action a selection's menu item maps to.
+// The store owns records and the tag list; this module owns identity.
 
 'use strict';
 
@@ -11,6 +12,7 @@
   else root.NeoRecordTags = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const MAX_TAG = 120;
+  const MAX_PHRASE = MAX_TAG;
   const MAX_TAGS = 50;
   const MAX_RANGES = 2000;
   const MAX_MATCH_TAGS = 200;
@@ -29,10 +31,16 @@
       .map((t) => normalizeTag(t.text));
   }
 
-  function recordsWithTag(records, text) {
-    const key = tagKey(text);
-    if (!key) return [];
-    return (records || []).filter((rec) => activeTags(rec).some((tag) => tagKey(tag) === key));
+  // One vocabulary for Create/Find across the renderer, the native menu, and
+  // the router: the action the menu item carries and the mode it means.
+  function tagAction(hasTag) {
+    return hasTag ? 'record-find' : 'record-create';
+  }
+
+  function tagMode(action) {
+    if (action === 'record-create') return 'create';
+    if (action === 'record-find') return 'find';
+    return '';
   }
 
   function escapeRe(s) {
@@ -70,9 +78,8 @@
     return { ranges, tags: entries.map(([, text]) => text) };
   }
 
-  function ranges(text, list, limit = MAX_RANGES) {
-    return buildMatcher(list).ranges(text, limit);
-  }
-
-  return { MAX_TAG, MAX_TAGS, MAX_RANGES, MAX_MATCH_TAGS, normalizeTag, tagKey, activeTags, recordsWithTag, buildMatcher, ranges };
+  return {
+    MAX_TAG, MAX_PHRASE, MAX_TAGS, MAX_RANGES, MAX_MATCH_TAGS,
+    normalizeTag, tagKey, activeTags, tagAction, tagMode, buildMatcher
+  };
 });

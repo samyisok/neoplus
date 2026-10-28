@@ -9,7 +9,12 @@
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
-const model = require('./lib/records-store.js');
+const fileRules = require('./lib/records-file.js');
+let model = null;
+try { model = require('./lib/records-store.js'); } catch (err) {
+  model = null;
+  try { console.error('records: store unavailable:', err && err.message); } catch { /* no console */ }
+}
 
 const NAME = 'records.json';
 const WAIT_MS = 8000;
@@ -23,6 +28,7 @@ function fail(reason) {
 }
 
 async function readStore(deps) {
+  if (!model) return fail('unsupported');
   let file;
   try { file = fileOf(deps); } catch { return fail('path'); }
   let st;
@@ -31,7 +37,7 @@ async function readStore(deps) {
     return { ok: true, exists: false, store: model.empty() };
   }
   if (!st.isFile()) return fail('read');
-  if (st.size > model.MAX_BYTES) return fail('large');
+  if (st.size > fileRules.MAX_BYTES) return fail('large');
 
   try {
     if (deps.whenLocal) {
@@ -45,26 +51,43 @@ async function readStore(deps) {
     }
   } catch { return fail('cloud'); }
 
+  const read = await readOne(file);
+  if (read.ok) return { ok: true, exists: true, store: read.store };
+  if (read.reason === 'missing') return { ok: true, exists: false, store: model.empty() };
+  if (read.reason === 'unreadable') {
+    // The last version that read whole is kept beside the file; use it rather
+    // than leave the writer with a store NEO refuses to open.
+    let bakSize = 0;
+    try { bakSize = (await fsp.stat(file + '.bak')).size; } catch { bakSize = 0; }
+    if (bakSize && bakSize <= fileRules.MAX_BYTES) {
+      const bak = await readOne(file + '.bak');
+      if (bak.ok) return { ok: true, exists: true, store: bak.store, recovered: true };
+    }
+  }
+  return fail(read.reason || 'read');
+}
+
+async function readOne(file) {
   let text;
   try { text = await fsp.readFile(file, 'utf8'); } catch (err) {
-    if (err.code === 'ENOENT') return { ok: true, exists: false, store: model.empty() };
-    return fail(err.code || 'read');
+    return { ok: false, reason: err.code === 'ENOENT' ? 'missing' : (err.code || 'read') };
   }
   let value;
-  try { value = JSON.parse(text); } catch { return fail('unreadable'); }
+  try { value = JSON.parse(text); } catch { return { ok: false, reason: 'unreadable' }; }
   const out = model.normalize(value);
-  if (!out.ok) return fail('unreadable');
-  return { ok: true, exists: true, store: out.store };
+  return out.ok ? { ok: true, store: out.store } : { ok: false, reason: 'unreadable' };
 }
 
 let writeChain = Promise.resolve();
 
 async function writeNow(deps, payload) {
+  if (!model) return fail('unsupported');
   const clean = model.normalize(payload);
   if (!clean.ok) return fail('invalid');
   let file;
   try { file = fileOf(deps); } catch { return fail('path'); }
-  if (model.sizeOf(clean.store) > model.MAX_BYTES) return fail('large');
+  const payloadText = JSON.stringify(clean.store, null, 2);
+  if (fileRules.sizeOfText(payloadText) > fileRules.MAX_BYTES) return fail('large');
 
   try {
     if (deps.isCloudOnly && deps.isCloudOnly(file)) return fail('cloud');
@@ -72,17 +95,21 @@ async function writeNow(deps, payload) {
 
   const disk = await readStore(deps);
   if (!disk.ok) return disk;
+  if (disk.recovered) {
+    try { deps.logError && deps.logError('records write: recovered from records.json.bak'); } catch { /* logging is a nicety */ }
+  }
   const merged = model.merge(disk.store, clean.store, Date.now());
   if (!merged.ok) return fail('unreadable');
-  if (model.sizeOf(merged.store) > model.MAX_BYTES) return fail('large');
+  const mergedText = JSON.stringify(merged.store, null, 2);
+  if (fileRules.sizeOfText(mergedText) > fileRules.MAX_BYTES) return fail('large');
 
   try {
-    if (disk.exists) {
+    if (disk.exists && !disk.recovered) {
       try { await fsp.copyFile(file, file + '.bak'); } catch { /* the write itself decides */ }
     }
     const write = deps.writeFileDurable;
     if (typeof write !== 'function') return fail('write');
-    await write(file, JSON.stringify(merged.store, null, 2));
+    await write(file, mergedText);
     return { ok: true, store: merged.store };
   } catch (err) {
     try { deps.logError && deps.logError('records write', err); } catch { /* logging is a nicety */ }

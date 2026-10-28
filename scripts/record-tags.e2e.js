@@ -183,20 +183,75 @@ test('replacing a chapter restores the tint on the new text', async () => {
   await tick(200);
   assert.equal(await js(`CSS.highlights.has('neo-record-tag')`), true);
   await js(`(() => { const body = document.querySelector('.chapter-body'); body.innerHTML = '<p>Long Chen came back.</p>'; })()`);
-  await tick(700);
+  await tick(900);
   assert.equal(await js(`CSS.highlights.has('neo-record-tag')`), true);
   assert.equal(await js(`!!document.querySelector('.chapter-body')`), true);
+  const painted = await js(`(() => {
+    const held = CSS.highlights.get('neo-record-tag');
+    if (!held) return '';
+    return [...held].map((range) => range.toString()).join('|');
+  })()`);
+  assert.ok(painted.includes('Long Chen'), 'the tint is on the new text, not detached nodes');
 });
 
-test('Simple NEO hides the eye and the tag tabs', async () => {
+test('Simple NEO hides the eye, clears the tint, and cannot repaint it', async () => {
+  await js(`switchTab('manuscript')`);
+  await waitFor(`!!document.getElementById('records-eye') && !document.getElementById('records-eye').hidden`);
+  if (!(await recordsState()).eyeOn) await js(`document.getElementById('records-eye').click()`);
+  await tick(500);
+  assert.equal(await js(`CSS.highlights.has('neo-record-tag')`), true);
   wc.send('menu', { type: 'moreFeatures', checked: false });
   await waitFor(`library && library.moreFeatures === false`);
-  await tick(300);
+  await tick(400);
   assert.equal(await js(`document.getElementById('records-eye').hidden`), true);
   assert.equal(await js(`document.getElementById('side-pane').classList.contains('neo-records-open')`), false);
+  assert.equal(await js(`CSS.highlights.has('neo-record-tag')`), false, 'Simple NEO clears the tint');
+  await js(`switchTab('notes')`);
+  await tick(200);
+  await js(`switchTab('manuscript')`);
+  await tick(400);
+  assert.equal(await js(`CSS.highlights.has('neo-record-tag')`), false, 'a tab switch cannot repaint it');
   wc.send('menu', { type: 'moreFeatures', checked: true });
   await waitFor(`library && library.moreFeatures === true`);
-  await tick(300);
+  await tick(500);
+  assert.equal(await js(`CSS.highlights.has('neo-record-tag')`), true, 'the tint returns with the switch');
+});
+
+test('typing re-reads one chapter, not the whole book', async () => {
+  await js(`switchTab('manuscript')`);
+  await tick(200);
+  const before = await js(`NeoRecords.tagScans()`);
+  await js(`(() => {
+    const body = document.querySelector('.chapter-body');
+    const p = document.createElement('p');
+    p.textContent = 'Long Chen came back again.';
+    body.appendChild(p);
+    body.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await tick(900);
+  const after = await js(`NeoRecords.tagScans()`);
+  assert.equal(after.book, before.book, 'a new paragraph does not rescan the book');
+  assert.equal(after.chapter, before.chapter + 1, 'the edited chapter is re-read once');
+});
+
+test('a half-typed tag does not survive a view switch', async () => {
+  await js(`NeoRecords.openFromSelection('Long Chen', 'find')`);
+  await tick(400);
+  await js(`(() => {
+    const row = document.querySelector('.neo-record');
+    if (row && !row.classList.contains('open')) row.querySelector('.neo-record-title').click();
+  })()`);
+  await tick(150);
+  await js(`document.querySelector('.neo-record .neo-tag-add').click()`);
+  await tick(150);
+  await type('.neo-tag-input', 'half typed');
+  await js(`switchTab('notes')`);
+  await tick(200);
+  await js(`switchTab('manuscript')`);
+  await tick(200);
+  await js(`NeoRecords.openFromSelection('Long Chen', 'find')`);
+  await tick(400);
+  assert.equal(await js(`!!document.querySelector('.neo-tag-input')`), false, 'the draft tag is gone');
 });
 
 /* runner */

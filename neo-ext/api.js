@@ -50,6 +50,27 @@
     return '';
   }
 
+  // A book is open on the page. The pane asks before it shows a tag control.
+  function hasBook() {
+    try { return typeof book !== 'undefined' && !!book; } catch { return false; }
+  }
+
+  function isPocket() {
+    try { return !!IS_POCKET; } catch { return false; }
+  }
+
+  function currentTabName() {
+    try { return typeof currentTab === 'string' ? currentTab : ''; } catch { return ''; }
+  }
+
+  function onManuscriptTab() {
+    try { return currentTab === 'manuscript'; } catch { return false; }
+  }
+
+  function pinSidePane() {
+    try { if (typeof pinPane === 'function') pinPane('side', true); } catch { /* not settled */ }
+  }
+
   function moreFeatures() {
     try { if (typeof moreOn === 'function') return !!moreOn(); } catch { /* fall through */ }
     return false;
@@ -65,7 +86,6 @@
       const input = document.querySelector('#search-input');
       if (!input) return false;
       input.value = String(query || '');
-      input.dispatchEvent(new Event('input', { bubbles: true }));
       if (typeof runSearch === 'function') runSearch();
       return true;
     } catch { return false; }
@@ -94,5 +114,5 @@
     } catch { return away; }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
 })();

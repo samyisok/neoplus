@@ -12,6 +12,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const forms = require('../neo-ext/lib/word-forms.js');
 const menu = require('../neo-ext/lib/record-tags-main.js');
+const tags = require('../neo-ext/lib/record-tags.js');
 
 function room({ phrase = 'Long Chen text', collapsed = false, language = 'fr', tag = true, ready = true } = {}) {
   const calls = { phrase: [], word: [], clearedPhrase: 0, choice: null };
@@ -42,6 +43,7 @@ function room({ phrase = 'Long Chen text', collapsed = false, language = 'fr', t
     document,
     getSelection: () => selection,
     NeoWordForms: forms,
+    NeoRecordTags: tags,
     NeoExtApi: {
       moreFeatures: () => true,
       spellLanguage: () => language

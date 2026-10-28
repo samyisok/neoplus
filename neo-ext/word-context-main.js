@@ -1,19 +1,20 @@
-// NEO fork — the word the native menu is about to offer (adr-003)
+// NEO fork — the word or phrase the native menu is about to offer (adr-003, adr-006)
 //
-// The renderer stores the word synchronously in the same turn as the
-// right-click; the menu is built a moment later in the main process. One store
-// per window, spent once, and stale after five seconds, so a word left behind
-// by a menu the renderer replaced (the spellcheck list, Look Up) never
-// resurfaces minutes later.
+// The renderer stores it in the same turn as the right-click; the menu is built
+// a moment later in the main process. One store per window, spent once, and
+// stale after five seconds, so a word or phrase left behind by a menu the
+// renderer replaced (the spellcheck list, Look Up) never resurfaces minutes
+// later. A word is asynchronous to store and clear; a phrase is synchronous at
+// the menu turn, so a stale phrase cannot label the menu being built.
 
 'use strict';
 
 const { MAX_WORD } = require('./lib/word-forms.js');
+const { MAX_PHRASE } = require('./lib/record-tags.js');
 
 const TTL_MS = 5000;
 
 let state = null;
-const MAX_PHRASE = 120;
 
 function init(deps) {
   state = {
@@ -33,7 +34,7 @@ function init(deps) {
   });
   ipc.on('neo-ext:context-phrase', (event, payload) => {
     const key = senderKey(event);
-    const phrase = payload && typeof payload.phrase === 'string' ? payload.phrase.slice(0, MAX_PHRASE) : '';
+    const phrase = payload && typeof payload.phrase === 'string' && payload.phrase.length <= MAX_PHRASE ? payload.phrase : '';
     if (phrase) state.phrases.set(key, { phrase, hasTag: !!(payload && payload.hasTag), at: state.now() });
     else state.phrases.delete(key);
     try { event.returnValue = true; } catch { /* fire-and-forget send */ }

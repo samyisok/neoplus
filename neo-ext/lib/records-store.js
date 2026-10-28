@@ -9,16 +9,20 @@
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NeoRecordsStore = api;
- })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  // The tag module is the one owner of tag identity. Without it the store has
+  // no honest answer, so it refuses to load instead of guessing with a copy.
   const tagRules = (() => {
-    try { if (typeof require === 'function') return require('./record-tags.js'); } catch { /* browser */ }
-    return typeof globalThis !== 'undefined' ? globalThis.NeoRecordTags : null;
+    let rules = null;
+    try { if (typeof require === 'function') rules = require('./record-tags.js'); } catch { /* browser */ }
+    if (!rules && typeof globalThis !== 'undefined') rules = globalThis.NeoRecordTags;
+    if (!rules || typeof rules.tagKey !== 'function') throw new Error('records-store needs record-tags.js');
+    return rules;
   })();
   const FORMAT = 1;
   const MAX_TITLE = 200;
   const MAX_BODY = 100000;
   const MAX_FUTURE = 60000;
-  const MAX_BYTES = 4 * 1024 * 1024;
   const MAX_ITEMS = 20000;
 
   function empty() {
@@ -56,24 +60,38 @@
     };
   }
 
-  function cleanTags(value, now) {
-    if (value === undefined) return [];
-    if (!Array.isArray(value)) return null;
+  function tagEvent(tag) {
+    return Math.max(Number(tag.at) || 0, Number(tag.removedAt) || 0);
+  }
+
+  // The newer event wins for one tag. Equal stamps resolve toward the removal,
+  // so an equally old copy cannot revive a tag the writer took away.
+  function betterTag(prior, next) {
+    if (!prior) return next;
+    const a = tagEvent(prior);
+    const b = tagEvent(next);
+    if (a !== b) return b > a ? next : prior;
+    if (next.removedAt && !prior.removedAt) return next;
+    return prior;
+  }
+
+  function tagList(value, now) {
     const byKey = new Map();
     for (const raw of value) {
-      if (!isObject(raw)) return null;
-      const text = tagRules ? tagRules.normalizeTag(raw.text) : String(raw.text || '').replace(/\s+/g, ' ').trim();
-      if (!text) continue;
-      if (text.length > 120) return null;
-      const key = tagRules ? tagRules.tagKey(text) : text.toLocaleLowerCase();
-      const at = stamp(raw.at, now);
-      const removedAt = stamp(raw.removedAt, now);
-      const prior = byKey.get(key);
-      const event = Math.max(at, removedAt);
-      if (!prior || event > Math.max(prior.at, prior.removedAt)) byKey.set(key, { text, at, removedAt });
+      if (!isObject(raw)) continue;
+      const text = tagRules.normalizeTag(raw.text);
+      if (!text || text.length > tagRules.MAX_TAG) continue;
+      const key = tagRules.tagKey(text);
+      const next = { text, at: stamp(raw.at, now), removedAt: stamp(raw.removedAt, now) };
+      byKey.set(key, betterTag(byKey.get(key), next));
     }
-    const out = [...byKey.values()].sort((a, b) => a.text.localeCompare(b.text));
-    return out.length > 50 ? out.slice(0, 50) : out;
+    return [...byKey.values()].sort((a, b) => a.text.localeCompare(b.text));
+  }
+
+  // Reading never drops a live tag or a removal mark to fit the limit; the
+  // limit is a rule for adding (see addTag).
+  function cleanTags(value, now) {
+    return Array.isArray(value) ? tagList(value, now) : [];
   }
 
   function cleanRecord(value, now) {
@@ -87,7 +105,6 @@
     if (title.length > MAX_TITLE || body.length > MAX_BODY) return null;
     const folderId = value.folderId === null || value.folderId === undefined ? null : cleanId(value.folderId);
     const tags = cleanTags(value.tags, now);
-    if (tags === null) return null;
     return {
       id,
       folderId: folderId || null,
@@ -174,24 +191,18 @@
     };
   }
 
-  function mergeTags(a, b) {
-    const byKey = new Map();
-    for (const raw of [...(a || []), ...(b || [])]) {
-      if (!raw || !raw.text) continue;
-      const text = tagRules ? tagRules.normalizeTag(raw.text) : String(raw.text).trim();
-      if (!text) continue;
-      const key = tagRules ? tagRules.tagKey(text) : text.toLocaleLowerCase();
-      const at = Number(raw.at) || 0;
-      const removedAt = Number(raw.removedAt) || 0;
-      const prior = byKey.get(key);
-      const event = Math.max(at, removedAt);
-      if (!prior || event > Math.max(prior.at, prior.removedAt)) byKey.set(key, { text, at, removedAt });
-    }
-    const out = [...byKey.values()].sort((x, y) => x.text.localeCompare(y.text));
-    return out.slice(0, 50);
+  function mergeTags(a, b, now) {
+    const kept = [...(a || []), ...(b || [])]
+      .filter((raw) => raw && tagRules.normalizeTag(raw.text))
+      .map((raw) => ({
+        text: tagRules.normalizeTag(raw.text),
+        at: Number(raw.at) || 0,
+        removedAt: Number(raw.removedAt) || 0
+      }));
+    return tagList(kept, now);
   }
 
-  function mergeRecord(a, b) {
+  function mergeRecord(a, b, now) {
     const deadA = Number(a.deletedAt) || 0;
     const deadB = Number(b.deletedAt) || 0;
     if (deadA || deadB) {
@@ -204,7 +215,7 @@
         bodyAt: Math.max(Number(a.bodyAt) || 0, Number(b.bodyAt) || 0),
         folderAt: Math.max(Number(a.folderAt) || 0, Number(b.folderAt) || 0),
         createdAt: Math.min(Number(a.createdAt) || 0, Number(b.createdAt) || 0),
-        tags: mergeTags(a.tags, b.tags),
+        tags: mergeTags(a.tags, b.tags, now),
         deletedAt: Math.max(deadA, deadB)
       };
     }
@@ -217,7 +228,7 @@
       bodyAt: Math.max(Number(a.bodyAt) || 0, Number(b.bodyAt) || 0),
       folderAt: Math.max(Number(a.folderAt) || 0, Number(b.folderAt) || 0),
       createdAt: Math.min(Number(a.createdAt) || 0, Number(b.createdAt) || 0),
-      tags: mergeTags(a.tags, b.tags),
+      tags: mergeTags(a.tags, b.tags, now),
       deletedAt: 0
     };
   }
@@ -238,7 +249,7 @@
     for (const record of a.store.records) records.set(record.id, record);
     for (const record of b.store.records) {
       const prior = records.get(record.id);
-      records.set(record.id, prior ? mergeRecord(prior, record) : record);
+      records.set(record.id, prior ? mergeRecord(prior, record, now) : record);
     }
 
     const active = new Set([...folders.values()].filter((f) => !f.deletedAt).map((f) => f.id));
@@ -256,47 +267,59 @@
     return (store.records || []).filter((r) => !r.deletedAt).sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
   }
 
-  function sizeOf(store) {
-    try {
-      const text = JSON.stringify(store);
-      if (typeof TextEncoder === 'function') return new TextEncoder().encode(text).length;
-      if (typeof Buffer !== 'undefined') return Buffer.byteLength(text);
-      return text.length;
-    } catch { return Infinity; }
-  }
-
 
   function activeTags(record) {
-    return tagRules ? tagRules.activeTags(record) : (record.tags || []).filter((x) => !x.removedAt).map((x) => x.text);
+    return tagRules.activeTags(record);
   }
 
   function tagExists(store, text) {
-    const key = tagRules ? tagRules.tagKey(text) : String(text || '').trim().toLocaleLowerCase();
+    const key = tagRules.tagKey(text);
     if (!key) return false;
-    return activeRecords(store).some((rec) => activeTags(rec).some((tag) => (tagRules ? tagRules.tagKey(tag) : tag.toLocaleLowerCase()) === key));
+    return activeRecords(store).some((rec) => activeTags(rec).some((tag) => tagRules.tagKey(tag) === key));
   }
 
   function recordsWithTag(store, text) {
-    const key = tagRules ? tagRules.tagKey(text) : String(text || '').trim().toLocaleLowerCase();
+    const key = tagRules.tagKey(text);
     if (!key) return [];
-    return activeRecords(store).filter((rec) => activeTags(rec).some((tag) => (tagRules ? tagRules.tagKey(tag) : tag.toLocaleLowerCase()) === key));
+    return activeRecords(store).filter((rec) => activeTags(rec).some((tag) => tagRules.tagKey(tag) === key));
+  }
+
+  // Every distinct active tag in the library, in the order the store lists its
+  // records. Bounded by the paint bound so the eye and the matcher agree.
+  function storeTags(store) {
+    const seen = new Set();
+    const out = [];
+    for (const rec of activeRecords(store)) {
+      for (const tag of activeTags(rec)) {
+        const key = tagRules.tagKey(tag);
+        if (!key || seen.has(key)) continue;
+        if (out.length >= tagRules.MAX_MATCH_TAGS) return out;
+        seen.add(key);
+        out.push(tag);
+      }
+    }
+    return out;
   }
 
   function addTag(store, id, text, now = Date.now()) {
     const record = findRecord(store, id);
-    const clean = tagRules ? tagRules.normalizeTag(text) : String(text || '').replace(/\s+/g, ' ').trim();
-    if (!record || !clean || clean.length > 120) return { ok: false, reason: 'tag' };
-    const key = tagRules ? tagRules.tagKey(clean) : clean.toLocaleLowerCase();
+    if (!record) return { ok: false, reason: 'missing' };
+    const clean = tagRules.normalizeTag(text);
+    if (!clean) return { ok: false, reason: 'tag' };
+    if (clean.length > tagRules.MAX_TAG) return { ok: false, reason: 'long' };
+    const key = tagRules.tagKey(clean);
     if (!Array.isArray(record.tags)) record.tags = [];
-    const existing = record.tags.find((tag) => (tagRules ? tagRules.tagKey(tag.text) : tag.text.toLocaleLowerCase()) === key);
+    const active = record.tags.filter((tag) => !tag.removedAt).length;
+    const existing = record.tags.find((tag) => tagRules.tagKey(tag.text) === key);
     if (existing) {
       if (!existing.removedAt) return { ok: true, existing: true };
+      if (active >= tagRules.MAX_TAGS) return { ok: false, reason: 'many' };
       existing.text = clean;
       existing.at = now;
       existing.removedAt = 0;
       return { ok: true };
     }
-    if (record.tags.length >= 50) return { ok: false, reason: 'many' };
+    if (active >= tagRules.MAX_TAGS) return { ok: false, reason: 'many' };
     record.tags.push({ text: clean, at: now, removedAt: 0 });
     record.tags.sort((a, b) => a.text.localeCompare(b.text));
     return { ok: true };
@@ -304,9 +327,10 @@
 
   function removeTag(store, id, text, now = Date.now()) {
     const record = findRecord(store, id);
-    const key = tagRules ? tagRules.tagKey(text) : String(text || '').trim().toLocaleLowerCase();
-    if (!record || !key) return { ok: false, reason: 'tag' };
-    const tag = (record.tags || []).find((x) => !x.removedAt && (tagRules ? tagRules.tagKey(x.text) : x.text.toLocaleLowerCase()) === key);
+    if (!record) return { ok: false, reason: 'missing' };
+    const key = tagRules.tagKey(text);
+    if (!key) return { ok: false, reason: 'tag' };
+    const tag = (record.tags || []).find((x) => !x.removedAt && tagRules.tagKey(x.text) === key);
     if (!tag) return { ok: false, reason: 'missing' };
     tag.removedAt = now;
     return { ok: true };
@@ -330,7 +354,10 @@
     if (clean.length > MAX_TITLE) return { ok: false, reason: 'title' };
     if (folderId && !findFolder(store, folderId)) folderId = null;
     const list = Array.isArray(tags) ? tags.map((tag) => (typeof tag === 'string' ? { text: tag, at: now, removedAt: 0 } : tag)) : [];
-    const record = newRecord(clean, folderId, now, cleanTags(list, now) || []);
+    const cleaned = cleanTags(list, now);
+    if (list.length && !cleaned.length) return { ok: false, reason: 'tag' };
+    if (cleaned.filter((tag) => !tag.removedAt).length > tagRules.MAX_TAGS) return { ok: false, reason: 'many' };
+    const record = newRecord(clean, folderId, now, cleaned);
     store.records.push(record);
     sortStore(store);
     return { ok: true, record };
@@ -410,11 +437,11 @@
   }
 
   return {
-    FORMAT, MAX_TITLE, MAX_BODY, MAX_FUTURE, MAX_BYTES, MAX_ITEMS,
+    FORMAT, MAX_TITLE, MAX_BODY, MAX_FUTURE, MAX_ITEMS,
     empty, normalize, merge, newFolder, newRecord,
-    activeFolders, activeRecords, activeTags, tagExists, recordsWithTag, addTag, removeTag, findRecord, findFolder, folderOf,
+    activeFolders, activeRecords, activeTags, tagExists, recordsWithTag, storeTags, addTag, removeTag, findRecord, findFolder, folderOf,
     addRecord, deleteRecord, renameRecord, setBody, moveRecord,
     addFolder, renameFolder, deleteFolder,
-    sizeOf, sortStore
+    sortStore
   };
 });

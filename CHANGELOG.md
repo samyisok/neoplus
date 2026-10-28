@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Include the library's `records.json` and its recovery copy in daily and book backups. (`2026-10-27-adr-005-records-tab`)
 - Move the Thesaurus and the new Dictionary to the Open English WordNet 2025 edition, so both features share one maintained source and one licence story (CC BY 4.0 plus the WordNet notice, both shipped with the data). (`2026-10-25-adr-003-dictionary`)
 - Let the Records search match a record's tags as well as its title and description, and forward every fork choice from the macOS Look Up popup to its feature. (`2026-10-28-adr-006-record-tags`)
+- Keep record tags whole: the 50-tag limit counts only live tags, a merge never drops a tag or its removal, a corrupt `records.json` recovers from `.bak`, and a tag tint re-reads one chapter instead of the book and stops when Simple NEO is on. (`2026-10-28-adr-007-record-tag-fixes`)
 
 ### Deprecated
 ### Removed

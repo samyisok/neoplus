@@ -81,5 +81,8 @@
   "That tag already has a record. Showing it.": "That tag already has a record. Showing it.",
   "Highlight record names": "Highlight record names",
   "Find is not available": "Find is not available",
-  "A record needs a title.": "A record needs a title."
+  "A record needs a title.": "A record needs a title.",
+  "That record is gone.": "That record is gone.",
+  "That tag was not accepted.": "That tag was not accepted.",
+  "A record can have {n} tags.": "A record can have {n} tags."
 }

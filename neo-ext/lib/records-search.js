@@ -10,6 +10,14 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NeoRecordsSearch = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  const tagRules = (() => {
+    let rules = null;
+    try { if (typeof require === 'function') rules = require('./record-tags.js'); } catch { /* browser */ }
+    if (!rules && typeof globalThis !== 'undefined') rules = globalThis.NeoRecordTags;
+    if (!rules || typeof rules.activeTags !== 'function') throw new Error('records-search needs record-tags.js');
+    return rules;
+  })();
+
   function normalizeQuery(query) {
     return typeof query === 'string' ? query.trim().toLocaleLowerCase() : '';
   }
@@ -27,10 +35,10 @@
     return out;
   }
 
+  // Tag text comes from the one owner of what a tag is, not a second reading
+  // of the stamp fields.
   function tagTexts(record) {
-    return (record && Array.isArray(record.tags) ? record.tags : [])
-      .filter((tag) => tag && !tag.removedAt && typeof tag.text === 'string')
-      .map((tag) => tag.text);
+    return tagRules ? tagRules.activeTags(record) : [];
   }
 
   function test(title, body, query, tags = []) {

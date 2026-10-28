@@ -23,15 +23,6 @@ test('record-tags: only active tags are returned', () => {
   assert.deepEqual(tags.activeTags({}), []);
 });
 
-test('record-tags: records with a tag are found case-insensitively', () => {
-  const records = [
-    { id: 'a', tags: [{ text: 'Long Chen', at: 1, removedAt: 0 }] },
-    { id: 'b', tags: [{ text: 'Silver', at: 1, removedAt: 0 }] },
-    { id: 'c', tags: [{ text: 'Long Chen', at: 1, removedAt: 2 }] }
-  ];
-  assert.deepEqual(tags.recordsWithTag(records, 'long chen').map((r) => r.id), ['a']);
-});
-
 test('record-tags: a matcher finds whole phrases, not prefixes of names', () => {
   const matcher = tags.buildMatcher(['Long Chen', 'Chen']);
   assert.deepEqual(matcher.ranges('Long Chen met Chen.'), [
@@ -70,4 +61,17 @@ test('record-tags: a 100k-word page scans without pathological cost', () => {
   const found = matcher.ranges(text);
   assert.ok(found.length > 0);
   assert.ok(Date.now() - started < 150, `scan took ${Date.now() - started}ms`);
+});
+
+test('record-tags: one vocabulary maps has-tag to an action and back', () => {
+  assert.equal(tags.tagAction(false), 'record-create');
+  assert.equal(tags.tagAction(true), 'record-find');
+  assert.equal(tags.tagMode('record-create'), 'create');
+  assert.equal(tags.tagMode('record-find'), 'find');
+  assert.equal(tags.tagMode('dictionary'), '');
+});
+
+test('record-tags: a selected phrase and a tag share one 120-character bound', () => {
+  assert.equal(tags.MAX_PHRASE, tags.MAX_TAG);
+  assert.equal(tags.MAX_TAG, 120);
 });
