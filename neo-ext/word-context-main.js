@@ -35,8 +35,16 @@ function init(deps) {
   ipc.on('neo-ext:context-phrase', (event, payload) => {
     const key = senderKey(event);
     const phrase = payload && typeof payload.phrase === 'string' && payload.phrase.length <= MAX_PHRASE ? payload.phrase : '';
-    if (phrase) state.phrases.set(key, { phrase, hasTag: !!(payload && payload.hasTag), at: state.now() });
-    else state.phrases.delete(key);
+    if (phrase) {
+      state.phrases.set(key, {
+        phrase,
+        hasTag: !!(payload && payload.hasTag),
+        inventory: !!(payload && payload.inventory),
+        records: !!(payload && payload.records !== false),
+        anchor: cleanAnchor(payload && payload.anchor),
+        at: state.now()
+      });
+    } else state.phrases.delete(key);
     try { event.returnValue = true; } catch { /* fire-and-forget send */ }
   });
 }
@@ -66,7 +74,22 @@ function takePhrase(win) {
   const key = windowKey(win);
   const held = state.phrases.get(key);
   state.phrases.delete(key);
-  return held && state.now() - held.at < TTL_MS ? { phrase: held.phrase, hasTag: !!held.hasTag } : null;
+  return held && state.now() - held.at < TTL_MS
+    ? { phrase: held.phrase, hasTag: !!held.hasTag, inventory: !!held.inventory, records: held.records !== false, anchor: held.anchor || null }
+    : null;
+}
+
+function cleanAnchor(value) {
+  if (!value || typeof value !== 'object') return null;
+  const id = (text) => (typeof text === 'string' && text.length <= 80 && !/\s/.test(text) ? text : '');
+  const paragraph = Number(value.paragraph);
+  return {
+    chapterId: id(value.chapterId),
+    sectionId: typeof value.sectionId === 'string' ? value.sectionId.slice(0, 80) : '',
+    paragraph: Number.isFinite(paragraph) && paragraph >= 0 ? Math.floor(paragraph) : 0,
+    quote: typeof value.quote === 'string' ? value.quote.slice(0, MAX_PHRASE) : '',
+    hash: typeof value.hash === 'string' && /^[0-9a-f]{1,32}$/i.test(value.hash) ? value.hash : ''
+  };
 }
 
 module.exports = { init, take, takePhrase, MAX_WORD, MAX_PHRASE, TTL_MS };

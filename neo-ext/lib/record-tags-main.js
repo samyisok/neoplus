@@ -8,7 +8,7 @@
 const { tagAction } = require('./record-tags.js');
 
 function menuItem(info, t) {
-  if (!info || !info.phrase) return null;
+  if (!info || !info.phrase || info.records === false) return null;
   const find = !!info.hasTag;
   return {
     label: t(find ? 'Find Record…' : 'Create Record…'),

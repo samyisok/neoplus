@@ -25,6 +25,8 @@
   let pending = null;
   let stored = false;
   let phraseStored = false;
+  let lastAnchor = null;
+  let lastPhrase = '';
 
   function storeWord(word) {
     const api = bridge();
@@ -73,32 +75,50 @@
   }
 
   function hasTag(text) {
+    if (!recordsReady()) return false;
     try { return !!(window.NeoRecords && typeof window.NeoRecords.tagExists === 'function' && window.NeoRecords.tagExists(text)); } catch { return false; }
   }
 
-  function storePhrase(phrase) {
-    const api = bridge();
-    if (!api || typeof api.setContextPhrase !== 'function') return;
-    api.setContextPhrase(phrase, hasTag(phrase));
-    phraseStored = true;
+  function inventoryReady() {
+    try { return !!(window.NeoInventory && typeof window.NeoInventory.canRecord === 'function' && window.NeoInventory.canRecord()); } catch { return false; }
   }
 
-  function selectedPhrase(event) {
-    if (!moreAllowed() || !recordsReady()) return '';
+  // What the selection was: the phrase, the paragraph it stays inside, and the
+  // range. Each feature asks its own provider for what it needs; records needs
+  // its tag index, Inventory its anchor, and neither disables the other.
+  function selectionContext(event) {
+    if (!moreAllowed()) return null;
     const body = event.target && event.target.closest && event.target.closest('.chapter-body');
-    if (!body || !body.isContentEditable) return '';
+    if (!body || !body.isContentEditable) return null;
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount || selection.isCollapsed) return '';
+    if (!selection || !selection.rangeCount || selection.isCollapsed) return null;
     const text = selection.toString().replace(/\s+/g, ' ').trim();
-    if (!text || text.length > MAX_PHRASE || /[\r\n]/.test(selection.toString())) return '';
+    if (!text || text.length > MAX_PHRASE || /[\r\n]/.test(selection.toString())) return null;
     try {
       const range = selection.getRangeAt(0);
       const element = (node) => (node && node.nodeType === Node.TEXT_NODE ? node.parentElement : node);
       const start = element(range.startContainer)?.closest('p, li, h1, h2, h3, h4, h5, h6');
       const end = element(range.endContainer)?.closest('p, li, h1, h2, h3, h4, h5, h6');
-      if (!start || start !== end) return '';
-    } catch { return ''; }
-    return text;
+      if (!start || start !== end) return null;
+      return { phrase: text, body, paragraphEl: start, range };
+    } catch { return null; }
+  }
+
+  function anchorFor(context) {
+    try {
+      if (!context || !window.NeoInventory || typeof window.NeoInventory.selectionAnchor !== 'function') return null;
+      return window.NeoInventory.selectionAnchor(context);
+    } catch { return null; }
+  }
+
+  function storePhrase(context) {
+    const api = bridge();
+    if (!api || typeof api.setContextPhrase !== 'function') return;
+    const anchor = anchorFor(context);
+    lastAnchor = anchor;
+    lastPhrase = context.phrase;
+    api.setContextPhrase(context.phrase, hasTag(context.phrase), anchor, inventoryReady(), recordsReady());
+    phraseStored = true;
   }
 
   function pointRange(x0, y0) {
@@ -159,8 +179,8 @@
       clearPhrase();
       const api = bridge();
       if (!api || typeof api.setContextWord !== 'function') return;
-      const phrase = selectedPhrase(event);
-      if (phrase) storePhrase(phrase);
+      const context = selectionContext(event);
+      if (context) storePhrase(context);
       const editor = event.target && event.target.closest && event.target.closest(EDITOR);
       if (!editor || !editor.isContentEditable || !menuAllowed()) {
         clearWord();
@@ -205,6 +225,10 @@
     clearPhrase();
   }
 
+  function last() {
+    return { phrase: lastPhrase, anchor: lastAnchor };
+  }
+
   // The macOS Look Up popup is the other place the same word is offered. Each
   // lexical feature contributes its own item; the context is spent once, after
   // both have had their look at it.
@@ -223,6 +247,9 @@
     const record = pending && pending.selected && window.NeoRecords && typeof window.NeoRecords.lookUpItem === 'function'
       ? window.NeoRecords.lookUpItem(word) : null;
     if (record) offered.push(record);
+    if (pending && pending.selected && inventoryReady()) {
+      offered.push({ label: (window.NeoExt && window.NeoExt.x ? window.NeoExt.x('Inventory…') : 'Inventory…'), value: 'inventory-open' });
+    }
     for (const entry of features()) {
       let item = null;
       try { item = entry.feature.lookUpItem(word); } catch { item = null; }
@@ -238,6 +265,14 @@
   // both would put one window on top of the other and, for the thesaurus,
   // replace a word the writer never asked about.
   function lookUpChoice(choice, word) {
+    if (choice === 'inventory-open') {
+      const phrase = lastPhrase || word;
+      try {
+        const opened = window.NeoInventory && window.NeoInventory.openFromSelection(phrase, lastAnchor);
+        if (opened && typeof opened.catch === 'function') opened.catch(() => {});
+      } catch { /* the page moved on */ }
+      return;
+    }
     const mode = tagRules && typeof tagRules.tagMode === 'function' ? tagRules.tagMode(choice) : '';
     if (mode) {
       if (window.NeoRecords && typeof window.NeoRecords.openFromSelection === 'function') {
@@ -254,5 +289,5 @@
 
   document.addEventListener('contextmenu', onContextMenu, true);
 
-  window.NeoWordContext = { current, matches, editor, clear, lookUpMenu, lookUpChoice, EDITOR, MAX_WORD };
+  window.NeoWordContext = { current, matches, editor, clear, last, lookUpMenu, lookUpChoice, EDITOR, MAX_WORD };
 })();

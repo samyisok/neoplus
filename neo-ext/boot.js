@@ -79,6 +79,12 @@
       else if (msg.action === 'backup-book') backupBook();
       else if (msg.action === 'thesaurus' && window.NeoThesaurus) window.NeoThesaurus.openWord(msg.word);
       else if (msg.action === 'dictionary' && window.NeoDictionary) window.NeoDictionary.openWord(msg.word);
+      else if (msg.action === 'inventory-open' && window.NeoInventory) {
+        try {
+          const opened = window.NeoInventory.openFromSelection(msg.phrase, msg.anchor);
+          if (opened && typeof opened.catch === 'function') opened.catch(() => {});
+        } catch { /* the page moved on */ }
+      }
       else if (window.NeoRecords && window.NeoRecordTags) {
         const mode = window.NeoRecordTags.tagMode(msg.action)
           || (msg.action === 'record-find' ? 'find' : msg.action === 'record-create' ? 'create' : '');

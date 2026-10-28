@@ -50,6 +50,69 @@
     return '';
   }
 
+  // The open book, its chapters, and their text. The page holds them in
+  // memory; the fork only reads them.
+  function bookId() {
+    try { return typeof book !== 'undefined' && book && typeof book.id === 'string' ? book.id : ''; } catch { return ''; }
+  }
+
+  function currentChapter() {
+    try { return typeof currentChapterId === 'string' ? currentChapterId : ''; } catch { return ''; }
+  }
+
+  function chapterOrder() {
+    try { return typeof book !== 'undefined' && book && Array.isArray(book.chapterOrder) ? [...book.chapterOrder] : []; } catch { return []; }
+  }
+
+  function chapterTitle(id) {
+    try {
+      const titles = book && book.chapterTitles;
+      return titles && typeof titles[id] === 'string' ? titles[id] : '';
+    } catch { return ''; }
+  }
+
+  function chapterText(id) {
+    try {
+      if (typeof chapterHTML === 'undefined' || !chapterHTML || !Object.prototype.hasOwnProperty.call(chapterHTML, id)) {
+        return { ok: false, text: '' };
+      }
+      return { ok: true, text: String(chapterHTML[id] || '') };
+    } catch { return { ok: false, text: '' }; }
+  }
+
+  function sectionNotes() {
+    try { return book && book.sectionNotes ? book.sectionNotes : {}; } catch { return {}; }
+  }
+
+  function sectionFor(body, paragraph) {
+    try { if (typeof sectionOf === 'function') return sectionOf(body, paragraph); } catch { /* the page moved */ }
+    return null;
+  }
+
+  // The words a loose or held card keeps. A card that holds a whole chapter or
+  // scene carries its HTML; both count as "still in the book" for the ledger.
+  function cardTexts() {
+    const out = [];
+    try {
+      const held = book && book.looseCards;
+      const cards = Array.isArray(held) ? held : held && typeof held === 'object' ? Object.values(held) : [];
+      for (const card of cards) {
+        if (!card) continue;
+        if (typeof card.html === 'string' && card.html) out.push(htmlText(card.html));
+        else if (typeof card.text === 'string' && card.text) out.push(card.text);
+      }
+    } catch { /* no cards */ }
+    return out;
+  }
+
+  function htmlText(html) {
+    try {
+      const box = document.createElement('div');
+      box.innerHTML = String(html || '');
+      return box.textContent || '';
+    } catch { return ''; }
+  }
+
   // A book is open on the page. The pane asks before it shows a tag control.
   function hasBook() {
     try { return typeof book !== 'undefined' && !!book; } catch { return false; }
@@ -91,6 +154,73 @@
     } catch { return false; }
   }
 
+  // One transaction's phrase, put on screen and selected. It moves the view and
+  // the selection only: no chapter write, no undo entry.
+  function revealPhrase(spec) {
+    try {
+      if (!spec || !spec.quote) return false;
+      if (typeof currentTab !== 'undefined' && currentTab !== 'manuscript' && typeof switchTab === 'function') switchTab('manuscript');
+      const chapter = document.querySelector(`.chapter[data-id="${CSS.escape(String(spec.chapterId || ''))}"]`);
+      if (!chapter) return false;
+      chapter.scrollIntoView({ block: 'start' });
+      const body = chapter.querySelector('.chapter-body');
+      if (!body) return false;
+      const paragraphs = [...body.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6')];
+      const needle = String(spec.quote).replace(/\s+/g, ' ').trim();
+      const candidates = [];
+      if (paragraphs[spec.paragraph]) candidates.push(paragraphs[spec.paragraph]);
+      for (const paragraph of paragraphs) if (!candidates.includes(paragraph)) candidates.push(paragraph);
+      for (const paragraph of candidates) {
+        const range = rangeOf(paragraph, needle);
+        if (!range) continue;
+        body.focus({ preventScroll: true });
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        range.startContainer.parentElement?.scrollIntoView({ behavior: 'auto', block: 'center' });
+        return true;
+      }
+      return false;
+    } catch { return false; }
+  }
+
+  // A phrase can be split by inline markup, so walk the text nodes and build
+  // one range across them.
+  function rangeOf(root, needle) {
+    const nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let text = '';
+    let node;
+    while ((node = walker.nextNode())) {
+      nodes.push({ node, start: text.length });
+      text += node.data;
+    }
+    let at = text.indexOf(needle);
+    let length = needle.length;
+    if (at < 0) {
+      const words = needle.split(' ').filter(Boolean).map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      if (!words.length) return null;
+      const match = new RegExp(words.join('\\s+')).exec(text);
+      if (!match) return null;
+      at = match.index;
+      length = match[0].length;
+    }
+    const locate = (offset) => {
+      for (const entry of nodes) {
+        const end = entry.start + entry.node.data.length;
+        if (offset >= entry.start && offset < end) return { node: entry.node, offset: offset - entry.start };
+      }
+      return null;
+    };
+    const start = locate(at);
+    const end = locate(at + length - 1);
+    if (!start || !end) return null;
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset + 1);
+    return range;
+  }
+
   // Seam 10: app.js's macOS Look Up popup asks the fork for its extra item and
   // for what to do when that item is chosen.
   function lookUpMenu(items, word) {
@@ -114,5 +244,5 @@
     } catch { return away; }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
 })();

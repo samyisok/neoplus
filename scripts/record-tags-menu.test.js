@@ -51,7 +51,7 @@ function room({ phrase = 'Long Chen text', collapsed = false, language = 'fr', t
     NeoForkNative: {
       setContextWord: (w) => calls.word.push(w),
       clearContextWord: () => { calls.word.push(''); },
-      setContextPhrase: (p, has) => calls.phrase.push([p, has]),
+      setContextPhrase: (p, has, a, inv, records) => calls.phrase.push([p, has, a, inv, records]),
       clearContextPhrase: () => { calls.clearedPhrase++; }
     },
     NeoRecords: {
@@ -70,14 +70,14 @@ function room({ phrase = 'Long Chen text', collapsed = false, language = 'fr', t
 test('record-tags-menu: a chapter phrase is stored with its has-tag flag', () => {
   const r = room({ phrase: 'Long Chen', tag: true });
   r.fire();
-  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', true]);
+  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', true, null, false, true]);
   assert.equal(r.context.NeoWordContext.current(), null, 'multi-word leaves the lexical word empty');
 });
 
 test('record-tags-menu: the record item is language-free while the lexical item stays English', () => {
   const r = room({ phrase: 'Long Chen', tag: false, language: 'fr' });
   r.fire();
-  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', false]);
+  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', false, null, false, true]);
   assert.equal(r.context.NeoWordContext.current(), null);
 });
 
@@ -90,10 +90,11 @@ test('record-tags-menu: no selection or a line break stores no phrase', () => {
   assert.equal(br.calls.phrase.length, 0);
 });
 
-test('record-tags-menu: an unready tag index offers no item', () => {
+test('record-tags-menu: an unready tag index stores no record item', () => {
   const r = room({ ready: false });
   r.fire();
-  assert.equal(r.calls.phrase.length, 0);
+  assert.equal(r.calls.phrase.at(-1)[4], false, 'records are marked unready');
+  assert.equal(menu.menuItem({ phrase: 'Long Chen', hasTag: false, records: false }, (s) => s), null);
 });
 
 test('record-tags-menu: the Look Up popup carries the record item and routes its choice', () => {

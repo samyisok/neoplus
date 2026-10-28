@@ -69,6 +69,26 @@
   tabs.append(tabNotes, tabRecords);
   pane.insertBefore(tabs, head);
 
+  // A fork view can join the strip (Inventory). Records keeps ownership of the
+  // strip, the keyboard, Simple NEO gating, and the Esc rules; the view owns
+  // its element and its own show/hide.
+  const extraViews = new Map();
+
+  function bindTab(tab) {
+    tab.addEventListener('click', () => setView(tab.dataset.view));
+    tab.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); moveTab(tab, 1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); moveTab(tab, -1); }
+      else if (e.key === 'Home') { e.preventDefault(); tabNotes.focus(); setView('notes'); }
+      else if (e.key === 'End') {
+        e.preventDefault();
+        const list = tabList();
+        const last = list[list.length - 1];
+        if (last) { last.focus(); setView(last.dataset.view); }
+      }
+    });
+  }
+
   const viewEl = el('div', 'neo-records-view');
   viewEl.id = 'neo-records-view';
   viewEl.hidden = true;
@@ -215,8 +235,9 @@
     hl.update();
     addButton.disabled = !loaded;
     folderButton.disabled = !loaded;
-    if (state.view !== 'records') { viewEl.hidden = true; return; }
-    viewEl.hidden = false;
+    viewEl.hidden = state.view !== 'records';
+    for (const view of extraViews.values()) view.element.hidden = state.view !== view.id;
+    if (state.view !== 'records') return;
     list.render(listEl, state, actions);
     if (!statusText) statusEl.hidden = true;
   }
@@ -229,24 +250,40 @@
     tabRecords.setAttribute('aria-selected', state.view === 'records' ? 'true' : 'false');
     tabNotes.tabIndex = state.view === 'notes' ? 0 : -1;
     tabRecords.tabIndex = state.view === 'records' ? 0 : -1;
+    for (const view of extraViews.values()) {
+      view.tab.hidden = !moreOn();
+      view.tab.setAttribute('aria-selected', state.view === view.id ? 'true' : 'false');
+      view.tab.tabIndex = state.view === view.id ? 0 : -1;
+      if (!moreOn()) view.element.hidden = true;
+    }
     if (!visible) {
       state.tagDraft = null;
       state.tagConfirm = null;
     }
-    if (!visible && state.view === 'records') setView('notes');
+    if (!visible && state.view !== 'notes') setView('notes');
   }
 
   function setView(next) {
     if (next === 'records' && (!moreOn() || !allowedTab())) next = 'notes';
+    if (next !== 'notes' && next !== 'records' && !extraViews.has(next)) next = 'notes';
+    if (next !== 'notes' && (!moreOn() || !allowedTab())) next = 'notes';
     if (next === state.view) return;
     if (state.view === 'records') {
       flush();
       if (window.CSS && CSS.highlights) CSS.highlights.delete('neo-record-search');
+    } else if (extraViews.has(state.view)) {
+      const leaving = extraViews.get(state.view);
+      try { if (typeof leaving.hide === 'function') leaving.hide(); } catch { /* the view decides */ }
     }
     state.view = next;
-    pane.classList.toggle('neo-records-open', next === 'records');
+    pane.classList.toggle('neo-records-open', next !== 'notes');
     viewEl.hidden = next !== 'records';
+    for (const view of extraViews.values()) view.element.hidden = next !== view.id;
     searchInput.value = next === 'records' ? searchInput.value : '';
+    if (next !== 'notes' && next !== 'records') {
+      const view = extraViews.get(next);
+      try { if (typeof view.show === 'function') view.show(); } catch { /* the view decides */ }
+    }
     if (next === 'records') {
       setStatus('');
       loadStore();
@@ -378,7 +415,7 @@
   };
 
   function tabList() {
-    return [tabNotes, tabRecords].filter((t) => !t.hidden);
+    return [tabNotes, tabRecords, ...[...extraViews.values()].map((view) => view.tab)].filter((t) => !t.hidden);
   }
 
   function moveTab(current, delta) {
@@ -388,19 +425,11 @@
     index = (index + delta + list.length) % list.length;
     const next = list[index];
     next.focus();
-    if (next === tabRecords) setView('records'); else setView('notes');
+    setView(next.dataset.view);
   }
 
-  tabNotes.addEventListener('click', () => setView('notes'));
-  tabRecords.addEventListener('click', () => setView('records'));
-  for (const tab of [tabNotes, tabRecords]) {
-    tab.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); moveTab(tab, 1); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); moveTab(tab, -1); }
-      else if (e.key === 'Home') { e.preventDefault(); tabNotes.focus(); setView('notes'); }
-      else if (e.key === 'End') { e.preventDefault(); if (moreOn()) { tabRecords.focus(); setView('records'); } }
-    });
-  }
+  bindTab(tabNotes);
+  bindTab(tabRecords);
 
   searchInput.addEventListener('input', () => {
     clearTimeout(searchTimer);
@@ -445,7 +474,7 @@
   }, true);
 
   new MutationObserver(() => {
-    if (!allowedTab() && state.view === 'records') setView('notes');
+    if (!allowedTab() && state.view !== 'notes') setView('notes');
     if (moreOn() && !loaded) loadStore(false);
     applyTabs();
     hl.update();
@@ -453,7 +482,7 @@
   }).observe(document.getElementById('editor-view'), { attributes: true, attributeFilter: ['class', 'hidden'] });
 
   new MutationObserver(() => {
-    if (!moreOn() && state.view === 'records') setView('notes');
+    if (!moreOn() && state.view !== 'notes') setView('notes');
     applyTabs();
   }).observe(document.getElementById('tabs'), { subtree: true, attributes: true, attributeFilter: ['class'] });
 
@@ -461,7 +490,7 @@
     window.neo.onMenu((msg) => {
       if (!msg) return;
       if (msg.type === 'moreFeatures') {
-        if (!moreOn() && state.view === 'records') setView('notes');
+        if (!moreOn() && state.view !== 'notes') setView('notes');
         if (moreOn() && !loaded) loadStore(false);
         applyTabs();
         hl.update();
@@ -500,6 +529,24 @@
 
   window.NeoRecords = {
     tagReady,
+    registerView(spec) {
+      try {
+        if (!spec || !spec.id || spec.id === 'notes' || spec.id === 'records' || extraViews.has(spec.id)) return false;
+        if (!spec.element) return false;
+        const tab = el('div', 'neo-side-tab', spec.label || spec.id);
+        tab.dataset.view = spec.id;
+        tab.setAttribute('role', 'tab');
+        tab.tabIndex = -1;
+        tabs.appendChild(tab);
+        spec.element.hidden = true;
+        pane.appendChild(spec.element);
+        const view = { id: spec.id, tab, element: spec.element, show: spec.show, hide: spec.hide };
+        extraViews.set(spec.id, view);
+        bindTab(tab);
+        applyTabs();
+        return true;
+      } catch { return false; }
+    },
     tagScans: () => hl.stats(),
     tagExists: (text) => tagReady() && model.tagExists(state.store, text),
     lookUpItem(word) {

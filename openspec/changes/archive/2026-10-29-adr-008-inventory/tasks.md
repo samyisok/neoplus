@@ -1,0 +1,48 @@
+# Tasks
+
+## 1. The ledger model (red first)
+
+- [x] 1.1 Red: new `scripts/inventory-ledger.test.js` — items and transactions validate, ids are required, amounts accept zero and negatives and reject NaN; balances count only chapters at or before the open one and the whole book when no chapter is current; log lines order by chapter then paragraph then time; a retired transaction stops counting; a merge unions by id, keeps the newer item name/category, folds two items with the same name and re-points their transactions, and never revives a retired transaction; the caps (50,000 transactions, 200-character item name, 120-character quote) refuse rather than truncate. Watch each fail for the right reason.
+- [x] 1.2 Green: `neo-ext/lib/inventory-ledger.js` (pure UMD module) — `empty`, `normalize`, `merge` (with same-name folding), `addItem` (reusing an existing name, ignoring case), `addTransaction`, `retireTransaction`, `balances(store, order, chapterId)`, `log(store, order, chapterId, itemId)`, `chapterAggregates`.
+
+## 2. Anchoring to the text (red first)
+
+- [x] 2.1 Red: new `scripts/inventory-anchor.test.js` — an unchanged section validates by hash; an edit elsewhere in the section keeps it; a moved section is followed to its new chapter; a quote that vanished is retired only when it is gone from chapters, loose cards, and held cards; an ambiguous quote keeps the existing anchor rather than retiring; text deleted with its section retires; a section without an id falls back to chapter + quote; a joined chapter keeps the transaction while the phrase survives; an unreadable chapter defers its anchors; deleting the phrase in every place retires it.
+- [x] 2.2 Green: `neo-ext/lib/inventory-anchor.js` (pure) — `hashText`, `locate(anchor, texts)` over chapters, loose cards, and held cards, `reconcile(store, texts)` returning the store with `removedAt` set on retired transactions, corrected `chapterId`/`paragraph` on moved ones, and a `dirty` flag that is false when nothing changed.
+
+## 3. The book's ledger file
+
+- [x] 3.1 Red: new `scripts/inventory-ipc.test.js` — a missing file reads as empty; an unreadable file is reported and never overwritten; iCloud placeholders are not read or written over; a write merges a transaction that arrived on disk; a retired transaction stays retired across the merge; an oversized ledger is refused; the `.bak` is written and a corrupt main file recovers from it; the file name is fixed and `libName`-guarded.
+- [x] 3.2 Green: `neo-ext/inventory-main.js` — `readStore`/`writeStore`/`init` mirroring the records store (fixed name, `whenLocal`, merge on write, `.bak`, durable write, `MAX_BYTES`/cap checks, `logError`), plus the native menu item provider used in 5.2. The IPC handlers take the book id from the caller and `libName` it; a missing id is refused.
+- [x] 3.3 Red then green: `scripts/inventory-ipc.test.js` also asserts that a write for book A never lands in book B's folder, and that an invalid book id is refused. Green: `preload.js` gains `inventoryRead(bookId)`/`inventoryWrite(bookId, ledger)` in the marked fork block; `index.html` loads the ledger and anchor modules before `inventory.js`; `neo-ext/check-seams.js` asserts both new scripts.
+
+## 4. Book scope and the pane's third tab
+
+- [x] 4.0 Red then green: `scripts/inventory.e2e.js` — the ledger read and written belongs to the open book (`api.bookId()`), and switching books loads that book's ledger instead of showing the previous one; a chapter whose file is a placeholder reads as unknown, not empty. Green: `api.js` gains `bookId()`, `currentChapterId()`, `chapterOrder()`, `chapterText(id)` (with an unknown flag), and `sectionOf(body, paragraph)`; Inventory reloads on a book change and refuses a write whose book no longer matches.
+
+- [x] 4.1 Red then green: `scripts/records.e2e.js` — the strip shows Notes | Records | Inventory while writing, choosing Inventory shows the ledger and leaves the manuscript tab, Left/Right/Home/End move across three, Esc inside Inventory keeps the book, and records/notes are unchanged. Green: every place `records.js` hard-codes `'records'` grows a third case — `registerView`, `setView` (including the flush before hiding), `render`, the `neo-records-open` class, `applyTabs`, F6/Tab focus, the Esc chain, and `loadStore` gating; the Inventory tab is hidden with Show More Features off or in Pocket.
+- [x] 4.2 Red then green: `scripts/inventory.e2e.js` — the "as of chapter" line names the open chapter by title and says "whole book" when no chapter is current; items group under Items and Status with folding; a zero and a negative amount show as they are; an unreadable ledger shows its own message and the file is left as it is; turning Show More Features off closes Inventory without a later read. Green work includes the CSS for the ledger view and the modal in `neo-ext/neo-ext.css`. Green: `neo-ext/inventory.js` renders the view with those states and re-renders on chapter change (a throttled `currentChapterId()` check plus `focusin` on chapter bodies, not a per-keystroke listener).
+
+## 5. Recording from a selection
+
+- [x] 5.1 Red: new `scripts/inventory-menu.test.js` — the selection context carries the anchor and the inventory flag; a provider that is unavailable (records file unreadable) does not disable Inventory; the native menu offers Inventory only when it applies; a one-word macOS selection offers it through the Look Up path; a click routes `inventory-open` with the anchor; no selection offers nothing. Also extend `scripts/record-tags-menu.test.js` so the record item still appears beside it.
+- [x] 5.2 Green: `word-context.js` publishes the selection (phrase, range, paragraph, chapter) to a provider list and no longer requires records to be readable; Inventory answers with the anchor it owns (`inventory-anchor.js`), and `preload.js:95`'s `setContextPhrase` takes `{phrase, hasTag, inventory, anchor}`; `word-context-main.js` validates and keeps it per window with the same TTL; `neo-ext/main.js` builds the phrase menu from a provider list (`record-tags-main` + `inventory-main`, separate from `lib/menu-registry.js`); the macOS Look Up popup offers Inventory… through the existing seam; `boot.js` routes `inventory-open`.
+- [x] 5.3 Red then green: `scripts/inventory.e2e.js` — select a phrase, choose Inventory…, create "gold coin" with +200, see one transaction and a 200 balance; the modal refuses to open twice, Esc writes nothing, and the chapter, save state, and undo stack are unchanged (compare their content, not file mtimes, since a jump or view change may touch `book.json`'s `lastPosition`). Add `"test:inventory": "electron scripts/inventory.e2e.js"` to `package.json` in the same task.
+- [x] 5.4 Green: the modal in `neo-ext/inventory.js` — searchable item list with balances, new item with name and category (an existing name is reused), signed amount, Save and Cancel, focus handling, and strings through the fork's `x()` helper with keys added to `neo-ext/locales/en.json`.
+
+## 6. Log and jump
+
+- [x] 6.1 Red then green: `scripts/inventory.e2e.js` — the log lists +200 (ch.1), -50 (ch.4) after recording both; choosing the chapter 1 line shows chapter 1 with the phrase selected and nothing edited, including a phrase split by emphasis; the log in chapter 3 stops at chapter 3's transactions; **Remove transaction** asks first and then retires it.
+- [x] 6.2 Green: `api.js` gains `revealPhrase({ chapterId, quote, paragraph })` (guarded, no writes, returns whether it found the phrase); the log offers a row as a jump only when it resolves, so no row jumps to nothing.
+
+## 7. Retirement and chapter awareness
+
+- [x] 7.1 Red then green: `scripts/inventory.e2e.js` — deleting the anchored sentence retires its transaction and lowers later balances; editing another paragraph keeps it; moving its section to another chapter follows it; moving it to a loose card keeps it; deleting the chapter retires it; a clean reconcile writes no ledger; no chapter/book file is written by any of it.
+- [x] 7.2 Red then green: `scripts/inventory.e2e.js` — a chapter changed on disk (another device deleted the anchored words) retires the transaction on focus without a manual refresh, and an unreadable chapter retires nothing. Green: validation runs debounced after a chapter save, on book open, after a structural change, after `refreshFromDisk` adoption, and on window focus; the pane re-renders on chapter switch and after reconciliation; Simple NEO off flushes the pending save before closing Inventory to Notes and then stops reads.
+
+## 8. Docs, review, release
+
+- [x] 8.1 Add an Inventory section to `AGENTS.md`: sidecar shape, anchor and retirement rules (including loose/held cards and unreadable chapters), per-chapter balances and ordering, merge/tombstone and same-name folding, manual removal, pane tab registration, selection menu provider, jump, Simple NEO/Pocket, and that the ledger is desktop-only. Verify with `git diff -- AGENTS.md` and `node neo-ext/check-seams.js`.
+- [x] 8.2 Run `npm test`, `npm run test:inventory`, `npm run test:records`, `npm run test:tags`, `npm run test:notes`, `npm run lint`, `npx oxlint neo-ext/`, `npm run check:version`, and `openspec validate adr-008-inventory --strict`; record results in `tasks.md`. Confirm `scripts/pocket-www.js` still copies only the desktop list, so Inventory stays desktop-only.
+- [x] 8.3 Review gate: `grasp-verify`, `ddd-verify`, `ts-cop`, `code-reviewer`, `security-reviewer` (new IPC/preload path). Fix blockers and record verdicts in `review.md`.
+- [x] 8.4 `/opsx-sync` then archive as the dated `adr-008-inventory`; raise the fork to `1.6.0+fork.8`, add the changelog, commit, and reinstall.

@@ -189,6 +189,17 @@ function init(injected) {
     });
   } catch (err) { log('records init: ' + (err && err.message)); }
 
+  try {
+    require('./inventory-main.js').init({
+      bookDir: deps.bookDir,
+      libName: deps.libName,
+      whenLocal: deps.whenLocal,
+      isCloudOnly: deps.isCloudOnly,
+      writeFileDurable: deps.writeFileDurable,
+      logError: deps.logError
+    }, ipcMain);
+  } catch (err) { log('inventory init: ' + (err && err.message)); }
+
   // each lexical feature owns its data, cache, and menu item; this file only
   // hands it the process objects and its place in the menu
   menuRegistry.clear();
@@ -275,17 +286,20 @@ function contextMenu(items, params, win) {
     const phrase = contextWord.takePhrase(win);
     const present = word ? menuRegistry.items(word) : [];
     const record = phrase ? require('./lib/record-tags-main.js').menuItem(phrase, t) : null;
-    if (!present.length && !record) return;
+    const inventory = phrase ? require('./inventory-main.js').menuItem({ phrase: phrase.phrase, inventory: phrase.inventory }, t) : null;
+    if (!present.length && !record && !inventory) return;
     const choose = (item) => () => {
       try {
         const msg = { type: 'neo-ext', action: item.action };
         if (item.word !== undefined) msg.word = item.word;
         if (item.phrase !== undefined) msg.phrase = item.phrase;
+        if (item.anchor !== undefined) msg.anchor = item.anchor;
         win.webContents.send('menu', msg);
       } catch { /* window closed */ }
     };
     const extras = [];
     if (record) extras.push({ label: record.label, click: choose(record) });
+    if (inventory) extras.push({ label: inventory.label, click: choose({ ...inventory, anchor: phrase.anchor }) });
     extras.push(...present.map((item) => ({ label: item.label, click: choose(item) })));
     items.unshift(...extras, { type: 'separator' });
   } catch (err) { log('context menu: ' + (err && err.message)); }
