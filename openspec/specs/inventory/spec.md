@@ -69,7 +69,10 @@ Selecting a phrase in a chapter and opening the context menu SHALL offer **Inven
 
 - The item SHALL appear only inside an editable chapter body, only while Show More Features is on, and only for a non-empty selection of at most 120 characters that stays within one paragraph and contains no line break.
 - The phrase SHALL be the selected text, trimmed, with inner whitespace collapsed.
-- **Inventory…** SHALL open a modal with a searchable list of the book's items showing each item's amount so far, and a field to create an item with a name and a category.
+- **Inventory…** SHALL open a modal with a searchable list of the book's items showing each item's amount so far, and, on request, compact fields to create an item with a name and a category.
+- The modal SHALL be sized to the page and scroll inside itself; the item list SHALL take the space the window leaves and scroll on its own, so a book with many items still shows a usable list.
+- The name and category fields SHALL stay hidden behind a **+ New item** control until the writer asks to create an item.
+- The amount field SHALL accept at most one leading sign and digits only; any other typed or pasted character SHALL be dropped when it is entered.
 - The modal SHALL take a signed amount, including zero and negative amounts, and one **Save** action SHALL record exactly one transaction: the item, the signed amount, the chapter, the selection's location, and the phrase.
 - Creating an item in the modal SHALL save it with the transaction in the same save, so an item never exists with no transaction by accident.
 - Saving SHALL add one log line and SHALL change the balances as of that chapter and every later chapter.
@@ -91,6 +94,16 @@ Selecting a phrase in a chapter and opening the context menu SHALL offer **Inven
 
 - **WHEN** the writer selects text in chapter 4, chooses Inventory…, finds “gold coin” at 200, and saves -50
 - **THEN** a second transaction is recorded, chapter 4 shows 150 gold, and the log has one line per transaction
+
+#### Scenario: Many items
+
+- **WHEN** the book has fifty items and the writer opens Inventory…
+- **THEN** the modal shows a scrollable list with room to work, and the new-item fields take no space unless asked for
+
+#### Scenario: Typing an amount
+
+- **WHEN** the writer types `-50 coins` into the amount field
+- **THEN** the field holds `-50`, and a second sign or a letter is not accepted
 
 #### Scenario: A new kind of item
 

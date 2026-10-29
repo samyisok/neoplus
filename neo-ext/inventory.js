@@ -61,6 +61,7 @@
   modalHost.className = 'modal-backdrop neo-inv-backdrop';
   modalHost.setAttribute('role', 'dialog');
   modalHost.setAttribute('aria-modal', 'true');
+  modalHost.setAttribute('aria-labelledby', 'neo-inv-modal-title');
 
   const numberText = (value) => {
     const n = Math.round(Number(value) * 100) / 100;
@@ -414,6 +415,9 @@
       name: '',
       category: DEFAULT_CATEGORY,
       amount: '',
+      newItem: false,
+      focusSearch: true,
+      scrollTop: 0,
       error: ''
     };
     renderModal();
@@ -430,6 +434,22 @@
     modalReturn = null;
   }
 
+  function cleanAmountInput(value) {
+    const raw = String(value || '');
+    if (/[.,]/.test(raw)) return { ok: false, value: '' };
+    const cleaned = raw.replace(/[^0-9+-]/g, '');
+    const sign = cleaned.startsWith('+') || cleaned.startsWith('-') ? cleaned[0] : '';
+    return { ok: true, value: sign + cleaned.replace(/[^0-9]/g, '') };
+  }
+
+  function failModal(text, field) {
+    const modal = state.modal;
+    if (!modal) return;
+    modal.error = text;
+    renderModal();
+    if (field) setTimeout(() => document.querySelector(field)?.focus({ preventScroll: true }), 0);
+  }
+
   function renderModal() {
     const modal = state.modal;
     if (!modal) { modalHost.hidden = true; return; }
@@ -437,104 +457,179 @@
     modalHost.innerHTML = '';
     const card = el('div', 'neo-inv-modal');
     card.setAttribute('role', 'document');
-    card.append(el('h2', 'neo-inv-title', x('Inventory')));
-    card.append(el('p', 'neo-inv-quote', modal.phrase));
+    const heading = el('h2', 'neo-inv-title', x('Inventory'));
+    heading.id = 'neo-inv-modal-title';
+    card.append(heading, el('p', 'neo-inv-quote', modal.phrase));
 
-    const label = el('label', 'neo-inv-label', x('Item'));
     const search = el('input', 'neo-inv-search');
     search.type = 'search';
     search.placeholder = x('Find an item');
+    search.setAttribute('aria-label', x('Find an item'));
     search.value = modal.query;
-    search.addEventListener('input', () => { modal.query = search.value; renderModal(); });
-    label.appendChild(search);
-    card.appendChild(label);
+    const searchRow = el('div', 'neo-inv-search-row');
+    searchRow.appendChild(search);
+    card.appendChild(searchRow);
 
     const list = el('div', 'neo-inv-items');
     const sums = new Map(model.balances(state.store, order(), chapterId() || null).map((row) => [row.itemId, row.amount]));
-    const items = model.activeItems(state.store).filter((item) => !modal.query || item.name.toLowerCase().includes(modal.query.toLowerCase()));
-    for (const item of items) {
-      const pick = el('button', 'neo-inv-pick' + (modal.itemId === item.id ? ' is-picked' : ''));
-      pick.type = 'button';
-      pick.textContent = `${item.name} — ${numberText(sums.get(item.id) || 0)}`;
-      pick.addEventListener('click', () => { modal.itemId = item.id; modal.error = ''; renderModal(); });
-      list.appendChild(pick);
+
+    function fillItems() {
+      list.innerHTML = '';
+      const items = model.activeItems(state.store).filter((item) => !modal.query || item.name.toLowerCase().includes(modal.query.toLowerCase()));
+      for (const item of items) {
+        const pick = el('button', 'neo-inv-pick' + (modal.itemId === item.id ? ' is-picked' : ''));
+        pick.type = 'button';
+        pick.dataset.id = item.id;
+        pick.textContent = `${item.name} — ${numberText(sums.get(item.id) || 0)}`;
+        pick.addEventListener('click', () => {
+          modal.itemId = item.id;
+          modal.error = '';
+          modal.focusSearch = false;
+          for (const other of list.querySelectorAll('.neo-inv-pick')) other.classList.toggle('is-picked', other === pick);
+          pick.focus({ preventScroll: true });
+        });
+        list.appendChild(pick);
+      }
+      if (!items.length) list.appendChild(el('p', 'neo-inv-empty', x('No items yet.')));
     }
-    if (!items.length) list.appendChild(el('p', 'neo-inv-empty', x('No items yet.')));
+
+    fillItems();
+    search.addEventListener('input', () => { modal.query = search.value; fillItems(); list.scrollTop = 0; });
     card.appendChild(list);
 
-    const newBox = el('div', 'neo-inv-new');
-    newBox.append(el('h3', 'neo-inv-subtitle', x('Or a new item')));
-    const name = el('input', 'neo-inv-name-input');
-    name.type = 'text';
-    name.placeholder = x('Name');
-    name.value = modal.name;
-    name.addEventListener('input', () => { modal.name = name.value; });
-    const category = el('input', 'neo-inv-category-input');
-    category.type = 'text';
-    category.placeholder = x('Category');
-    category.value = modal.category;
-    category.addEventListener('input', () => { modal.category = category.value; });
-    newBox.append(name, category);
-    card.appendChild(newBox);
+    const toggle = el('button', 'neo-inv-new-toggle', `${modal.newItem ? '−' : '+'} ${x('New item')}`);
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', modal.newItem ? 'true' : 'false');
+    toggle.addEventListener('click', () => {
+      modal.newItem = !modal.newItem;
+      modal.error = '';
+      renderModal();
+      if (modal.newItem) setTimeout(() => document.querySelector('.neo-inv-name-input')?.focus({ preventScroll: true }), 0);
+    });
+    card.appendChild(toggle);
 
-    const amountLabel = el('label', 'neo-inv-label', x('Amount'));
+    if (modal.newItem) {
+      const newBox = el('div', 'neo-inv-new');
+      const name = el('input', 'neo-inv-name-input');
+      name.type = 'text';
+      name.placeholder = x('Name');
+      name.setAttribute('aria-label', x('Name'));
+      name.value = modal.name;
+      name.addEventListener('input', () => { modal.name = name.value; });
+      const category = el('input', 'neo-inv-category-input');
+      category.type = 'text';
+      category.placeholder = x('Category');
+      category.setAttribute('aria-label', x('Category'));
+      category.value = modal.category;
+      category.addEventListener('input', () => { modal.category = category.value; });
+      newBox.append(name, category);
+      card.appendChild(newBox);
+    }
+
+    const amountRow = el('label', 'neo-inv-amount-row');
+    amountRow.append(el('span', 'neo-inv-amount-label', x('Amount')));
     const amount = el('input', 'neo-inv-amount-input');
     amount.type = 'text';
-    amount.inputMode = 'decimal';
+    amount.inputMode = 'numeric';
+    amount.autocomplete = 'off';
     amount.placeholder = '+200 or -50';
     amount.value = modal.amount;
-    amount.addEventListener('input', () => { modal.amount = amount.value; });
-    amountLabel.appendChild(amount);
-    card.appendChild(amountLabel);
-
-    if (modal.error) card.append(el('p', 'neo-inv-error', modal.error));
+    amountRow.appendChild(amount);
+    card.appendChild(amountRow);
 
     const actions = el('div', 'neo-inv-actions');
-    const save = el('button', 'neo-inv-save', x('Save'));
-    save.type = 'button';
-    save.addEventListener('click', saveModal);
     const cancel = el('button', 'neo-inv-cancel', x('Cancel'));
     cancel.type = 'button';
     cancel.addEventListener('click', closeModal);
-    actions.append(save, cancel);
+    const save = el('button', 'neo-inv-save', x('Save'));
+    save.type = 'button';
+    save.addEventListener('click', saveModal);
+    actions.append(cancel, save);
     card.appendChild(actions);
+
+    let errorEl = null;
+    if (modal.error) {
+      errorEl = el('p', 'neo-inv-error', modal.error);
+      errorEl.setAttribute('role', 'alert');
+      card.insertBefore(errorEl, actions);
+    }
+    const showError = (text) => {
+      modal.error = text;
+      if (!errorEl) {
+        errorEl = el('p', 'neo-inv-error');
+        errorEl.setAttribute('role', 'alert');
+        card.insertBefore(errorEl, actions);
+      }
+      errorEl.textContent = text;
+    };
+    const clearError = () => {
+      modal.error = '';
+      if (errorEl) { errorEl.remove(); errorEl = null; }
+    };
+    amount.addEventListener('input', () => {
+      const clean = cleanAmountInput(amount.value);
+      if (!clean.ok) {
+        amount.value = modal.amount;
+        showError(x('Use whole numbers only.'));
+        return;
+      }
+      if (amount.value !== clean.value) amount.value = clean.value;
+      modal.amount = clean.value;
+      clearError();
+    });
+
+    card.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = [...card.querySelectorAll('button, input')].filter((node) => !node.disabled && node.tabIndex !== -1);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+
     modalHost.appendChild(card);
-    setTimeout(() => search.focus({ preventScroll: true }), 0);
+    list.scrollTop = modal.scrollTop || 0;
+    if (modal.focusSearch) {
+      modal.focusSearch = false;
+      setTimeout(() => search.focus({ preventScroll: true }), 0);
+    }
   }
 
   function saveModal() {
     const modal = state.modal;
     if (!modal) return;
     if (!state.loaded || state.readOnly) {
-      modal.error = x('Inventory could not be read. The ledger has been left untouched.');
-      renderModal();
+      failModal(x('Inventory could not be read. The ledger has been left untouched.'));
       return;
     }
     if (state.book !== openBookId()) {
-      modal.error = x('The book changed. Nothing was saved.');
-      renderModal();
+      failModal(x('The book changed. Nothing was saved.'));
       return;
     }
     const chapter = modal.anchor && modal.anchor.chapterId ? modal.anchor.chapterId : chapterId();
     if (!chapter || !order().includes(chapter)) {
-      modal.error = x('That chapter is no longer in the book. Nothing was saved.');
-      renderModal();
+      failModal(x('That chapter is no longer in the book. Nothing was saved.'));
       return;
     }
     const parsed = model.parseAmount(modal.amount);
     if (!parsed.ok) {
-      modal.error = parsed.reason === 'blank' ? x('Enter an amount.')
+      failModal(parsed.reason === 'blank' ? x('Enter an amount.')
         : parsed.reason === 'range' ? x('That amount is too large.')
-          : x('Enter a number for the amount.');
-      renderModal();
+          : x('Enter a number for the amount.'), '.neo-inv-amount-input');
       return;
     }
     const amount = parsed.amount;
     const next = JSON.parse(JSON.stringify(state.store));
     let itemId = modal.itemId;
+    if (!itemId && !modal.newItem) {
+      modal.newItem = true;
+      failModal(x('Pick an item or name a new one.'), '.neo-inv-name-input');
+      return;
+    }
     if (!itemId) {
       const created = model.addItem(next, modal.name, modal.category, Date.now());
-      if (!created.ok) { modal.error = x('An item needs a name.'); renderModal(); return; }
+      if (!created.ok) { failModal(x('An item needs a name.'), '.neo-inv-name-input'); return; }
       itemId = created.item.id;
     }
     const added = model.addTransaction(next, {
@@ -546,7 +641,7 @@
       hash: modal.anchor ? modal.anchor.hash : '',
       amount
     }, Date.now());
-    if (!added.ok) { modal.error = x('That transaction could not be saved.'); renderModal(); return; }
+    if (!added.ok) { failModal(x('That transaction could not be saved.')); return; }
     state.store = next;
     state.item = itemId;
     markChanged();

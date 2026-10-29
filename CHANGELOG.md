@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add record tags: select a phrase in a chapter to create or find its tagged record, keep several multi-word tags on a record, search the book from a tag, and optionally tint tagged names with the status-bar eye. (`2026-10-28-adr-006-record-tags`)
 - Add Inventory: keep coins, health, and other state as transactions anchored to the phrase that moved them, see balances as of the chapter you are in, jump to each change, and let deleting the words retire the transaction. (`2026-10-29-adr-008-inventory`)
 - Keep Inventory whole: an unreadable chapter never retires its transactions, a pending save stays with its book, a merge cannot write a ledger NEO would refuse, and Simple NEO stops reading and writing; the dialog sits above the panes and folds reset when reopened. (`2026-10-29-adr-009-inventory-fixes`)
+- Give the Inventory dialog room to work: a larger window with a scrollable item list, new-item fields behind a **+ New item** reveal, and an amount field that takes one sign and digits only. (`2026-10-29-adr-010-inventory-modal-ui`)
 
 ### Changed
 - Include the library's `records.json` and its recovery copy in daily and book backups. (`2026-10-27-adr-005-records-tab`)

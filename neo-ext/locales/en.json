@@ -117,5 +117,8 @@
   "The book changed. Nothing was saved.": "The book changed. Nothing was saved.",
   "That chapter is no longer in the book. Nothing was saved.": "That chapter is no longer in the book. Nothing was saved.",
   "Waiting for a chapter to arrive.": "Waiting for a chapter to arrive.",
-  "Unplaced": "Unplaced"
+  "Unplaced": "Unplaced",
+  "New item": "New item",
+  "Use whole numbers only.": "Use whole numbers only.",
+  "Pick an item or name a new one.": "Pick an item or name a new one."
 }

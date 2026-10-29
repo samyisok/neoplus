@@ -113,6 +113,8 @@ const openModal = async (chapterId, phrase) => {
   return anchor;
 };
 const fillNew = async (name, category, amount) => {
+  await js(`(() => { if (!document.querySelector('.neo-inv-name-input')) document.querySelector('.neo-inv-new-toggle')?.click(); })()`);
+  await tick(80);
   await js(`(() => {
     const set = (sel, value) => { const el = document.querySelector(sel); if (!el) return false; el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); return true; };
     set('.neo-inv-name-input', ${JSON.stringify(name)});
@@ -441,6 +443,93 @@ test('an unreadable chapter defers retirement', async () => {
   assert.ok(stored.transactions.every((tx) => tx.removedAt > 0 || tx.quote !== 'saw 200 gold coins'), 'nothing retired while a chapter is unreadable');
   assert.match((await inventoryState()).status, /Waiting/);
   await js(`(() => { window.NeoExtApi.unreadChapters = window.__originalUnread; delete window.__originalUnread; })()`);
+});
+
+test('the modal is roomy: a wide window, a flexible list, and hidden new-item fields', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  const box = await js(`(() => {
+    const modal = document.querySelector('.neo-inv-modal');
+    const list = document.querySelector('.neo-inv-items');
+    return {
+      width: Math.round(modal.getBoundingClientRect().width),
+      listHeight: Math.round(list.getBoundingClientRect().height),
+      minHeight: getComputedStyle(list).minHeight,
+      fields: !!document.querySelector('.neo-inv-name-input'),
+      expanded: document.querySelector('.neo-inv-new-toggle')?.getAttribute('aria-expanded')
+    };
+  })()`);
+  assert.ok(box.width >= 500, `modal width ${box.width}`);
+  assert.ok(box.listHeight >= 120, `list height ${box.listHeight}`);
+  assert.equal(box.fields, false);
+  assert.equal(box.expanded, 'false');
+  await js(`document.querySelector('.neo-inv-new-toggle').click()`);
+  await tick(120);
+  assert.equal(await js(`!!document.querySelector('.neo-inv-name-input') && !!document.querySelector('.neo-inv-category-input')`), true);
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('the amount field keeps one sign and digits only', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  const set = async (value) => js(`(() => {
+    const el = document.querySelector('.neo-inv-amount-input');
+    el.value = ${JSON.stringify(value)};
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return el.value;
+  })()`);
+  assert.equal(await set('-50 coins'), '-50');
+  assert.equal(await set('+200'), '+200');
+  assert.equal(await set('12x3'), '123');
+  assert.equal(await set('--5'), '-5');
+  assert.equal(await set('1,5'), '-5', 'a separator is refused, not silently dropped');
+  assert.match(await js(`document.querySelector('.neo-inv-error')?.textContent || ''`), /whole numbers/);
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('a short window keeps the modal inside the screen', async () => {
+  win.setSize(700, 460);
+  await tick(300);
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  const box = await js(`(() => {
+    const modal = document.querySelector('.neo-inv-modal');
+    const save = document.querySelector('.neo-inv-save');
+    return {
+      fits: modal.scrollHeight <= modal.clientHeight + 1,
+      saveBottom: Math.round(save.getBoundingClientRect().bottom),
+      viewport: window.innerHeight
+    };
+  })()`);
+  assert.equal(box.fits, true, 'the modal scrolls inside itself');
+  assert.ok(box.saveBottom <= box.viewport, 'Save stays on screen');
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+  win.setSize(1200, 800);
+  await tick(300);
+});
+
+test('reopening the modal starts with the new-item fields closed', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  await js(`document.querySelector('.neo-inv-new-toggle').click()`);
+  await tick(120);
+  assert.equal(await js(`!!document.querySelector('.neo-inv-name-input')`), true);
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+  await openModal('ch-3', '25 gold coins');
+  assert.equal(await js(`!!document.querySelector('.neo-inv-name-input')`), false);
+  assert.equal(await js(`document.querySelector('.neo-inv-new-toggle').getAttribute('aria-expanded')`), 'false');
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('the filtered amount is what gets stored', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  await fillNew('test coin', 'Items', '-50 coins');
+  await saveModal();
+  const stored = JSON.parse(fs.readFileSync(path.join(dir, 'neo-ext-inventory.json'), 'utf8'));
+  const saved = stored.transactions.find((tx) => tx.quote === '25 gold coins' && stored.items.find((item) => item.id === tx.itemId && item.name === 'test coin'));
+  assert.ok(saved, 'a transaction for the new item exists');
+  assert.equal(saved.amount, -50);
 });
 
 test('Simple NEO hides the tab and closes the view', async () => {
