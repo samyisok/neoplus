@@ -195,6 +195,8 @@ function init(injected) {
       libName: deps.libName,
       whenLocal: deps.whenLocal,
       isCloudOnly: deps.isCloudOnly,
+      cloudOnlyAmong: deps.cloudOnlyAmong,
+      requestDownload: deps.requestDownload,
       writeFileDurable: deps.writeFileDurable,
       logError: deps.logError
     }, ipcMain);

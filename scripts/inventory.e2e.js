@@ -39,7 +39,7 @@ fs.writeFileSync(path.join(dir, 'book.json'), JSON.stringify({
 for (const [id, lines] of Object.entries(chapters)) {
   if (id === 'ch-2') {
     fs.writeFileSync(path.join(dir, 'chapters', `${id}.html`),
-      '<p data-sec-id="sec-a">The road was long.</p><p class="scene-break"><br></p><p data-sec-id="sec-b">A trader sold 40 silver bars.</p>');
+      '<p data-sec-id="sec-a">The road was long.</p><p class="scene-break">***</p><p data-sec-id="sec-b">A trader sold 40 silver bars.</p>');
     continue;
   }
   fs.writeFileSync(path.join(dir, 'chapters', `${id}.html`), lines.map((line) => `<p>${line}</p>`).join(''));
@@ -290,7 +290,9 @@ test('the ledger belongs to the open book', async () => {
 
 test('a transaction in a later section keeps its section and is not rewritten', async () => {
   await showInventory();
-  await openModal('ch-2', '40 silver bars');
+  const seedAnchor = await select('ch-2', '40 silver bars');
+  await js(`NeoInventory.openFromSelection('40 silver bars', ${JSON.stringify(seedAnchor)})`);
+  await waitFor(`!!document.querySelector('.neo-inv-modal')`);
   await fillNew('silver bar', 'Items', '+40');
   await saveModal();
   const file = path.join(dir, 'neo-ext-inventory.json');
@@ -330,6 +332,115 @@ test('a chapter changed on disk retires its transaction on focus', async () => {
   await showInventory();
   const row = (await inventoryState()).rows.find((entry) => entry.name === 'rope');
   assert.equal(row.amount, '0');
+});
+
+test('a save pending when the book changes lands in the book it was recorded in', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  await fillNew('gem', 'Items', '+5');
+  await js(`document.querySelector('.neo-inv-save').click()`);
+  await openBook(BOOK2);
+  await tick(1400);
+  await openBook(BOOK);
+  const stored = JSON.parse(fs.readFileSync(path.join(dir, 'neo-ext-inventory.json'), 'utf8'));
+  const gem = stored.items.find((item) => item.name === 'gem');
+  assert.ok(gem, 'the item was saved');
+  assert.ok(stored.transactions.some((tx) => tx.itemId === gem.id && tx.quote === '25 gold coins'), 'the transaction was saved in its own book');
+  assert.equal(fs.existsSync(path.join(dir2, 'neo-ext-inventory.json')), false, 'nothing landed in the other book');
+});
+
+test('typing with Simple NEO off never touches the ledger', async () => {
+  await showInventory();
+  await tick(800);
+  const file = path.join(dir, 'neo-ext-inventory.json');
+  const before = fs.readFileSync(file, 'utf8');
+  wc.send('menu', { type: 'moreFeatures', checked: false });
+  await waitFor(`library && library.moreFeatures === false`);
+  await js(`(() => {
+    const body = document.querySelector('.chapter[data-id="ch-2"] .chapter-body');
+    const p = document.createElement('p');
+    p.textContent = '40 silver bars were counted again.';
+    body.appendChild(p);
+    body.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await tick(2200);
+  assert.equal(fs.readFileSync(file, 'utf8'), before);
+  wc.send('menu', { type: 'moreFeatures', checked: true });
+  await waitFor(`library && library.moreFeatures === true`);
+  await tick(400);
+});
+
+test('a fold is open again after Inventory is reopened', async () => {
+  await showInventory();
+  await js(`document.querySelector('.neo-inv-category').click()`);
+  await tick(200);
+  assert.equal(await js(`document.querySelector('.neo-inv-category').getAttribute('aria-expanded')`), 'false');
+  await js(`document.querySelector('#neo-side-tabs .neo-side-tab[data-view="notes"]').click()`);
+  await tick(250);
+  await showInventory();
+  assert.equal(await js(`document.querySelector('.neo-inv-category').getAttribute('aria-expanded')`), 'true');
+});
+
+test('Escape cancels a pending transaction removal', async () => {
+  await showInventory();
+  await openItemLog('Health Points');
+  const count = await js(`document.querySelectorAll('.neo-inv-line-go').length`);
+  await js(`document.querySelector('.neo-inv-line .neo-inv-remove').click()`);
+  await tick(150);
+  await js(`document.querySelector('.neo-inv-remove-cancel').focus()`);
+  await js(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await tick(200);
+  assert.equal(await js(`document.querySelectorAll('.neo-inv-line-go').length`), count);
+  assert.equal(await js(`!!document.querySelector('.neo-inv-remove-confirm')`), false);
+});
+
+test('scrolling to another chapter moves the balances with it', async () => {
+  await showInventory();
+  await js(`document.querySelector('.chapter[data-id="ch-3"] .chapter-body').focus()`);
+  await tick(200);
+  await js(`(() => {
+    currentChapterId = 'ch-5';
+    document.getElementById('paper-scroll').dispatchEvent(new Event('scroll'));
+  })()`);
+  await tick(300);
+  assert.match((await inventoryState()).where, /Five/);
+});
+
+test('a placeholder paragraph cannot host a transaction', async () => {
+  const anchor = await js(`(() => {
+    const body = document.querySelector('.chapter[data-id="ch-1"] .chapter-body');
+    const p = document.createElement('p');
+    p.className = 'ghost';
+    p.textContent = 'ghost words here';
+    body.appendChild(p);
+    const range = document.createRange();
+    range.setStart(p.firstChild, 0);
+    range.setEnd(p.firstChild, 5);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    return NeoInventory.selectionAnchor({ phrase: 'ghost', body, paragraphEl: p, range });
+  })()`);
+  assert.equal(anchor, null);
+});
+
+test('an unreadable chapter defers retirement', async () => {
+  await showInventory();
+  const file = path.join(dir, 'neo-ext-inventory.json');
+  await js(`(() => {
+    const api = window.NeoExtApi;
+    window.__originalUnread = api.unreadChapters;
+    api.unreadChapters = async () => ({ ok: true, ids: ['ch-1'] });
+    const body = document.querySelector('.chapter[data-id="ch-1"] .chapter-body');
+    body.querySelector('p').textContent = 'The pouch vanished.';
+    body.dispatchEvent(new Event('input', { bubbles: true }));
+    window.dispatchEvent(new Event('focus'));
+  })()`);
+  await tick(1800);
+  const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.ok(stored.transactions.every((tx) => tx.removedAt > 0 || tx.quote !== 'saw 200 gold coins'), 'nothing retired while a chapter is unreadable');
+  assert.match((await inventoryState()).status, /Waiting/);
+  await js(`(() => { window.NeoExtApi.unreadChapters = window.__originalUnread; delete window.__originalUnread; })()`);
 });
 
 test('Simple NEO hides the tab and closes the view', async () => {

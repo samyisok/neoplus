@@ -144,3 +144,11 @@ test('inventory-ledger: one bad transaction is dropped and the good ones stay', 
   assert.equal(s.transactions.length, 1);
   assert.equal(s.transactions[0].id, 'tx-1');
 });
+
+test('inventory-ledger: one amount parser separates blank, not-a-number, and range', () => {
+  assert.deepEqual(ledger.parseAmount('  '), { ok: false, reason: 'blank' });
+  assert.deepEqual(ledger.parseAmount('abc'), { ok: false, reason: 'number' });
+  assert.deepEqual(ledger.parseAmount('1e12'), { ok: false, reason: 'range' });
+  assert.deepEqual(ledger.parseAmount('-50'), { ok: true, amount: -50 });
+  assert.deepEqual(ledger.parseAmount('12,5'), { ok: true, amount: 12.5 });
+});

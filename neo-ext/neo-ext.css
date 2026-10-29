@@ -638,7 +638,7 @@ body.neo-ext-resizing { cursor: col-resize; user-select: none; }
 .neo-inv-remove-cancel { color: var(--muted, #aaa); }
 .neo-inv-empty { font-size: 11px; color: var(--muted, #888); line-height: 1.5; }
 .neo-inv-backdrop {
-  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.55);
 }
 .neo-inv-modal {

@@ -111,5 +111,11 @@
   "Inventory could not be saved. The ledger has been left untouched.": "Inventory could not be saved. The ledger has been left untouched.",
   "Inventory is in iCloud and cannot be saved yet.": "Inventory is in iCloud and cannot be saved yet.",
   "Inventory could not be saved.": "Inventory could not be saved.",
-  "That phrase is no longer on the page.": "That phrase is no longer on the page."
+  "That phrase is no longer on the page.": "That phrase is no longer on the page.",
+  "Enter an amount.": "Enter an amount.",
+  "That amount is too large.": "That amount is too large.",
+  "The book changed. Nothing was saved.": "The book changed. Nothing was saved.",
+  "That chapter is no longer in the book. Nothing was saved.": "That chapter is no longer in the book. Nothing was saved.",
+  "Waiting for a chapter to arrive.": "Waiting for a chapter to arrive.",
+  "Unplaced": "Unplaced"
 }

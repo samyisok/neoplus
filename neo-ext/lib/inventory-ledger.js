@@ -37,10 +37,25 @@
     return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
   }
 
+  // The one reading of an amount field, so the modal and the store agree on
+  // blank, not-a-number, and out-of-range.
+  function parseAmount(text) {
+    if (typeof text === 'number') {
+      if (!Number.isFinite(text)) return { ok: false, reason: 'number' };
+      if (Math.abs(text) > MAX_AMOUNT) return { ok: false, reason: 'range' };
+      return { ok: true, amount: Math.round(text * 100) / 100 };
+    }
+    const raw = String(text === undefined || text === null ? '' : text).trim();
+    if (!raw) return { ok: false, reason: 'blank' };
+    const value = Number(raw.replace(',', '.'));
+    if (!Number.isFinite(value)) return { ok: false, reason: 'number' };
+    if (Math.abs(value) > MAX_AMOUNT) return { ok: false, reason: 'range' };
+    return { ok: true, amount: Math.round(value * 100) / 100 };
+  }
+
   function cleanAmount(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n) || Math.abs(n) > MAX_AMOUNT) return null;
-    return Math.round(n * 100) / 100;
+    const out = parseAmount(value);
+    return out.ok ? out.amount : null;
   }
 
   function stamp(value, now) {
@@ -280,7 +295,7 @@
   }
 
   return {
-    FORMAT, MAX_ITEM_NAME, MAX_CATEGORY, MAX_QUOTE, MAX_AMOUNT, MAX_ITEMS, MAX_TRANSACTIONS, DEFAULT_CATEGORY,
+    FORMAT, MAX_ITEM_NAME, MAX_CATEGORY, MAX_QUOTE, MAX_AMOUNT, MAX_ITEMS, MAX_TRANSACTIONS, DEFAULT_CATEGORY, parseAmount,
     empty, normalize, merge,
     activeItems, findItem, addItem, addTransaction, retireTransaction,
     balances, log, nameKey

@@ -116,3 +116,15 @@ test('inventory-menu: the selection menu still carries the record item', () => {
   assert.ok(items.some((item) => item.value === 'record-create'));
   assert.ok(items.some((item) => item.value === 'inventory-open'));
 });
+
+test('inventory-menu: a selection with no placeable anchor offers no Inventory item', () => {
+  const r = room({ phrase: 'ghost words' });
+  r.context.NeoInventory.selectionAnchor = () => null;
+  r.fire();
+  const [, , anchor, inventory] = r.calls.phrase.at(-1);
+  assert.equal(anchor, null);
+  assert.equal(inventory, false);
+  const items = [{ label: 'Look Up', value: 'lookup' }];
+  r.context.NeoWordContext.lookUpMenu(items, 'ghost');
+  assert.equal(items.some((item) => item.value === 'inventory-open'), false);
+});

@@ -114,3 +114,18 @@ test('inventory-anchor: a chapter removed from the book retires its phrase', () 
   const out = anchor.reconcile(s, bookOf([chapter('ch-2', ['Elsewhere.'])]), at + 1);
   assert.ok(out.store.transactions[0].removedAt > 0);
 });
+
+test('inventory-anchor: a phrase that survives only as placeholder text is not retired', () => {
+  const s = storeWith({ sectionId: '', hash: anchor.hashText('I saw 200 gold coins.') });
+  const out = anchor.reconcile(s, bookOf([
+    chapter('ch-1', ['I saw 200 gold coins.', 'Draft of the next beat.'])
+  ]), at + 1);
+  assert.equal(out.store.transactions[0].removedAt, 0);
+});
+
+test('inventory-anchor: a scoped pass touches only the typed chapter', () => {
+  const s = storeWith({ sectionId: '', hash: anchor.hashText('I saw 200 gold coins.') });
+  const out = anchor.reconcile(s, { chapters: [chapter('ch-2', ['Nothing here.'])], cards: [], unknown: [], scope: 'ch-2' }, at + 1);
+  assert.equal(out.changed, false);
+  assert.equal(out.store.transactions[0].removedAt, 0);
+});

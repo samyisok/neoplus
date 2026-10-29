@@ -116,7 +116,9 @@ async function writeNow(deps, bookId, payload, options) {
 
   const merged = ledger.merge(disk.store, clean.store, Date.now());
   if (!merged.ok) return fail('unreadable');
-  const text = JSON.stringify(merged.store, null, 2);
+  const checked = ledger.normalize(merged.store);
+  if (!checked.ok) return fail('large');
+  const text = JSON.stringify(checked.store, null, 2);
   if (fileRules.sizeOfText(text) > maxBytes) return fail('large');
 
   try {
@@ -126,7 +128,7 @@ async function writeNow(deps, bookId, payload, options) {
     const write = deps.writeFileDurable;
     if (typeof write !== 'function') return fail('write');
     await write(file, text);
-    return { ok: true, store: merged.store };
+    return { ok: true, store: checked.store };
   } catch (err) {
     try { deps.logError && deps.logError('inventory write', err); } catch { /* logging is a nicety */ }
     return fail(err.code || 'write');
@@ -139,10 +141,63 @@ function writeStore(deps, bookId, payload, options) {
   return run;
 }
 
+// Which chapters cannot be read right now. A missing file is an empty chapter
+// (nothing to lose); a cloud placeholder or an unreadable file is not, and the
+// ledger must not retire anything while one is away.
+const CHAPTER_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
+
+async function unreadable(deps, bookId, chapterIds) {
+  const id = cleanBookId(bookId);
+  if (!id || !Array.isArray(chapterIds) || chapterIds.length > 5000) {
+    return { ok: true, ids: [...(Array.isArray(chapterIds) ? chapterIds : [])].filter((x) => typeof x === 'string') };
+  }
+  const clean = (value) => (typeof value === 'string' && CHAPTER_ID.test(value) && !value.includes('..') ? value : '');
+  const requested = chapterIds.filter((value) => typeof value === 'string' && value);
+  const dir = deps.bookDir(id);
+  const files = [];
+  const byFile = new Map();
+  const away = new Set();
+  try {
+    for (const chapterId of requested) {
+      const name = clean(chapterId);
+      if (!name) { away.add(chapterId); continue; }
+      let file;
+      try { file = path.join(dir, 'chapters', deps.libName(name) + '.html'); } catch { away.add(chapterId); continue; }
+      try {
+        const st = await fsp.stat(file);
+        if (!st.isFile()) { away.add(chapterId); continue; }
+      } catch (err) {
+        // A missing file is an empty chapter; a file that is there but cannot
+        // be read is not, and its words must not be treated as deleted.
+        if (err && err.code !== 'ENOENT') away.add(chapterId);
+        continue;
+      }
+      try { await fsp.access(file, fs.constants.R_OK); } catch { away.add(chapterId); continue; }
+      files.push(file);
+      byFile.set(file, chapterId);
+    }
+    if (files.length) {
+      const cloud = deps.cloudOnlyAmong
+        ? await deps.cloudOnlyAmong(files)
+        : new Set(files.filter((file) => (deps.isCloudOnly ? deps.isCloudOnly(file) : false)));
+      for (const file of cloud) away.add(byFile.get(file));
+      if (deps.requestDownload) {
+        const known = [...cloud].filter((file) => file);
+        if (known.length) try { deps.requestDownload(known); } catch { /* the wait still stands */ }
+      }
+    }
+  } catch {
+    // Fail closed: if the query cannot answer, claim every chapter.
+    return { ok: true, ids: requested };
+  }
+  return { ok: true, ids: [...away].filter(Boolean) };
+}
+
 function init(deps, ipcMain) {
   if (!deps || !ipcMain) return;
   ipcMain.handle('neo-ext:inventory-read', (_e, bookId) => readStore(deps, bookId));
   ipcMain.handle('neo-ext:inventory-write', (_e, bookId, payload) => writeStore(deps, bookId, payload));
+  ipcMain.handle('neo-ext:inventory-unreadable', (_e, bookId, chapterIds) => unreadable(deps, bookId, chapterIds));
 }
 
 // The native selection menu: one item when the selection can carry a
@@ -152,4 +207,4 @@ function menuItem(info, t) {
   return { label: t('Inventory…'), action: 'inventory-open', phrase: info.phrase };
 }
 
-module.exports = { NAME, readStore, writeStore, init, fileOf, menuItem, cleanBookId };
+module.exports = { NAME, readStore, writeStore, unreadable, init, fileOf, menuItem, cleanBookId };

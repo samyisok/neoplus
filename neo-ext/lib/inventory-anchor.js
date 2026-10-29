@@ -71,6 +71,7 @@
 
     for (const transaction of store.transactions || []) {
       if (transaction.removedAt) continue;
+      if (book.scope && transaction.chapterId !== book.scope) continue;
       const quote = normalizeQuote(transaction.quote);
       if (!quote) continue;
 

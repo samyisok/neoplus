@@ -80,6 +80,58 @@
     } catch { return { ok: false, text: '' }; }
   }
 
+  // The page's own pieces, so a feature never names a core selector itself.
+  function chapterBody(id) {
+    try { return document.querySelector(`.chapter[data-id="${CSS.escape(String(id || ''))}"] .chapter-body`); } catch { return null; }
+  }
+
+  function chaptersRoot() {
+    try { return document.getElementById('chapters'); } catch { return null; }
+  }
+
+  function editorView() {
+    try { return document.getElementById('editor-view'); } catch { return null; }
+  }
+
+  function paperScroll() {
+    try { return document.getElementById('paper-scroll'); } catch { return null; }
+  }
+
+  function paragraphNodes(body) {
+    try {
+      if (!body) return [];
+      return [...body.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6')];
+    } catch { return []; }
+  }
+
+  function chapterNameOf(id) {
+    try { return typeof chapterName === 'function' ? String(chapterName(id) || '') : ''; } catch { return ''; }
+  }
+
+  // Whether a phrase can still be put on screen, without moving the view.
+  function phraseLocatable(spec) {
+    try {
+      if (!spec || !spec.quote) return false;
+      const body = chapterBody(spec.chapterId);
+      if (!body) return false;
+      const needle = String(spec.quote).replace(/\s+/g, ' ').trim();
+      if (!needle) return false;
+      return paragraphNodes(body).some((paragraph) => rangeOf(paragraph, needle));
+    } catch { return false; }
+  }
+
+  async function unreadChapters() {
+    const orderList = chapterOrder();
+    try {
+      const native = window.NeoForkNative;
+      const id = bookId();
+      if (!native || typeof native.inventoryUnreadable !== 'function' || !id) return { ok: false, ids: orderList };
+      const res = await native.inventoryUnreadable(id, orderList);
+      if (!res || !res.ok || !Array.isArray(res.ids)) return { ok: false, ids: orderList };
+      return { ok: true, ids: res.ids.filter((x) => typeof x === 'string') };
+    } catch { return { ok: false, ids: orderList }; }
+  }
+
   function sectionNotes() {
     try { return book && book.sectionNotes ? book.sectionNotes : {}; } catch { return {}; }
   }
@@ -244,5 +296,5 @@
     } catch { return away; }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, phraseLocatable, unreadChapters, chapterBody, chaptersRoot, editorView, paperScroll, paragraphNodes, chapterNameOf, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
 })();

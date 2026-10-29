@@ -117,7 +117,8 @@
     const anchor = anchorFor(context);
     lastAnchor = anchor;
     lastPhrase = context.phrase;
-    api.setContextPhrase(context.phrase, hasTag(context.phrase), anchor, inventoryReady(), recordsReady());
+    // A placeholder paragraph has no anchor, so Inventory has nothing to offer.
+    api.setContextPhrase(context.phrase, hasTag(context.phrase), anchor, !!anchor && inventoryReady(), recordsReady());
     phraseStored = true;
   }
 

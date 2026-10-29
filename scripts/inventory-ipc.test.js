@@ -135,3 +135,44 @@ test('inventory-ipc: a write for book A never lands in book B, and a bad id is r
     assert.equal(out.ok, false, String(bad));
   }
 });
+
+test('inventory-ipc: the unreadable query names cloud chapters and ignores missing ones', async () => {
+  const { deps, book } = room();
+  const chapters = path.join(deps.libraryDir(), book, 'chapters');
+  fs.mkdirSync(chapters, { recursive: true });
+  fs.writeFileSync(path.join(chapters, 'ch-1.html'), '<p>one</p>');
+  fs.writeFileSync(path.join(chapters, 'ch-2.html'), '<p>two</p>');
+  deps.cloudOnlyAmong = async (files) => new Set(files.filter((file) => file.endsWith('ch-2.html')));
+  const out = await inventory.unreadable(deps, book, ['ch-1', 'ch-2', 'ch-missing']);
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.ids, ['ch-2']);
+  const bad = await inventory.unreadable(deps, '../book-other-2', ['ch-1']);
+  assert.equal(bad.ok, true);
+  assert.deepEqual(bad.ids, ['ch-1'], 'a bad book id fails closed');
+});
+
+test('inventory-ipc: a merge over the limits is refused and leaves the readable file alone', async () => {
+  const { deps, book, file } = room();
+  const many = (prefix) => ({
+    format: 1,
+    items: Array.from({ length: 300 }, (_, i) => ({ id: `${prefix}-${i}`, name: `${prefix} ${i}`, category: 'Items', createdAt: at })),
+    transactions: []
+  });
+  await inventory.writeStore(deps, book, many('a'));
+  const before = fs.readFileSync(file, 'utf8');
+  const out = await inventory.writeStore(deps, book, many('b'));
+  assert.equal(out.ok, false);
+  assert.equal(out.reason, 'large');
+  assert.equal(fs.readFileSync(file, 'utf8'), before);
+  assert.equal((await inventory.readStore(deps, book)).ok, true);
+});
+
+test('inventory-ipc: a chapter path that is not a readable file counts as unreadable', async () => {
+  const { deps, book } = room();
+  const chapters = path.join(deps.libraryDir(), book, 'chapters');
+  fs.mkdirSync(chapters, { recursive: true });
+  fs.writeFileSync(path.join(chapters, 'ch-1.html'), '<p>one</p>');
+  fs.mkdirSync(path.join(chapters, 'ch-2.html'));
+  const out = await inventory.unreadable(deps, book, ['ch-1', 'ch-2']);
+  assert.deepEqual(out.ids, ['ch-2']);
+});

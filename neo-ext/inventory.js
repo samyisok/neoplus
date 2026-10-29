@@ -33,8 +33,6 @@
 
   let saveTimer = 0;
   let reconcileTimer = 0;
-  let saving = false;
-  let changes = 0;
 
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -60,7 +58,7 @@
   const modalHost = el('div', 'neo-inv-backdrop');
   modalHost.id = 'neo-inventory-modal';
   modalHost.hidden = true;
-  modalHost.className = 'neo-inv-backdrop';
+  modalHost.className = 'modal-backdrop neo-inv-backdrop';
   modalHost.setAttribute('role', 'dialog');
   modalHost.setAttribute('aria-modal', 'true');
 
@@ -90,20 +88,32 @@
   }
 
   function chapterName(id) {
-    return api.chapterTitle(id) || x('Chapter');
+    return api.chapterTitle(id) || api.chapterNameOf(id) || x('Chapter');
   }
 
   function active() {
     return !view.hidden;
   }
 
+  function enabled() {
+    try { return !!(api.moreFeatures() && api.bookId()); } catch { return false; }
+  }
+
   let loadToken = 0;
+  let waiting = false;
 
   async function load() {
+    if (!enabled()) { state.loaded = false; render(); return false; }
     const id = openBookId();
+    if (pending.size) await flush();
     const token = ++loadToken;
     // Nothing may be written for the new book until its ledger is in hand.
     state.loaded = false;
+    if (id !== state.book) {
+      state.store = model.empty();
+      state.item = null;
+      state.confirming = null;
+    }
     state.book = id;
     if (!id) { state.store = model.empty(); state.loaded = false; render(); return false; }
     if (!bridge.inventoryRead) { state.readOnly = true; setStatus(x('Inventory is not available in this build'), 'error'); render(); return false; }
@@ -125,80 +135,78 @@
     state.loaded = true;
     state.readOnly = false;
     setStatus('');
-    reconcile();
+    await reconcile();
     render();
     return true;
   }
 
+  // A pending save belongs to the book it was recorded in. The stores are held
+  // by reference: loading another book replaces state.store, never this one.
+  const pending = new Map();
+
   function markChanged() {
-    changes += 1;
+    pending.set(state.book, state.store);
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, SAVE_MS);
   }
 
-  async function flush() {
+  let flushChain = Promise.resolve();
+
+  function flush() {
+    flushChain = flushChain.then(doFlush, doFlush);
+    return flushChain;
+  }
+
+  async function doFlush() {
     clearTimeout(saveTimer);
     saveTimer = 0;
-    if (saving || !state.loaded || state.readOnly || !changes) return;
+    if (!pending.size) return;
     if (!bridge.inventoryWrite) { setStatus(x('Inventory is not available in this build'), 'error'); return; }
-    const book = state.book;
-    if (book !== openBookId()) { state.loaded = false; return; }
-    const gen = changes;
-    saving = true;
-    let res;
-    try { res = await bridge.inventoryWrite(book, state.store); } catch (err) { res = { ok: false, reason: String(err && err.message || err) }; }
-    saving = false;
-    if (state.book !== book || openBookId() !== book) return;
-    if (!res || !res.ok) {
-      const why = res && res.reason === 'large' ? x('Inventory could not be saved: the ledger is too large.')
-        : res && res.reason === 'unreadable' ? x('Inventory could not be saved. The ledger has been left untouched.')
-          : res && res.reason === 'cloud' ? x('Inventory is in iCloud and cannot be saved yet.')
-            : x('Inventory could not be saved.');
-      setStatus(why, 'error');
-      if (changes) setTimeout(flush, 3000);
-      return;
+    while (pending.size) {
+      const [book, store] = pending.entries().next().value;
+      pending.delete(book);
+      let res;
+      try { res = await bridge.inventoryWrite(book, store); } catch (err) { res = { ok: false, reason: String(err && err.message || err) }; }
+      if (!res || !res.ok) {
+        // Keep the words for a retry; never trade them for a quiet failure. A
+        // newer recording for the same book must not be replaced by this one.
+        if (!pending.has(book)) pending.set(book, store);
+        const why = res && res.reason === 'large' ? x('Inventory could not be saved: the ledger is too large.')
+          : res && res.reason === 'unreadable' ? x('Inventory could not be saved. The ledger has been left untouched.')
+            : res && res.reason === 'cloud' ? x('Inventory is in iCloud and cannot be saved yet.')
+              : x('Inventory could not be saved.');
+        setStatus(why, 'error');
+        setTimeout(flush, 3000);
+        return;
+      }
+      const merged = model.merge(res.store, store, Date.now());
+      if (state.book === book && state.store === store && merged.ok) state.store = merged.store;
     }
-    if (state.book !== openBookId()) return;
-    const merged = model.merge(res.store, state.store, Date.now());
-    if (merged.ok) state.store = merged.store;
-    if (changes === gen) { changes = 0; setStatus(''); } else setTimeout(flush, 20);
+    if (!waiting && state.statusKind !== 'error') setStatus('');
     render();
   }
 
   // ── the book's text, as the reconciler needs it ──────────────────────────
 
-  const PARAGRAPH = 'p, li, h1, h2, h3, h4, h5, h6';
-
-  function paragraphList(bodyEl) {
-    return [...bodyEl.querySelectorAll(PARAGRAPH)].filter((node) => !node.closest('.chapter-body') || node.closest('.chapter-body') === bodyEl);
-  }
-
   function paragraphNodes(bodyEl) {
-    return paragraphList(bodyEl).filter((node) => !node.classList.contains('ghost'));
+    return api.paragraphNodes(bodyEl);
   }
 
-  // One reading of core's section claiming: a claim starts at its first
-  // paragraph and runs to the next claim within the same scene segment.
+  // Core's claiming rule decides a paragraph's section; a ghost has none, but
+  // its text still counts when the reconciler looks for a quote.
   function sectionMap(bodyEl) {
-    const id = chapterIdOf(bodyEl);
-    const notes = (api.sectionNotes() || {})[id] || [];
-    const keys = new Set(notes.map((note) => note.id));
     const nodes = paragraphNodes(bodyEl);
-    const indexOf = new Map(nodes.map((node, index) => [node, index]));
     const sections = [];
-    const claimed = new Set();
     let current = null;
-    for (const node of bodyEl.children) {
-      if (node.classList && node.classList.contains('scene-break')) { current = null; continue; }
-      if (!indexOf.has(node)) continue;
-      const claim = node.dataset && node.dataset.secId;
-      if (claim && keys.has(claim) && !claimed.has(claim)) {
-        current = { id: claim, paragraphs: [] };
-        claimed.add(claim);
+    nodes.forEach((node, index) => {
+      if (node.classList.contains('scene-break')) { current = null; return; }
+      const id = api.sectionFor(bodyEl, node) || '';
+      if (id && (!current || current.id !== id)) {
+        current = { id, paragraphs: [] };
         sections.push(current);
       }
-      if (current) current.paragraphs.push(indexOf.get(node));
-    }
+      if (current) current.paragraphs.push(index);
+    });
     return {
       nodes,
       sections,
@@ -224,30 +232,50 @@
     return sectionMap(bodyEl).sections;
   }
 
-  function bookTexts() {
+  async function bookTexts(scope = '') {
+    const ids = scope ? [scope] : order();
     const chapters = [];
     const unknown = [];
-    for (const id of order()) {
-      const bodyEl = document.querySelector(`.chapter[data-id="${CSS.escape(id)}"] .chapter-body`);
+    for (const id of ids) {
+      const bodyEl = api.chapterBody(id);
       if (!bodyEl) { unknown.push(id); continue; }
       chapters.push({ id, paragraphs: paragraphsFor(bodyEl), sections: sectionsFor(bodyEl) });
     }
-    return { chapters, cards: api.cardTexts(), unknown };
+    // A scoped pass is the typed chapter only; the iCloud probe is for whole-book
+    // passes, which are the ones that can retire something.
+    if (!scope) {
+      const unread = await api.unreadChapters();
+      const away = unread.ok ? unread.ids : order();
+      for (const id of away) if (!unknown.includes(id)) unknown.push(id);
+    }
+    return { chapters, cards: scope ? [] : api.cardTexts(), unknown };
   }
 
-  function reconcile() {
-    if (!state.loaded || !state.store.transactions.length) return;
-    const out = anchorRules.reconcile(state.store, bookTexts(), Date.now());
+  async function reconcile(scope = '') {
+    if (!state.loaded || !enabled() || !state.store.transactions.length) return;
+    const book = state.book;
+    const texts = await bookTexts(scope);
+    if (state.book !== book || !state.loaded) return;
+    if (texts.unknown.length) {
+      waiting = true;
+      setStatus(x('Waiting for a chapter to arrive.'));
+      return;
+    }
+    waiting = false;
+    if (scope) texts.scope = scope;
+    if (state.statusKind !== 'error') setStatus('');
+    const out = anchorRules.reconcile(state.store, texts, Date.now());
+    if (state.book !== book) return;
     state.store = out.store;
     if (out.changed) markChanged();
   }
 
-  function scheduleReconcile(ms = RECONCILE_MS) {
-    if (!state.loaded) return;
+  function scheduleReconcile(ms = RECONCILE_MS, scope = '') {
+    if (!state.loaded || !enabled()) return;
     clearTimeout(reconcileTimer);
-    reconcileTimer = setTimeout(() => {
-      if (state.book !== openBookId()) { load(); return; }
-      reconcile();
+    reconcileTimer = setTimeout(async () => {
+      if (state.book !== openBookId()) { await load(); return; }
+      await reconcile(scope);
       render();
     }, ms);
   }
@@ -261,9 +289,12 @@
 
   // ── view ─────────────────────────────────────────────────────────────────
 
+  let renderedChapter = null;
+
   function render() {
     if (!active()) return;
     const asOf = chapterId();
+    renderedChapter = asOf;
     where.textContent = asOf ? x('As of {chapter}', { chapter: chapterName(asOf) }) : x('Whole book');
     body.innerHTML = '';
     if (!state.loaded && state.status) return;
@@ -311,6 +342,11 @@
     const box = el('div', 'neo-inv-log');
     box.id = 'neo-inventory-log';
     const rows = model.log(state.store, order(), chapterId() || null, item.id);
+    for (const transaction of state.store.transactions) {
+      if (transaction.itemId !== item.id || transaction.removedAt) continue;
+      if (order().includes(transaction.chapterId)) continue;
+      if (!rows.includes(transaction)) rows.push(transaction);
+    }
     if (!rows.length) {
       box.appendChild(el('p', 'neo-inv-empty', x('No transactions up to this chapter.')));
       return box;
@@ -335,9 +371,10 @@
         box.appendChild(line);
         continue;
       }
-      const go = el('button', 'neo-inv-line-go', `${chapterName(transaction.chapterId)}: ${numberText(transaction.amount)}`);
+      const label = order().includes(transaction.chapterId) ? chapterName(transaction.chapterId) : x('Unplaced');
+      const go = el('button', 'neo-inv-line-go', `${label}: ${numberText(transaction.amount)}`);
       go.type = 'button';
-      go.disabled = !transaction.quote;
+      go.disabled = !transaction.quote || !api.phraseLocatable({ chapterId: transaction.chapterId, quote: transaction.quote });
       go.addEventListener('click', () => {
         if (!api.revealPhrase || !api.revealPhrase({ chapterId: transaction.chapterId, quote: transaction.quote, paragraph: transaction.paragraph })) {
           setStatus(x('That phrase is no longer on the page.'), 'error');
@@ -368,6 +405,7 @@
         return false;
       }
     }
+    modalReturn = document.activeElement;
     state.modal = {
       phrase: String(phrase).slice(0, model.MAX_QUOTE),
       anchor: anchor || null,
@@ -382,10 +420,14 @@
     return true;
   }
 
+  let modalReturn = null;
+
   function closeModal() {
     state.modal = null;
     modalHost.hidden = true;
     modalHost.innerHTML = '';
+    try { if (modalReturn && modalReturn.isConnected && typeof modalReturn.focus === 'function') modalReturn.focus({ preventScroll: true }); } catch { /* the page moved */ }
+    modalReturn = null;
   }
 
   function renderModal() {
@@ -468,9 +510,26 @@
       renderModal();
       return;
     }
-    if (!String(modal.amount).trim()) { modal.error = x('Enter a number for the amount.'); renderModal(); return; }
-    const amount = Number(String(modal.amount).replace(',', '.'));
-    if (!Number.isFinite(amount) || Math.abs(amount) > model.MAX_AMOUNT) { modal.error = x('Enter a number for the amount.'); renderModal(); return; }
+    if (state.book !== openBookId()) {
+      modal.error = x('The book changed. Nothing was saved.');
+      renderModal();
+      return;
+    }
+    const chapter = modal.anchor && modal.anchor.chapterId ? modal.anchor.chapterId : chapterId();
+    if (!chapter || !order().includes(chapter)) {
+      modal.error = x('That chapter is no longer in the book. Nothing was saved.');
+      renderModal();
+      return;
+    }
+    const parsed = model.parseAmount(modal.amount);
+    if (!parsed.ok) {
+      modal.error = parsed.reason === 'blank' ? x('Enter an amount.')
+        : parsed.reason === 'range' ? x('That amount is too large.')
+          : x('Enter a number for the amount.');
+      renderModal();
+      return;
+    }
+    const amount = parsed.amount;
     const next = JSON.parse(JSON.stringify(state.store));
     let itemId = modal.itemId;
     if (!itemId) {
@@ -480,7 +539,7 @@
     }
     const added = model.addTransaction(next, {
       itemId,
-      chapterId: modal.anchor && modal.anchor.chapterId ? modal.anchor.chapterId : chapterId(),
+      chapterId: chapter,
       sectionId: modal.anchor ? modal.anchor.sectionId : '',
       paragraph: modal.anchor ? modal.anchor.paragraph : 0,
       quote: modal.phrase,
@@ -500,8 +559,10 @@
   function selectionAnchor(context) {
     if (!context || !context.body || !context.paragraphEl || !context.range) return null;
     const bodyEl = context.body;
+    if (!context.paragraphEl || context.paragraphEl.classList.contains('ghost')) return null;
     const map = sectionMap(bodyEl);
     const index = map.nodes.indexOf(context.paragraphEl);
+    if (index < 0) return null;
     const section = map.forIndex(index);
     return {
       chapterId: chapterIdOf(bodyEl),
@@ -514,19 +575,28 @@
 
   function canRecord() {
     try {
-      return !!(api.bookId() && api.moreFeatures() && api.onManuscriptTab() && !state.readOnly);
+      return !!(enabled() && api.onManuscriptTab() && !state.readOnly);
     } catch { return false; }
   }
 
   // ── wiring ───────────────────────────────────────────────────────────────
 
   function onShow() {
-    if (state.book !== openBookId() || !state.loaded) load();
-    else { reconcile(); render(); }
+    state.folded = new Set();
+    state.item = null;
+    state.confirming = null;
+    if (!enabled()) return;
+    if (state.book !== openBookId() || !state.loaded) { load(); return; }
+    reconcile().then(render);
   }
 
   function onHide() {
     flush();
+    if (!enabled()) {
+      clearTimeout(reconcileTimer);
+      clearTimeout(saveTimer);
+      state.loaded = false;
+    }
   }
 
   function register() {
@@ -548,6 +618,7 @@
     if (!active() && !state.modal) return;
     if (e.key !== 'Escape') return;
     if (state.modal) { e.preventDefault(); e.stopPropagation(); closeModal(); return; }
+    if (state.confirming) { e.preventDefault(); e.stopPropagation(); state.confirming = null; render(); return; }
     if (document.querySelector('.modal-backdrop:not([hidden])')) return;
     const target = e.target;
     const inside = (target && view.contains(target)) || document.activeElement === view;
@@ -558,36 +629,59 @@
 
   modalHost.addEventListener('click', (e) => { if (e.target === modalHost) closeModal(); });
 
-  const chapters = document.getElementById('chapters');
+  const chapters = api.chaptersRoot();
   if (chapters) {
-    chapters.addEventListener('input', () => { if (state.loaded) scheduleReconcile(); });
-      chapters.addEventListener('focusin', () => { if (bookChanged()) return; if (active()) render(); });
-    new MutationObserver(() => { if (state.loaded) scheduleReconcile(); })
+    chapters.addEventListener('input', (e) => {
+      if (!state.loaded || !enabled()) return;
+      const body = e.target && e.target.closest && e.target.closest('.chapter-body');
+      scheduleReconcile(RECONCILE_MS * 2, body ? chapterIdOf(body) : '');
+    });
+    chapters.addEventListener('focusin', () => { if (bookChanged()) return; if (active()) render(); });
+    new MutationObserver(() => { if (state.loaded && enabled()) scheduleReconcile(); })
       .observe(chapters, { childList: true, subtree: true });
   }
-  window.addEventListener('focus', () => { if (bookChanged()) return; if (state.loaded) scheduleReconcile(300); });
+  window.addEventListener('focus', () => { if (bookChanged()) return; if (state.loaded && enabled()) scheduleReconcile(300); });
   window.addEventListener('blur', () => { flush(); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { flush(); return; }
-    if (state.loaded) scheduleReconcile(300);
+    if (state.loaded && enabled()) scheduleReconcile(300);
   });
   window.addEventListener('pagehide', () => { flush(); });
 
+  // Scrolling or moving the caret can change the chapter without a click; the
+  // balances follow within a frame.
+  let chapterTick = 0;
+  function onChapterMaybe() {
+    if (!active() || chapterTick) return;
+    chapterTick = requestAnimationFrame(() => {
+      chapterTick = 0;
+      if (active() && chapterId() !== renderedChapter) render();
+    });
+  }
+  api.paperScroll()?.addEventListener('scroll', onChapterMaybe, { passive: true });
+  document.addEventListener('selectionchange', onChapterMaybe);
+
   window.neo?.onMenu?.((msg) => {
-    if (!msg) return;
-    if (msg.type === 'moreFeatures' && !msg.checked) flush();
+    if (!msg || msg.type !== 'moreFeatures') return;
+    if (!msg.checked) {
+      flush();
+      clearTimeout(reconcileTimer);
+      state.loaded = false;
+    } else if (active()) {
+      load();
+    }
   });
 
   // A book switch happens while the view may be open; the ledger belongs to
   // the book, so a different id reloads before anything is drawn.
-  const editor = document.getElementById('editor-view');
+  const editor = api.editorView();
   if (editor) {
     new MutationObserver(() => {
       if (state.book !== openBookId()) {
         closeModal();
         state.item = null;
         state.confirming = null;
-        if (openBookId()) load();
+        flush().then(() => { if (openBookId() && state.book !== openBookId()) load(); });
       }
     }).observe(editor, { attributes: true, attributeFilter: ['class', 'hidden'] });
   }
