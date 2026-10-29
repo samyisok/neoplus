@@ -53,6 +53,18 @@
     return { ok: true, amount: Math.round(value * 100) / 100 };
   }
 
+  // The amount field's contract: one leading sign and digits. A separator, a
+  // second sign, or a sign after the first character is refused rather than
+  // silently turned into a different number; other characters are dropped.
+  function parseAmountInput(text) {
+    const raw = String(text === undefined || text === null ? '' : text);
+    if (/[.,]/.test(raw)) return { ok: false, reason: 'separator' };
+    const cleaned = raw.replace(/[^0-9+-]/g, '');
+    if (/[+-]/.test(cleaned.slice(1))) return { ok: false, reason: 'sign' };
+    const sign = cleaned.startsWith('+') || cleaned.startsWith('-') ? cleaned[0] : '';
+    return { ok: true, value: sign + cleaned.replace(/[^0-9]/g, '') };
+  }
+
   function cleanAmount(value) {
     const out = parseAmount(value);
     return out.ok ? out.amount : null;
@@ -295,7 +307,7 @@
   }
 
   return {
-    FORMAT, MAX_ITEM_NAME, MAX_CATEGORY, MAX_QUOTE, MAX_AMOUNT, MAX_ITEMS, MAX_TRANSACTIONS, DEFAULT_CATEGORY, parseAmount,
+    FORMAT, MAX_ITEM_NAME, MAX_CATEGORY, MAX_QUOTE, MAX_AMOUNT, MAX_ITEMS, MAX_TRANSACTIONS, DEFAULT_CATEGORY, parseAmount, parseAmountInput,
     empty, normalize, merge,
     activeItems, findItem, addItem, addTransaction, retireTransaction,
     balances, log, nameKey

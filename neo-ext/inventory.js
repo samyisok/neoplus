@@ -183,7 +183,8 @@
       const merged = model.merge(res.store, store, Date.now());
       if (state.book === book && state.store === store && merged.ok) state.store = merged.store;
     }
-    if (!waiting && state.statusKind !== 'error') setStatus('');
+    if (!waiting) state.statusKind = '';
+    if (!waiting) setStatus('');
     render();
   }
 
@@ -406,7 +407,7 @@
         return false;
       }
     }
-    modalReturn = document.activeElement;
+    modalReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
     state.modal = {
       phrase: String(phrase).slice(0, model.MAX_QUOTE),
       anchor: anchor || null,
@@ -417,6 +418,7 @@
       amount: '',
       newItem: false,
       focusSearch: true,
+      focusSelector: '',
       scrollTop: 0,
       error: ''
     };
@@ -430,24 +432,43 @@
     state.modal = null;
     modalHost.hidden = true;
     modalHost.innerHTML = '';
-    try { if (modalReturn && modalReturn.isConnected && typeof modalReturn.focus === 'function') modalReturn.focus({ preventScroll: true }); } catch { /* the page moved */ }
+    try {
+      if (modalReturn && modalReturn.isConnected && typeof modalReturn.focus === 'function') modalReturn.focus({ preventScroll: true });
+      else document.querySelector('#neo-side-tabs [data-view="inventory"]')?.focus({ preventScroll: true });
+    } catch { /* the page moved */ }
     modalReturn = null;
-  }
-
-  function cleanAmountInput(value) {
-    const raw = String(value || '');
-    if (/[.,]/.test(raw)) return { ok: false, value: '' };
-    const cleaned = raw.replace(/[^0-9+-]/g, '');
-    const sign = cleaned.startsWith('+') || cleaned.startsWith('-') ? cleaned[0] : '';
-    return { ok: true, value: sign + cleaned.replace(/[^0-9]/g, '') };
   }
 
   function failModal(text, field) {
     const modal = state.modal;
     if (!modal) return;
+    const list = document.querySelector('.neo-inv-items');
+    if (list) modal.scrollTop = list.scrollTop;
     modal.error = text;
+    modal.focusSelector = field || '.neo-inv-save';
     renderModal();
-    if (field) setTimeout(() => document.querySelector(field)?.focus({ preventScroll: true }), 0);
+  }
+
+  // One projection of the message; every handler clears or sets it here.
+  let errorNode = null;
+  let errorAnchor = null;
+
+  function showError(text) {
+    const modal = state.modal;
+    if (!modal) return;
+    modal.error = text;
+    if (!errorNode && errorAnchor) {
+      errorNode = el('p', 'neo-inv-error');
+      errorNode.setAttribute('role', 'alert');
+      errorAnchor.parentNode?.insertBefore(errorNode, errorAnchor);
+    }
+    if (errorNode) errorNode.textContent = text;
+  }
+
+  function clearError() {
+    const modal = state.modal;
+    if (modal) modal.error = '';
+    if (errorNode) { errorNode.remove(); errorNode = null; }
   }
 
   function renderModal() {
@@ -455,7 +476,7 @@
     if (!modal) { modalHost.hidden = true; return; }
     modalHost.hidden = false;
     modalHost.innerHTML = '';
-    const card = el('div', 'neo-inv-modal');
+    const card = el('div', 'modal neo-inv-modal');
     card.setAttribute('role', 'document');
     const heading = el('h2', 'neo-inv-title', x('Inventory'));
     heading.id = 'neo-inv-modal-title';
@@ -466,16 +487,19 @@
     search.placeholder = x('Find an item');
     search.setAttribute('aria-label', x('Find an item'));
     search.value = modal.query;
-    const searchRow = el('div', 'neo-inv-search-row');
-    searchRow.appendChild(search);
-    card.appendChild(searchRow);
+    card.appendChild(search);
 
     const list = el('div', 'neo-inv-items');
     const sums = new Map(model.balances(state.store, order(), chapterId() || null).map((row) => [row.itemId, row.amount]));
 
     function fillItems() {
       list.innerHTML = '';
-      const items = model.activeItems(state.store).filter((item) => !modal.query || item.name.toLowerCase().includes(modal.query.toLowerCase()));
+      const all = model.activeItems(state.store);
+      const picked = modal.itemId ? all.find((item) => item.id === modal.itemId) : null;
+      const matching = all.filter((item) => !modal.query || item.name.toLowerCase().includes(modal.query.toLowerCase()));
+      // A picked item stays visible even when the query excludes it: Save must
+      // record what the writer can see.
+      const items = picked && !matching.includes(picked) ? [picked, ...matching] : matching;
       for (const item of items) {
         const pick = el('button', 'neo-inv-pick' + (modal.itemId === item.id ? ' is-picked' : ''));
         pick.type = 'button';
@@ -483,8 +507,8 @@
         pick.textContent = `${item.name} — ${numberText(sums.get(item.id) || 0)}`;
         pick.addEventListener('click', () => {
           modal.itemId = item.id;
-          modal.error = '';
           modal.focusSearch = false;
+          clearError();
           for (const other of list.querySelectorAll('.neo-inv-pick')) other.classList.toggle('is-picked', other === pick);
           pick.focus({ preventScroll: true });
         });
@@ -494,17 +518,19 @@
     }
 
     fillItems();
-    search.addEventListener('input', () => { modal.query = search.value; fillItems(); list.scrollTop = 0; });
+    search.addEventListener('input', () => { modal.query = search.value; clearError(); fillItems(); list.scrollTop = 0; });
     card.appendChild(list);
 
     const toggle = el('button', 'neo-inv-new-toggle', `${modal.newItem ? '−' : '+'} ${x('New item')}`);
     toggle.type = 'button';
     toggle.setAttribute('aria-expanded', modal.newItem ? 'true' : 'false');
     toggle.addEventListener('click', () => {
+      modal.scrollTop = list.scrollTop;
       modal.newItem = !modal.newItem;
       modal.error = '';
+      if (modal.newItem) modal.itemId = '';
+      modal.focusSelector = modal.newItem ? '.neo-inv-name-input' : '.neo-inv-new-toggle';
       renderModal();
-      if (modal.newItem) setTimeout(() => document.querySelector('.neo-inv-name-input')?.focus({ preventScroll: true }), 0);
     });
     card.appendChild(toggle);
 
@@ -515,13 +541,18 @@
       name.placeholder = x('Name');
       name.setAttribute('aria-label', x('Name'));
       name.value = modal.name;
-      name.addEventListener('input', () => { modal.name = name.value; });
+      name.addEventListener('input', () => {
+        modal.name = name.value;
+        modal.itemId = '';
+        for (const other of list.querySelectorAll('.neo-inv-pick')) other.classList.remove('is-picked');
+        clearError();
+      });
       const category = el('input', 'neo-inv-category-input');
       category.type = 'text';
       category.placeholder = x('Category');
       category.setAttribute('aria-label', x('Category'));
       category.value = modal.category;
-      category.addEventListener('input', () => { modal.category = category.value; });
+      category.addEventListener('input', () => { modal.category = category.value; clearError(); });
       newBox.append(name, category);
       card.appendChild(newBox);
     }
@@ -532,7 +563,7 @@
     amount.type = 'text';
     amount.inputMode = 'numeric';
     amount.autocomplete = 'off';
-    amount.placeholder = '+200 or -50';
+    amount.placeholder = x('+200 or -50');
     amount.value = modal.amount;
     amountRow.appendChild(amount);
     card.appendChild(amountRow);
@@ -547,30 +578,20 @@
     actions.append(cancel, save);
     card.appendChild(actions);
 
-    let errorEl = null;
+    errorNode = null;
+    errorAnchor = actions;
     if (modal.error) {
-      errorEl = el('p', 'neo-inv-error', modal.error);
-      errorEl.setAttribute('role', 'alert');
-      card.insertBefore(errorEl, actions);
+      errorNode = el('p', 'neo-inv-error', modal.error);
+      errorNode.setAttribute('role', 'alert');
+      card.insertBefore(errorNode, actions);
     }
-    const showError = (text) => {
-      modal.error = text;
-      if (!errorEl) {
-        errorEl = el('p', 'neo-inv-error');
-        errorEl.setAttribute('role', 'alert');
-        card.insertBefore(errorEl, actions);
-      }
-      errorEl.textContent = text;
-    };
-    const clearError = () => {
-      modal.error = '';
-      if (errorEl) { errorEl.remove(); errorEl = null; }
-    };
     amount.addEventListener('input', () => {
-      const clean = cleanAmountInput(amount.value);
+      const caret = amount.selectionStart;
+      const clean = model.parseAmountInput(amount.value);
       if (!clean.ok) {
         amount.value = modal.amount;
-        showError(x('Use whole numbers only.'));
+        try { amount.setSelectionRange(caret, caret); } catch { /* field moved */ }
+        showError(clean.reason === 'sign' ? x('A number has one sign, at the start.') : x('Use whole numbers only.'));
         return;
       }
       if (amount.value !== clean.value) amount.value = clean.value;
@@ -590,7 +611,10 @@
 
     modalHost.appendChild(card);
     list.scrollTop = modal.scrollTop || 0;
-    if (modal.focusSearch) {
+    const focusSelector = modal.focusSelector;
+    modal.focusSelector = '';
+    if (focusSelector) setTimeout(() => card.querySelector(focusSelector)?.focus({ preventScroll: true }), 0);
+    else if (modal.focusSearch) {
       modal.focusSearch = false;
       setTimeout(() => search.focus({ preventScroll: true }), 0);
     }
@@ -760,6 +784,7 @@
     if (!msg || msg.type !== 'moreFeatures') return;
     if (!msg.checked) {
       flush();
+      closeModal();
       clearTimeout(reconcileTimer);
       state.loaded = false;
     } else if (active()) {

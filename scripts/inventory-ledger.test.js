@@ -152,3 +152,13 @@ test('inventory-ledger: one amount parser separates blank, not-a-number, and ran
   assert.deepEqual(ledger.parseAmount('-50'), { ok: true, amount: -50 });
   assert.deepEqual(ledger.parseAmount('12,5'), { ok: true, amount: 12.5 });
 });
+
+test('inventory-ledger: the amount field keeps one sign and digits, refuses separators and stray signs', () => {
+  assert.deepEqual(ledger.parseAmountInput('+200'), { ok: true, value: '+200' });
+  assert.deepEqual(ledger.parseAmountInput('-50 coins'), { ok: true, value: '-50' });
+  assert.deepEqual(ledger.parseAmountInput('12x3'), { ok: true, value: '123' });
+  assert.equal(ledger.parseAmountInput('').ok, true);
+  assert.deepEqual(ledger.parseAmountInput('--5'), { ok: false, reason: 'sign' });
+  assert.deepEqual(ledger.parseAmountInput('5-3'), { ok: false, reason: 'sign' });
+  assert.deepEqual(ledger.parseAmountInput('1,5'), { ok: false, reason: 'separator' });
+});

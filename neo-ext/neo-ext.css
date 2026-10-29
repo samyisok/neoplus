@@ -612,7 +612,7 @@ body.neo-ext-resizing { cursor: col-resize; user-select: none; }
 
 /* ── adr-008: inventory ───────────────────────────────────────────────── */
 .neo-inventory-view { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px 16px; }
-.neo-inv-head { position: sticky; top: 0; background: inherit; padding-bottom: 6px; }
+.neo-inv-head { position: sticky; top: 0; z-index: 2; background: var(--pane, #202020); padding-bottom: 6px; }
 .neo-inv-where { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted, #8a8a8a); }
 .neo-inv-status { font-size: 11px; color: var(--muted, #8a8a8a); margin-top: 4px; }
 .neo-inv-status.is-error { color: #d97b6c; }
@@ -623,10 +623,9 @@ body.neo-ext-resizing { cursor: col-resize; user-select: none; }
 }
 .neo-inv-category:hover { color: var(--accent, #c9a86a); }
 .neo-inv-item { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 3px 0; }
-.neo-inv-name { border: 0; background: none; color: var(--ink, #ddd); font: inherit; padding: 0; cursor: pointer; text-align: left; }
+.neo-inv-name { border: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; text-align: left; }
 .neo-inv-name:hover { color: var(--accent, #c9a86a); }
-.neo-inv-amount { font-size: 12px; color: var(--ink, #ddd); font-variant-numeric: tabular-nums; }
-.neo-inv-amount.is-negative { color: #d97b6c; }
+.neo-inv-amount { font-size: 12px; color: inherit; font-variant-numeric: tabular-nums; }
 .neo-inv-log { border-left: 1px solid var(--rule, rgba(255,255,255,0.14)); margin: 2px 0 8px 4px; padding-left: 8px; }
 .neo-inv-line { display: flex; align-items: center; gap: 4px; padding: 1px 0; font-size: 11px; }
 .neo-inv-line-go { flex: 1; text-align: left; border: 0; background: none; color: var(--muted, #aaa); font: inherit; font-size: 11px; padding: 2px 0; cursor: pointer; }
@@ -636,56 +635,70 @@ body.neo-ext-resizing { cursor: col-resize; user-select: none; }
 }
 .neo-inv-remove:hover, .neo-inv-remove-confirm:hover { color: #d97b6c; }
 .neo-inv-remove-cancel { color: var(--muted, #aaa); }
-.neo-inv-empty { font-size: 11px; color: var(--muted, #888); line-height: 1.5; }
+.neo-inv-empty, .neo-inv-modal .neo-inv-empty { font-size: 11px; color: var(--muted, #888); line-height: 1.5; margin: 0; }
 .neo-inv-backdrop {
-  position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center;
+  z-index: 9000;
   background: rgba(0, 0, 0, 0.55);
 }
-.neo-inv-modal {
-  width: min(34rem, calc(100vw - 2.5rem));
-  max-height: min(84vh, 48rem); overflow-y: auto;
+.modal.neo-inv-modal {
+  width: min(calc(34rem / var(--ui-zoom, 1)), calc(100vw - 2.5rem));
+  max-height: min(calc(84vh / var(--ui-zoom, 1)), 48rem);
+  padding: 14px 16px;
   display: flex; flex-direction: column; gap: 6px;
-  background: #202020; border: 1px solid var(--rule, rgba(255,255,255,0.18)); border-radius: 10px; padding: 14px 16px;
-  color: var(--ink, #ddd); font: inherit; font-size: 13px;
+  font-size: 13px;
 }
-.neo-inv-title { margin: 0; font-size: 15px; font-weight: 600; }
-.neo-inv-quote { margin: 0; color: var(--muted, #aaa); font-style: italic; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.neo-inv-search-row { display: flex; }
-.neo-inv-search {
-  width: 100%; font: inherit; font-size: 13px; color: var(--ink, #ddd);
-  background: #282828; border: 1px solid var(--rule, rgba(255,255,255,0.2)); border-radius: 5px; padding: 5px 7px;
+.neo-inv-modal .neo-inv-title { margin: 0; font-size: 15px; font-weight: 600; }
+.neo-inv-modal .neo-inv-quote {
+  margin: 0; color: var(--muted); font-style: italic; font-size: 12px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.neo-inv-modal input {
+  background: var(--bg); color: inherit; border: 1px solid var(--rule, #3a3a3a);
+  border-radius: 5px; margin: 0; min-width: 0; display: block;
+}
+.neo-inv-modal .neo-inv-search { width: 100%; font: inherit; font-size: 13px; padding: 5px 7px; }
 .neo-inv-items {
-  flex: 1 1 auto; min-height: 0; max-height: 40vh; overflow-y: auto;
+  flex: 1 1 auto; min-height: 9rem; max-height: calc(40vh / var(--ui-zoom, 1)); overflow-y: auto;
   display: flex; flex-direction: column; gap: 2px;
   border: 1px solid var(--rule, rgba(255,255,255,0.1)); border-radius: 6px; padding: 4px;
 }
-.neo-inv-pick { text-align: left; border: 1px solid transparent; background: none; color: var(--ink, #ddd); font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 5px; cursor: pointer; }
+.neo-inv-pick {
+  text-align: left; border: 1px solid transparent; background: none; color: inherit;
+  font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 5px; cursor: pointer;
+}
 .neo-inv-pick:hover { border-color: var(--rule, rgba(255,255,255,0.2)); }
-.neo-inv-pick.is-picked { border-color: var(--accent, #c9a86a); color: var(--accent, #c9a86a); }
+.neo-inv-pick:focus-visible, .neo-inv-actions button:focus-visible {
+  outline: 1px solid var(--accent); outline-offset: 2px;
+}
+.neo-inv-pick.is-picked { border-color: var(--accent); color: var(--accent); }
 .neo-inv-new-toggle {
-  align-self: flex-start; border: 0; background: none; color: var(--muted, #aaa);
+  align-self: flex-start; border: 0; background: none; color: var(--muted);
   font: inherit; font-size: 12px; padding: 2px 0; cursor: pointer;
 }
-.neo-inv-new-toggle:hover { color: var(--accent, #c9a86a); }
-.neo-inv-new-toggle:focus-visible { outline: 1px solid var(--accent, #c9a86a); outline-offset: 2px; }
+.neo-inv-new-toggle:hover { color: var(--accent); }
+.neo-inv-new-toggle:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
 .neo-inv-new { display: grid; grid-template-columns: 1fr 10rem; gap: 6px; }
-.neo-inv-new input {
-  font: inherit; font-size: 12px; color: var(--ink, #ddd); background: #282828;
-  border: 1px solid var(--rule, rgba(255,255,255,0.2)); border-radius: 5px; padding: 4px 6px; min-width: 0;
+.neo-inv-modal .neo-inv-new input { font: inherit; font-size: 12px; padding: 4px 6px; width: 100%; }
+.neo-inv-modal .neo-inv-amount-row { display: flex; align-items: center; gap: 10px; margin: 0; }
+.neo-inv-modal .neo-inv-amount-label { display: inline; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.neo-inv-modal .neo-inv-amount-input {
+  width: 9rem; font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; padding: 5px 7px;
 }
-.neo-inv-amount-row { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-.neo-inv-amount-label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted, #8a8a8a); }
-.neo-inv-amount-input {
-  width: 9rem; font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; letter-spacing: 0.03em;
-  color: var(--ink, #ddd); background: #282828; border: 1px solid var(--rule, rgba(255,255,255,0.2)); border-radius: 5px; padding: 5px 7px;
-}
-.neo-inv-error { color: #d97b6c; font-size: 12px; margin: 0; }
+.neo-inv-modal .neo-inv-error { color: #d97b6c; font-size: 12px; margin: 0; }
 .neo-inv-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: auto; padding-top: 6px; }
-.neo-inv-actions button { font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 5px; border: 1px solid var(--rule, rgba(255,255,255,0.2)); background: none; color: var(--ink, #ddd); cursor: pointer; }
-.neo-inv-save { border-color: var(--accent, #c9a86a) !important; color: var(--accent, #c9a86a) !important; }
+.neo-inv-actions button {
+  font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 5px;
+  border: 1px solid var(--rule, rgba(255,255,255,0.2)); background: none; color: inherit; cursor: pointer;
+}
+.neo-inv-actions .neo-inv-save { border-color: var(--accent); color: var(--accent); }
+
+@media (max-width: 420px) {
+  .neo-inv-new { grid-template-columns: 1fr; }
+}
 
 @media (max-height: 560px) {
-  .neo-inv-modal { max-height: calc(100vh - 1.5rem); padding: 10px 12px; }
-  .neo-inv-items { max-height: 34vh; }
+  .modal.neo-inv-modal { max-height: calc(100vh - 1.5rem); padding: 10px 12px; }
+  .neo-inv-items { max-height: calc(34vh / var(--ui-zoom, 1)); }
 }
+
+body.light { --rule: rgba(0, 0, 0, 0.18); }

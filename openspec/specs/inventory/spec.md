@@ -72,7 +72,10 @@ Selecting a phrase in a chapter and opening the context menu SHALL offer **Inven
 - **Inventory…** SHALL open a modal with a searchable list of the book's items showing each item's amount so far, and, on request, compact fields to create an item with a name and a category.
 - The modal SHALL be sized to the page and scroll inside itself; the item list SHALL take the space the window leaves and scroll on its own, so a book with many items still shows a usable list.
 - The name and category fields SHALL stay hidden behind a **+ New item** control until the writer asks to create an item.
-- The amount field SHALL accept at most one leading sign and digits only; any other typed or pasted character SHALL be dropped when it is entered.
+- The amount field SHALL accept at most one leading sign and digits only. Letters and other characters SHALL be dropped as they are typed. A separator, a second sign, or a sign after the first character SHALL be refused: the field keeps the last valid value and says why, rather than turning the entry into a different number.
+- The dialog SHALL use NEO's own modal surface and follow the interface's theme and size settings.
+- A picked item SHALL stay visible in the list even while a search would exclude it.
+- The item list SHALL keep a usable minimum height, so a book with few items does not collapse it to one row.
 - The modal SHALL take a signed amount, including zero and negative amounts, and one **Save** action SHALL record exactly one transaction: the item, the signed amount, the chapter, the selection's location, and the phrase.
 - Creating an item in the modal SHALL save it with the transaction in the same save, so an item never exists with no transaction by accident.
 - Saving SHALL add one log line and SHALL change the balances as of that chapter and every later chapter.
@@ -104,6 +107,21 @@ Selecting a phrase in a chapter and opening the context menu SHALL offer **Inven
 
 - **WHEN** the writer types `-50 coins` into the amount field
 - **THEN** the field holds `-50`, and a second sign or a letter is not accepted
+
+#### Scenario: A separator or a stray sign
+
+- **WHEN** the field holds `7` and the writer types `1,5` or `5-3`
+- **THEN** the field still holds `7` and a message says whole numbers are used
+
+#### Scenario: Day theme
+
+- **WHEN** the interface is in its light theme
+- **THEN** the dialog's text stays readable on its surface, and interface size still scales it
+
+#### Scenario: A search hides the pick
+
+- **WHEN** an item is picked and the search text excludes it
+- **THEN** the picked row is still shown, marked as picked, so Save records what the writer sees
 
 #### Scenario: A new kind of item
 

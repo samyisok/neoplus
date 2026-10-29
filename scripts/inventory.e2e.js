@@ -429,20 +429,23 @@ test('a placeholder paragraph cannot host a transaction', async () => {
 test('an unreadable chapter defers retirement', async () => {
   await showInventory();
   const file = path.join(dir, 'neo-ext-inventory.json');
-  await js(`(() => {
-    const api = window.NeoExtApi;
-    window.__originalUnread = api.unreadChapters;
-    api.unreadChapters = async () => ({ ok: true, ids: ['ch-1'] });
-    const body = document.querySelector('.chapter[data-id="ch-1"] .chapter-body');
-    body.querySelector('p').textContent = 'The pouch vanished.';
-    body.dispatchEvent(new Event('input', { bubbles: true }));
-    window.dispatchEvent(new Event('focus'));
-  })()`);
-  await tick(1800);
-  const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
-  assert.ok(stored.transactions.every((tx) => tx.removedAt > 0 || tx.quote !== 'saw 200 gold coins'), 'nothing retired while a chapter is unreadable');
-  assert.match((await inventoryState()).status, /Waiting/);
-  await js(`(() => { window.NeoExtApi.unreadChapters = window.__originalUnread; delete window.__originalUnread; })()`);
+  try {
+    await js(`(() => {
+      const api = window.NeoExtApi;
+      window.__originalUnread = api.unreadChapters;
+      api.unreadChapters = async () => ({ ok: true, ids: ['ch-1'] });
+      const body = document.querySelector('.chapter[data-id="ch-1"] .chapter-body');
+      body.querySelector('p').textContent = 'The pouch vanished.';
+      body.dispatchEvent(new Event('input', { bubbles: true }));
+      window.dispatchEvent(new Event('focus'));
+    })()`);
+    await tick(1800);
+    const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
+    assert.ok(stored.transactions.every((tx) => tx.removedAt > 0 || tx.quote !== 'saw 200 gold coins'), 'nothing retired while a chapter is unreadable');
+    assert.match((await inventoryState()).status, /Waiting/);
+  } finally {
+    await js(`(() => { if (window.__originalUnread) { window.NeoExtApi.unreadChapters = window.__originalUnread; delete window.__originalUnread; } })()`);
+  }
 });
 
 test('the modal is roomy: a wide window, a flexible list, and hidden new-item fields', async () => {
@@ -481,15 +484,87 @@ test('the amount field keeps one sign and digits only', async () => {
   assert.equal(await set('-50 coins'), '-50');
   assert.equal(await set('+200'), '+200');
   assert.equal(await set('12x3'), '123');
-  assert.equal(await set('--5'), '-5');
-  assert.equal(await set('1,5'), '-5', 'a separator is refused, not silently dropped');
+  assert.equal(await set('--5'), '123', 'a second sign is refused');
+  assert.match(await js(`document.querySelector('.neo-inv-error')?.textContent || ''`), /one sign/);
+  assert.equal(await set('5-3'), '123', 'a sign after the first character is refused');
+  assert.equal(await set('7'), '7');
+  assert.equal(await set('1,5'), '7', 'a separator keeps the last whole value');
   assert.match(await js(`document.querySelector('.neo-inv-error')?.textContent || ''`), /whole numbers/);
+  assert.equal(await set('-50'), '-50', 'a clean amount clears the message');
+  assert.equal(await js(`document.querySelector('.neo-inv-error')`), null);
   await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('focus stays inside the modal through a collapse and a failed Save', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  await js(`document.querySelector('.neo-inv-new-toggle').click()`);
+  await tick(120);
+  await js(`document.querySelector('.neo-inv-new-toggle').click()`);
+  await tick(150);
+  assert.equal(await js(`document.activeElement?.classList.contains('neo-inv-new-toggle')`), true, 'collapse keeps focus on the toggle');
+  await js(`(() => { const el = document.querySelector('.neo-inv-amount-input'); el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await js(`document.querySelector('.neo-inv-save').click()`);
+  await tick(200);
+  assert.equal(await js(`document.activeElement?.classList.contains('neo-inv-amount-input')`), true, 'a failed Save focuses the amount');
+  assert.match(await js(`document.querySelector('.neo-inv-error')?.textContent || ''`), /amount/i);
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('Tab wraps inside the modal', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  await js(`document.querySelector('.neo-inv-save').focus()`);
+  await js(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))`);
+  await tick(120);
+  assert.equal(await js(`document.activeElement === document.querySelector('.neo-inv-search')`), true, 'Tab from the last control lands on the first');
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('a picked item stays visible when the search excludes it', async () => {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  await js(`document.querySelectorAll('.neo-inv-pick')[0].click()`);
+  await tick(120);
+  await js(`(() => { const el = document.querySelector('.neo-inv-search'); el.value = 'zzz-no-such-item'; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await tick(120);
+  const picked = await js(`[...document.querySelectorAll('.neo-inv-pick.is-picked')].map((b) => b.textContent)`);
+  assert.equal(picked.length, 1, 'the picked row survives the filter');
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+});
+
+test('the dialog follows the light theme and the interface zoom', async () => {
+  await js(`document.body.classList.remove('night'); document.body.classList.add('light')`);
+  await tick(200);
+  try {
+  await showInventory();
+  await openModal('ch-3', '25 gold coins');
+  const look = await js(`(() => {
+    const modal = document.querySelector('.neo-inv-modal');
+    const list = document.querySelector('.neo-inv-items');
+    const style = getComputedStyle(modal);
+    const rgb = (value) => (value.match(/[0-9]+/g) || []).slice(0, 3).map(Number);
+    const sum = (value) => rgb(value).reduce((a, b) => a + b, 0);
+    return {
+      contrast: Math.abs(sum(style.color) - sum(style.backgroundColor)),
+      zoom: style.zoom,
+      minHeight: parseFloat(getComputedStyle(list).minHeight)
+    };
+  })()`);
+  assert.ok(look.contrast > 150, `text/background contrast ${look.contrast}`);
+  assert.equal(look.zoom, await js(`getComputedStyle(document.documentElement).getPropertyValue('--ui-zoom').trim() || '1'`));
+  assert.ok(look.minHeight >= 140, `list min-height ${look.minHeight}`);
+  await js(`document.querySelector('.neo-inv-cancel').click()`);
+  } finally {
+    await js(`document.body.classList.remove('light')`);
+    await tick(150);
+  }
 });
 
 test('a short window keeps the modal inside the screen', async () => {
   win.setSize(700, 460);
   await tick(300);
+  try {
   await showInventory();
   await openModal('ch-3', '25 gold coins');
   const box = await js(`(() => {
@@ -501,11 +576,13 @@ test('a short window keeps the modal inside the screen', async () => {
       viewport: window.innerHeight
     };
   })()`);
-  assert.equal(box.fits, true, 'the modal scrolls inside itself');
+  assert.equal(box.fits, true, 'the modal fits the window');
   assert.ok(box.saveBottom <= box.viewport, 'Save stays on screen');
   await js(`document.querySelector('.neo-inv-cancel').click()`);
-  win.setSize(1200, 800);
-  await tick(300);
+  } finally {
+    win.setSize(1200, 800);
+    await tick(300);
+  }
 });
 
 test('reopening the modal starts with the new-item fields closed', async () => {

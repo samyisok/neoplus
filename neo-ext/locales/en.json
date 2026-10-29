@@ -91,7 +91,6 @@
   "Whole book": "Whole book",
   "No inventory yet. Select a phrase in a chapter and choose Inventory…": "No inventory yet. Select a phrase in a chapter and choose Inventory…",
   "No items yet.": "No items yet.",
-  "Or a new item": "Or a new item",
   "Name": "Name",
   "Category": "Category",
   "Amount": "Amount",
@@ -120,5 +119,7 @@
   "Unplaced": "Unplaced",
   "New item": "New item",
   "Use whole numbers only.": "Use whole numbers only.",
-  "Pick an item or name a new one.": "Pick an item or name a new one."
+  "Pick an item or name a new one.": "Pick an item or name a new one.",
+  "+200 or -50": "+200 or -50",
+  "A number has one sign, at the start.": "A number has one sign, at the start."
 }
