@@ -10,7 +10,9 @@
 (function () {
   const groups = [];
   let openEl = null;
+  let openState = null;
   let pending = false;
+  let saving = false;
   let savedRange = null;
 
   const x = (s, vars) => {
@@ -63,6 +65,7 @@
     const id = `neo-ext-${group.id}-${control.key}`;
     const wrap = document.createElement('div');
     wrap.className = 'neo-ext-row';
+    if (control.key) wrap.dataset.key = control.key;
     const label = document.createElement('label');
     label.htmlFor = id;
     label.textContent = x(control.label);
@@ -243,6 +246,49 @@
       return wrap;
     }
 
+    if (control.type === 'zoom') {
+      const line = document.createElement('div');
+      line.className = 'neo-ext-zoombar';
+      const value = document.createElement('output');
+      value.className = 'neo-ext-zoom-value';
+      value.id = id;
+      value.setAttribute('aria-live', 'polite');
+      const format = typeof control.format === 'function' ? control.format : (v) => String(v);
+      const buttons = [];
+      const refresh = () => {
+        const held = values[control.key];
+        value.textContent = format(held);
+        const down = typeof control.step === 'function' ? control.step(held, -1) : held;
+        const up = typeof control.step === 'function' ? control.step(held, 1) : held;
+        buttons[0].disabled = down === held;
+        buttons[1].disabled = up === held;
+        buttons[2].disabled = held === 1;
+      };
+      const make = (label, dir) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'neo-ext-zoom-step';
+        button.dataset.dir = String(dir);
+        button.textContent = x(label);
+        button.setAttribute('aria-label', x('{label}: {action}', { label: x(control.label), action: x(label) }));
+        button.addEventListener('click', () => {
+          values['__touched_' + control.key] = true;
+          values[control.key] = typeof control.step === 'function' ? control.step(values[control.key], dir) : values[control.key];
+          refresh();
+          try { if (control.preview) control.preview(values[control.key]); } catch { /* preview is a nicety */ }
+        });
+        buttons.push(button);
+        return button;
+      };
+      const smaller = make('Smaller', -1);
+      const larger = make('Larger', 1);
+      const reset = make('Reset', 0);
+      line.append(smaller, value, larger, reset);
+      refresh();
+      wrap.appendChild(line);
+      return wrap;
+    }
+
     if (control.type === 'button') {
       const line = document.createElement('div');
       line.className = 'neo-ext-pathline';
@@ -275,16 +321,23 @@
     return wrap;
   }
 
-  function close() {
+  function close(saved) {
     if (!openEl) return;
+    const state = openState;
+    openState = null;
     openEl.remove();
     openEl = null;
     document.removeEventListener('keydown', onKey, true);
     restoreSelection();
+    if (!state) return;
+    for (const group of state.live) {
+      if (typeof group.onClose !== 'function') continue;
+      try { group.onClose(state.values, !!saved); } catch { /* a group cannot block closing */ }
+    }
   }
 
   function onKey(e) {
-    if (!openEl) return;
+    if (!openEl || saving) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
   }
 
@@ -305,12 +358,15 @@
       __useDefault: !info.configured
     };
     const live = groups.filter(shown);
+    openState = null;
     const loads = await Promise.all(live.map(async (group) => {
       if (typeof group.load !== 'function') return {};
       try { return (await group.load()) || {}; } catch { return {}; }
     }));
     pending = false;
+    saving = false;
     for (const part of loads) if (part && typeof part === 'object') Object.assign(values, part);
+    openState = { values, live };
 
     openEl = document.createElement('div');
     openEl.className = 'modal-backdrop neo-ext-backdrop';
@@ -329,6 +385,11 @@
     openEl.querySelector('.neo-ext-cancel').textContent = x('Cancel');
     openEl.querySelector('.neo-ext-save').textContent = x('Save');
     document.body.appendChild(openEl);
+    // Close paths exist before any group renders, so a broken group can never
+    // leave a window with no way out.
+    openEl.addEventListener('click', (e) => { if (!saving && e.target === openEl) close(); });
+    openEl.querySelector('.neo-ext-cancel').addEventListener('click', () => { if (!saving) close(false); });
+    document.addEventListener('keydown', onKey, true);
 
     const holder = openEl.querySelector('.neo-ext-groups');
     const errorEl = openEl.querySelector('.neo-ext-error');
@@ -372,17 +433,19 @@
       }
     }
     for (const group of live) {
-      const section = document.createElement('section');
-      section.className = 'neo-ext-group';
-      section.dataset.group = group.id;
-      section.dataset.tab = group.tab || 'General';
-      const heading = document.createElement('h3');
-      heading.textContent = x(group.title);
-      section.appendChild(heading);
-      const controls = typeof group.controls === 'function' ? group.controls(info, values) : (group.controls || []);
-      for (const control of controls) section.appendChild(controlRow(group, control, values, info));
-      holder.appendChild(section);
-      sections.push(section);
+      try {
+        const section = document.createElement('section');
+        section.className = 'neo-ext-group';
+        section.dataset.group = group.id;
+        section.dataset.tab = group.tab || 'General';
+        const heading = document.createElement('h3');
+        heading.textContent = x(group.title);
+        section.appendChild(heading);
+        const controls = typeof group.controls === 'function' ? group.controls(info, values) : (group.controls || []);
+        for (const control of controls) section.appendChild(controlRow(group, control, values, info));
+        holder.appendChild(section);
+        sections.push(section);
+      } catch { /* one broken group cannot break the window */ }
     }
     for (const tab of tabs) {
       const own = sections.filter((section) => section.dataset.tab === tab);
@@ -391,35 +454,43 @@
     if (tabs.length > 1) showTab(tabs[0]);
     else tabStrip.hidden = true;
 
-    openEl.addEventListener('click', (e) => { if (e.target === openEl) close(); });
-    openEl.querySelector('.neo-ext-cancel').addEventListener('click', close);
-    document.addEventListener('keydown', onKey, true);
-
     openEl.querySelector('.neo-ext-save').addEventListener('click', async () => {
+      if (saving) return;
+      saving = true;
+      const saveButton = openEl.querySelector('.neo-ext-save');
+      if (saveButton) saveButton.disabled = true;
+      const steps = [...openEl.querySelectorAll('.neo-ext-zoom-step')].map((button) => ({ button, was: button.disabled }));
+      for (const stepButton of steps) stepButton.button.disabled = true;
       errorEl.hidden = true;
-      const bookId = typeof book !== 'undefined' && book ? book.id : null;
-      for (const group of live) {
-        if (typeof group.validate !== 'function') continue;
-        let checked = null;
-        try { checked = await group.validate(values, { info, bookId }); } catch (err) { checked = { ok: false, reason: String(err && err.message || err) }; }
-        if (checked && checked.ok === false) {
-          errorEl.textContent = checked.reason || x('NEO could not save these settings');
-          errorEl.hidden = false;
-          return;
+      try {
+        const bookId = typeof book !== 'undefined' && book ? book.id : null;
+        for (const group of live) {
+          if (typeof group.validate !== 'function') continue;
+          let checked = null;
+          try { checked = await group.validate(values, { info, bookId }); } catch (err) { checked = { ok: false, reason: String(err && err.message || err) }; }
+          if (checked && checked.ok === false) {
+            errorEl.textContent = checked.reason || x('NEO could not save these settings');
+            errorEl.hidden = false;
+            return;
+          }
         }
-      }
-      for (const group of live) {
-        if (typeof group.save !== 'function') continue;
-        let res = null;
-        try { res = await group.save(values, { info, bookId }); } catch (err) { res = { ok: false, reason: String(err && err.message || err) }; }
-        if (!res || !res.ok) {
-          errorEl.textContent = (res && res.reason) || x('NEO could not save these settings');
-          errorEl.hidden = false;
-          return;
+        for (const group of live) {
+          if (typeof group.save !== 'function') continue;
+          let res = null;
+          try { res = await group.save(values, { info, bookId }); } catch (err) { res = { ok: false, reason: String(err && err.message || err) }; }
+          if (!res || !res.ok) {
+            errorEl.textContent = (res && res.reason) || x('NEO could not save these settings');
+            errorEl.hidden = false;
+            return;
+          }
         }
+        close(true);
+        if (window.NeoExt && window.NeoExt.toast) window.NeoExt.toast(x('Settings saved'));
+      } finally {
+        saving = false;
+        if (saveButton) saveButton.disabled = false;
+        for (const stepButton of steps) stepButton.button.disabled = stepButton.was;
       }
-      close();
-      if (window.NeoExt && window.NeoExt.toast) window.NeoExt.toast(x('Settings saved'));
     });
 
     const first = openEl.querySelector('input, select');

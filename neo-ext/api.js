@@ -313,5 +313,87 @@
     } catch { return away; }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, phraseLocatable, unreadChapters, chapterBody, chaptersRoot, editorView, paperScroll, paragraphNodes, chapterNameOf, chapterSnapshot, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
+  // Interface Size: the same value the View menu writes, in tenths, 90%–300%.
+  function snapUiZoom(value) {
+    try { if (typeof snapZoom === 'function') return snapZoom(value); } catch { /* fall through */ }
+    const n = value === null || value === '' ? NaN : Number(value);
+    const base = Number.isFinite(n) ? n : 1;
+    return Math.round(Math.min(3, Math.max(0.9, base)) * 10) / 10;
+  }
+
+  function uiZoom() {
+    try {
+      if (typeof library === 'undefined' || !library) return 1;
+      return snapUiZoom(library.uiZoom);
+    } catch { return 1; }
+  }
+
+  function stepUiZoom(current, direction) {
+    try { if (typeof nextZoomStep === 'function') return nextZoomStep(current, direction); } catch { /* fall through */ }
+    if (direction === 0) return 1;
+    return snapUiZoom(snapUiZoom(current) + (direction > 0 ? 0.1 : -0.1));
+  }
+
+  // Interface text: the fork's own surfaces, in tenths, 90%–200%.
+  function snapUiText(value) {
+    const n = value === null || value === '' ? NaN : Number(value);
+    const base = Number.isFinite(n) ? n : 1;
+    return Math.round(Math.min(2, Math.max(0.9, base)) * 10) / 10;
+  }
+
+  function uiText() {
+    try {
+      if (typeof library === 'undefined' || !library) return 1;
+      return snapUiText(library.uiText);
+    } catch { return 1; }
+  }
+
+  function stepUiText(current, direction) {
+    if (direction === 0) return 1;
+    return snapUiText(snapUiText(current) + (direction > 0 ? 0.1 : -0.1));
+  }
+
+  // One library write for both look sizes, so a failed save cannot keep half.
+  async function setUiLook(values) {
+    const input = values && typeof values === 'object' ? values : {};
+    const nextZoom = input.uiZoom === undefined ? uiZoom() : snapUiZoom(input.uiZoom);
+    const nextText = input.uiText === undefined ? uiText() : snapUiText(input.uiText);
+    const onlyZoom = input.uiText === undefined;
+    const onlyText = input.uiZoom === undefined;
+    try {
+      if (typeof library === 'undefined' || !library) return { ok: false, reason: 'unavailable' };
+      const beforeZoom = uiZoom();
+      const beforeText = uiText();
+      if (nextZoom === beforeZoom && nextText === beforeText) {
+        return onlyZoom || onlyText ? { ok: true, value: onlyZoom ? nextZoom : nextText, unchanged: true } : { ok: true, unchanged: true };
+      }
+      if (typeof writeLibrary !== 'function') return { ok: false, reason: 'unavailable' };
+      library.uiZoom = nextZoom;
+      library.uiText = nextText;
+      const restore = () => {
+        if (library.uiZoom === nextZoom) library.uiZoom = beforeZoom;
+        if (library.uiText === nextText) library.uiText = beforeText;
+        try { if (typeof rememberDeviceLook === 'function') rememberDeviceLook(library); } catch { /* best effort */ }
+      };
+      let written = null;
+      try {
+        written = await writeLibrary(library);
+      } catch { restore(); return { ok: false, reason: 'write' }; }
+      if (written === false) { restore(); return { ok: false, reason: 'write' }; }
+      try { if (typeof applyFonts === 'function') applyFonts(); } catch { /* the value is stored */ }
+      if (onlyZoom) return { ok: true, value: nextZoom };
+      if (onlyText) return { ok: true, value: nextText };
+      return { ok: true };
+    } catch { return { ok: false, reason: 'write' }; }
+  }
+
+  function setUiZoom(value) {
+    return setUiLook({ uiZoom: value });
+  }
+
+  function setUiText(value) {
+    return setUiLook({ uiText: value });
+  }
+
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, phraseLocatable, unreadChapters, chapterBody, chaptersRoot, editorView, paperScroll, paragraphNodes, chapterNameOf, chapterSnapshot, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus, uiZoom, snapUiZoom, stepUiZoom, setUiZoom, uiText, snapUiText, stepUiText, setUiText, setUiLook };
 })();

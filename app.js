@@ -226,7 +226,7 @@ function writeLibrary(lib = library) {
 // library's copy is the last device's, so a device opening the library for
 // the first time starts out the way the writer last had it, and from then on
 // keeps its own.
-const DEVICE_LOOK = ['pageTheme', 'uiBright', 'uiBrightAside', 'uiZoom', 'editorFontSize', 'typewriter', 'nbspMarks', 'focus', 'posMode', 'outlineView', 'vimKeys', 'pagedView', 'twoPageView', 'pageWidth'];
+const DEVICE_LOOK = ['pageTheme', 'uiBright', 'uiBrightAside', 'uiZoom', 'uiText', 'editorFontSize', 'typewriter', 'nbspMarks', 'focus', 'posMode', 'outlineView', 'vimKeys', 'pagedView', 'twoPageView', 'pageWidth']; /* NEO-EXT seam */
 const DEVICE_LOOK_KEY = 'neo-device-look';
 const EDITOR_SIZE_MIN = 8;
 const EDITOR_SIZE_MAX = 22;
@@ -247,7 +247,7 @@ function applyDeviceLook(lib) {
   if (!mine || typeof mine !== 'object') { rememberDeviceLook(lib); return lib; }
   for (const k of DEVICE_LOOK) {
     if (mine[k] !== undefined) lib[k] = mine[k];
-    else delete lib[k];
+    else if (k !== 'uiText') delete lib[k]; /* NEO-EXT seam */
   }
   return lib;
 }
@@ -15211,10 +15211,13 @@ function applyFonts() {
   // chooses in the View menu
   applyBright();
   // View → Interface Size: everything but the page, in tenths (#364)
-  const uiZoom = moreOn() ? snapZoom(library.uiZoom) : 1;
+  const uiZoom = window.NeoExt && NeoExt.uiZoom
+    ? NeoExt.uiZoom(library, moreOn())
+    : (moreOn() ? snapZoom(library.uiZoom) : 1); /* NEO-EXT seam */
   document.documentElement.style.setProperty('--ui-zoom', uiZoom);
   document.documentElement.classList.toggle('ui-zoomed', uiZoom > 1);
   if (window.neo.uiZoomState) window.neo.uiZoomState(uiZoom);
+  if (window.NeoExt && NeoExt.uiText) NeoExt.uiText(library); /* NEO-EXT seam */
   const size = Math.min(EDITOR_SIZE_MAX, Math.max(EDITOR_SIZE_MIN, library.editorFontSize || 17));
   document.documentElement.style.setProperty('--editor-size', size + 'px');
   applyPageZoom();

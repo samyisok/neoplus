@@ -138,13 +138,45 @@
     } catch { /* a missing listener is not an error */ }
   }
 
+  // Seam 12: how large the interface reads. The fork owns the policy (the
+  // setting works in Simple NEO too); core keeps the fallback when the fork
+  // is not loaded, as on Pocket.
+  function uiZoom(library, more) {
+    try {
+      if (window.NeoInterfaceSize && typeof window.NeoInterfaceSize.uiZoomFor === 'function') {
+        const size = window.NeoInterfaceSize.uiZoomFor(library);
+        if (Number.isFinite(size)) return size;
+      }
+    } catch { /* fall through */ }
+    try { if (more && typeof snapZoom === 'function') return snapZoom(library && library.uiZoom); } catch { /* fall through */ }
+    return 1;
+  }
+
+  // Seam 14: the fork's own text size, published beside the interface size.
+  function uiText(library) {
+    try {
+      if (window.NeoInterfaceSize && typeof window.NeoInterfaceSize.applyText === 'function') {
+        window.NeoInterfaceSize.applyText(library);
+      }
+    } catch { /* the look applies on the next read */ }
+  }
+
   window.NeoExt = {
     x,
     toast,
     backupBook,
     bookOpened,
+    uiZoom,
+    uiText,
     openSettings: () => window.NeoSettings.open(),
     lookUpMenu: (items, word) => (window.NeoWordContext ? window.NeoWordContext.lookUpMenu(items, word) : false),
     lookUpChoice: (choice, word) => { if (window.NeoWordContext) window.NeoWordContext.lookUpChoice(choice, word); }
   };
+
+  // The library can resolve before this script finishes loading, in which case
+  // core's first applyLook ran without the fork and Simple NEO sits at 100%.
+  // Re-apply once now that NeoExt exists; later reads re-apply it as usual.
+  try {
+    if (typeof library !== 'undefined' && library && typeof applyFonts === 'function') applyFonts();
+  } catch { /* the look applies on the next library read */ }
 })();

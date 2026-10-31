@@ -200,5 +200,9 @@
   "The newest replacement could not be recorded: the history is in iCloud.": "The newest replacement could not be recorded: the history is in iCloud.",
   "The replaced text was shortened.": "The replaced text was shortened.",
   "The replacement was shortened.": "The replacement was shortened.",
-  "Thesaurus": "Thesaurus"
+  "Thesaurus": "Thesaurus",
+  "The interface size could not be saved.": "The interface size could not be saved.",
+  "Interface text": "Interface text",
+  "Text grows in the side pane, dialogs, and messages. The shelf and menus follow Interface Size.": "Text grows in the side pane, dialogs, and messages. The shelf and menus follow Interface Size.",
+  "The interface settings could not be saved.": "The interface settings could not be saved."
 }

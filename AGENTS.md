@@ -349,8 +349,12 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 | 9 | `main.js` | in `dailyBackup`, where `backupsDir` is computed | `const backupsDir = require('./neo-ext/main.js').backupDir(LIBRARY_DIR);` |
 | 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `else if (window.NeoExtApi) …lookUpChoice(choice, word)` — every non-lookup choice is forwarded; the choice, not the word, decides which feature opens |
 | 11 | `backup-worker.js` | the library-root allowlist in `walk`, after `_catalog.txt` | `name.startsWith('records.json') && !name.endsWith('.tmp')` — the shared records and their `.bak` travel in the daily zip |
+| 12 | `app.js` | in `applyFonts`, the `const uiZoom = …` line | `window.NeoExt && NeoExt.uiZoom ? NeoExt.uiZoom(library, moreOn()) : (moreOn() ? snapZoom(library.uiZoom) : 1)` — the fork owns the interface-size policy, so Simple NEO follows the writer's choice while Pocket keeps the old rule |
+| 13 | `app.js` | the `DEVICE_LOOK` array | `'uiText'` beside `'uiZoom'` — the interface text size is each device's own |
+| 14 | `app.js` | in `applyFonts`, after the interface-size lines | `if (window.NeoExt && NeoExt.uiText) NeoExt.uiText(library);` — publishes the fork's text size |
+| 15 | `app.js` | in `applyDeviceLook`, the `DEVICE_LOOK` loop | `else if (k !== 'uiText') delete lib[k];` — a device whose stored look predates the key keeps the library's value instead of erasing it |
 
-Rows 1, 4–11 exist today; 2 and 3 are added with the features that need them. `neo-ext/check-seams.js` asserts the nine that exist.
+Rows 1, 4–15 exist today; 2 and 3 are added with the features that need them. `neo-ext/check-seams.js` asserts the seams that exist.
 
 Right-click menus are Electron's, not the page's: renderer `preventDefault` cannot add to them, hence the `main.js` seam. Menu clicks send `{ type: 'neo-ext', … }` with `win.webContents.send('menu', …)`; `onMenu` in `app.js` is a chain of `if`s, so unknown types are ignored, and `boot.js` subscribes its own `window.neo.onMenu`.
 
@@ -432,6 +436,27 @@ The right pane's fourth view: every replacement a tool made in the open book, ne
 - **Recorder (`neo-ext/history-record.js`):** one API, `NeoHistory.record({ tool, label, from, to, inChapter })`, called by Thesaurus after `insertText` succeeded with the text actually inserted, and by Rephrase with the chosen card's text and profile. It refuses with no book, Show More Features off, no bridge, a bad tool, empty/unchanged sides. A failure sets the view's notice (never a toast) and logs a reason only; success clears it and asks the view to refresh. A book switched mid-write does not let this view adopt the other book.
 - **View (`neo-ext/history.js`):** registers last with `NeoRecords.registerView`, so the strip reads Notes | Records | Inventory | History and inherits Show More Features, the Manuscript/Notes restriction, `allowedTab`, and Esc. Rows are `textContent` only. A book switch reloads (seam 4, `neo-ext:book-opened`); a read failure keeps no stale rows and is retried next time; a record made while the tab is hidden forces a re-read on return.
 - **Never:** viewing, recording, or a failed record writes a chapter, notes, `book.json`, `library.json`, a snapshot, or a darling. Pocket is untouched: its copy list does not include these files.
+
+### Interface Size in Settings (adr-015)
+
+File → Settings… → General carries **Interface Size**: Smaller, the percentage, Larger, and Reset, from 90% to 300% in tenths. It is the same `library.uiZoom` as View → Interface Size, so the menu item (still behind Show More Features) and the setting never disagree.
+
+- **Policy (`neo-ext/interface-size.js`):** owns the percentage text, the step, the preview, the group, and the Simple NEO decision. Seam 12 lets core's `applyFonts` ask `NeoExt.uiZoom(library, moreOn())`; the module answers with the snapped stored size in either mode. `boot.js` also re-applies `applyFonts` once after load, because the library can resolve before the fork scripts and Simple NEO would otherwise sit at 100% until the next read.
+- **Write (`api.setUiZoom`):** snaps, writes through core's `writeLibrary` only when the value changed, applies fonts, and on failure restores both the in-memory value and the device copy (`rememberDeviceLook`) before answering `{ ok: false }`. The group turns that into one sentence; no path or raw error reaches the window.
+- **Preview:** sets `--ui-zoom`, toggles `ui-zoomed`, and sends `uizoom:state` for the menu label — no write. Cancel, Escape, and a backdrop click preview the value stored at that moment (so a View-menu step taken while the window was open is kept); Save closes with `true`; a save in flight ignores Cancel/Escape (`saving` guard in `settings.js`).
+- **Surfaces:** everything except the page. The fork toast joins the zoomed surfaces; the fork dialogs divide their widths and heights by `--ui-zoom` so the Settings, Thesaurus, and Dictionary windows stay on screen at 300%. Page zoom, editor type size, and page width are untouched.
+- **Not changed:** the one-time Simple NEO migration (`usesMoreFeatures`) still reads a non-100% size as a sign of full NEO; that is upstream code and out of scope here.
+- Tests: `scripts/interface-size.test.js`, `scripts/interface-size-css.test.js`, `scripts/api.test.js`, and `npm run test:interface-size`.
+
+### Interface text size (adr-016)
+
+File → Settings… → General also carries **Interface text**: 90% to 200% in tenths, with its own Reset. It grows only the text of the fork's surfaces — the right pane, the fork dialogs, the toasts, and the hints — while their boxes, the pane width, and Interface Size stay where they are. The shelf, navigation pane, and menus keep following Interface Size.
+
+- **Value:** `library.uiText`, default 1, snapped by `api.snapUiText` (0.9–2). It is in `DEVICE_LOOK` (seam 13); `applyDeviceLook` keeps the library's value for a device whose stored look predates the key (seam 15).
+- **Publication:** seam 14 calls `NeoExt.uiText(library)` from `applyFonts`, and `boot.js` delegates to `NeoInterfaceSize.applyText`, which writes `--ui-text`; `boot.js`'s re-apply covers the boot order for both sizes.
+- **The multiplier:** every numeric `font-size` in `neo-ext/neo-ext.css` is `calc(<size> * var(--ui-text, 1))`, and rules that inherit text (Settings, Thesaurus, Dictionary) get a scaled base. Core `styles.css` is never edited, which is what bounds the feature to the fork's surfaces.
+- **Write:** `api.setUiLook({ uiZoom, uiText })` writes both in one library write, restores both and the device copy on failure, and applies fonts once; `setUiZoom`/`setUiText` are single-key wrappers. The group saves through it, so one size can never be kept while the dialog says the save failed.
+- Tests: `scripts/interface-size.test.js`, `scripts/interface-size-css.test.js`, `scripts/api.test.js`, `npm run test:interface-size`.
 
 ### How the planned features fit
 

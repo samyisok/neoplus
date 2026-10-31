@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add Interface text to Settings: enlarge the text in the right pane's Records, Inventory, and History views, in dialogs, and in messages without enlarging their boxes, on its own scale beside Interface Size. (`2026-10-31-adr-016-ui-text-size`)
+- Add Interface Size to Settings → General: enlarge NEO's own interface (not the page) from 90% to 300%, with a live preview, Cancel and Save, the same value as View → Interface Size, and working in Simple NEO too. (`2026-10-31-adr-015-interface-size-setting`)
 - Add a read-only History tab to the right pane recording every replacement by Rephrase and the thesaurus, with both texts, the date, and the chapter number at the moment, stored with the book. (`2026-10-31-adr-014-history-tab`)
 - Add a Records view to the right-hand notes pane: library-wide character and item records, folders, plain-text descriptions, inline confirmation, and highlighted search. (`2026-10-27-adr-005-records-tab`)
 - Add File → Backup Book… for a timestamped copy of the open book and File → Settings… with the backup folder used by manual and daily backups. (`2026-10-25-adr-001-book-backup-and-settings`)
