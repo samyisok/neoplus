@@ -108,6 +108,23 @@
     try { return typeof chapterName === 'function' ? String(chapterName(id) || '') : ''; } catch { return ''; }
   }
 
+  // Where a replacement happened, as it stood at that moment: the chapter's id,
+  // its 1-based place in the book, and the writer's own title for it (empty when
+  // the chapter has none, so a view never repeats the default name).
+  function chapterSnapshot() {
+    try {
+      const id = currentChapter();
+      if (!id) return { chapterId: '', chapterNumber: 0, chapterTitle: '' };
+      const order = chapterOrder();
+      const index = order.indexOf(id);
+      return {
+        chapterId: id,
+        chapterNumber: index >= 0 ? index + 1 : 0,
+        chapterTitle: String(chapterTitle(id) || '').replace(/\s+/g, ' ').trim().slice(0, 200)
+      };
+    } catch { return { chapterId: '', chapterNumber: 0, chapterTitle: '' }; }
+  }
+
   // Whether a phrase can still be put on screen, without moving the view.
   function phraseLocatable(spec) {
     try {
@@ -296,5 +313,5 @@
     } catch { return away; }
   }
 
-  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, phraseLocatable, unreadChapters, chapterBody, chaptersRoot, editorView, paperScroll, paragraphNodes, chapterNameOf, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
+  window.NeoExtApi = { flushAndConfirm, pending, spellLanguage, hasBook, isPocket, currentTabName, onManuscriptTab, pinSidePane, bookId, currentChapter, chapterOrder, chapterTitle, chapterText, sectionNotes, sectionFor, cardTexts, revealPhrase, phraseLocatable, unreadChapters, chapterBody, chaptersRoot, editorView, paperScroll, paragraphNodes, chapterNameOf, chapterSnapshot, moreFeatures, lookUpMenu, lookUpChoice, openFind, dictionaryStatus };
 })();

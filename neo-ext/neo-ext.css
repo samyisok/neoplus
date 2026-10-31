@@ -749,3 +749,19 @@ body.light { --rule: rgba(0, 0, 0, 0.18); }
   font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 5px;
   border: 1px solid var(--rule, rgba(255,255,255,0.2)); background: none; color: inherit; cursor: pointer;
 }
+
+/* ── adr-014: history ─────────────────────────────────────────────────── */
+.neo-history-view { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px 16px; }
+.neo-hist-head { position: sticky; top: 0; z-index: 2; background: var(--pane, #202020); padding-bottom: 6px; }
+.neo-hist-note { margin: 0 0 4px; font-size: 11px; line-height: 1.45; color: var(--muted, #8a8a8a); }
+.neo-hist-status { font-size: 11px; color: var(--muted, #8a8a8a); margin-top: 4px; }
+.neo-hist-status.is-error { color: #d97b6c; }
+.neo-hist-list { display: flex; flex-direction: column; gap: 10px; }
+.neo-hist-row { border-left: 1px solid var(--rule, rgba(255,255,255,0.14)); padding-left: 8px; }
+.neo-hist-where { margin: 0 0 4px; font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted, #8a8a8a); }
+.neo-hist-change { font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.neo-hist-from { color: var(--muted, #9a9a9a); }
+.neo-hist-arrow { font-size: 16px; font-weight: 600; line-height: 1; color: var(--muted, #8a8a8a); padding: 0 3px; }
+.neo-hist-to { color: var(--ink, #ddd); }
+.neo-hist-shortened { font-size: 10px; font-style: italic; color: var(--muted, #8a8a8a); }
+.neo-hist-empty { margin: 0; font-size: 11px; line-height: 1.5; color: var(--muted, #888); }

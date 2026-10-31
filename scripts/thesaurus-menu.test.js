@@ -294,3 +294,163 @@ test('renderer: a dismissed Look Up does not replace the same word in an old cha
   assert.equal(added.length, 1);
   assert.equal(added[0].startContainer, nodeB, 'the live word wins over the dismissed popup');
 });
+
+// ── adr-014: a successful replacement is recorded ─────────────────────────
+
+async function thesaurusHarness(options) {
+  const opts = options || {};
+  const vm = require('node:vm');
+  const fs = require('node:fs');
+  const read = (name) => fs.readFileSync(path.join(__dirname, '..', 'neo-ext', name), 'utf8');
+  const forms = require('../neo-ext/lib/word-forms.js');
+  let listener = null;
+  let picked = null;
+  const recorded = [];
+  const added = [];
+  let execOk = opts.exec !== false;
+  const editor = {
+    isContentEditable: true,
+    classList: { contains: (cls) => cls === 'chapter-body' && opts.inChapter !== false },
+    focus() {}
+  };
+  const node = { nodeType: 3, data: opts.word || 'Batch' };
+  node.parentElement = { closest: () => editor };
+  const range = {
+    startContainer: node,
+    endContainer: node,
+    startOffset: 0,
+    endOffset: 5,
+    cloneRange() { return this; },
+    collapse() {},
+    toString() { return node.data; }
+  };
+  const selection = {
+    rangeCount: 0,
+    isCollapsed: true,
+    toString: () => '',
+    removeAllRanges() {},
+    addRange() {},
+    getRangeAt: () => range
+  };
+  const document = {
+    addEventListener: (type, fn) => { if (type === 'contextmenu') listener = fn; },
+    createRange: () => ({
+      startContainer: node,
+      endContainer: node,
+      startOffset: 0,
+      endOffset: 5,
+      setStart() {},
+      setEnd() {},
+      collapse() {},
+      toString: () => node.data
+    }),
+    caretRangeFromPoint: () => ({ startContainer: node, startOffset: 2 }),
+    contains: () => !opts.moved,
+    execCommand: () => execOk
+  };
+  const context = {
+    console,
+    Node: { TEXT_NODE: 3 },
+    document,
+    NeoForkNative: {
+      thesaurusStatus: () => Promise.resolve({ available: true }),
+      setContextWord: () => {},
+      clearContextWord: () => {},
+      clearContextPhrase: () => {},
+      historyAdd: (bookId, entry) => { added.push({ bookId, entry }); return Promise.resolve({ ok: true, store: { format: 1, entries: [] } }); },
+      thesaurus: (word) => Promise.resolve({ ok: true, word, groups: [{ pos: 'noun', rel: '', syns: ['pile'] }], count: 1 })
+    },
+    NeoExtApi: {
+      moreFeatures: () => opts.more !== false,
+      spellLanguage: () => 'en-US',
+      bookId: () => 'book-the-lantern-year-1',
+      chapterSnapshot: () => ({ chapterId: 'ch-1', chapterNumber: 3, chapterTitle: 'The Thaw' })
+    },
+    NeoHistory: { record: (spec) => { recorded.push(spec); return Promise.resolve(true); } },
+    NeoExt: { toast: () => {} },
+    NeoWordForms: forms,
+    NeoThesaurusRules: require('../neo-ext/lib/thesaurus-lookup.js'),
+    NeoThesaurusWindow: {
+      otherModalOpen: () => false,
+      open: (windowOpts) => { picked = windowOpts; return true; }
+    }
+  };
+  if (opts.realRecorder) {
+    delete context.NeoHistory;
+    context.NeoHistoryView = { status: () => {}, refresh: () => {} };
+  }
+  context.window = context;
+  context.getSelection = () => selection;
+  vm.createContext(context);
+  vm.runInContext(read('word-context.js'), context);
+  vm.runInContext(read('thesaurus.js'), context);
+  if (opts.realRecorder) vm.runInContext(read('history-record.js'), context);
+  await new Promise((resolve) => setImmediate(resolve));
+  const rightClick = () => listener({ target: { closest: () => editor }, clientX: 0, clientY: 0 });
+  const open = async (word) => {
+    rightClick();
+    context.NeoThesaurus.openWord(word);
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  return {
+    context,
+    recorded,
+    added,
+    open,
+    pick: (synonym) => picked.onPick(synonym),
+    failInsert: () => { execOk = false; },
+    opened: () => picked
+  };
+}
+
+test('renderer: a successful synonym replacement records the clicked and inserted word', async () => {
+  const h = await thesaurusHarness();
+  await h.open('Batch');
+  assert.ok(h.opened(), 'the synonym window opened');
+  h.pick('pile');
+  assert.equal(h.recorded.length, 1);
+  assert.deepEqual(h.recorded[0], { tool: 'thesaurus', label: '', from: 'Batch', to: 'Pile', inChapter: true });
+});
+
+test('renderer: a moved word or a failed insert records nothing', async () => {
+  const moved = await thesaurusHarness({ moved: true });
+  await moved.open('Batch');
+  moved.pick('pile');
+  assert.equal(moved.recorded.length, 0);
+
+  const failed = await thesaurusHarness();
+  failed.failInsert();
+  await failed.open('Batch');
+  failed.pick('pile');
+  assert.equal(failed.recorded.length, 0);
+});
+
+test('renderer: a notes-page replacement records without a chapter', async () => {
+  const h = await thesaurusHarness({ inChapter: false });
+  await h.open('Batch');
+  h.pick('pile');
+  assert.equal(h.recorded.length, 1);
+  assert.equal(h.recorded[0].inChapter, false);
+});
+
+test('renderer: Simple NEO records nothing, because the recorder is what gates it', async () => {
+  const h = await thesaurusHarness({ more: false, realRecorder: true });
+  await h.open('Batch');
+  assert.equal(h.opened(), null, 'no window opens in Simple NEO');
+  assert.equal(h.added.length, 0);
+
+  const control = await thesaurusHarness({ more: true, realRecorder: true });
+  await control.open('Batch');
+  control.pick('pile');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(control.added.length, 1);
+  assert.deepEqual(control.added[0].entry, {
+    tool: 'thesaurus',
+    label: '',
+    from: 'Batch',
+    to: 'Pile',
+    chapterId: 'ch-1',
+    chapterNumber: 3,
+    chapterTitle: 'The Thaw'
+  });
+});

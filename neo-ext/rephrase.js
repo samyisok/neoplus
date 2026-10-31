@@ -79,7 +79,7 @@
     } catch { /* the page moved on */ }
   }
 
-  function replace(entry, text) {
+  function replace(entry, text, meta) {
     try {
       const range = entry.range;
       const alive = range && document.contains(range.startContainer)
@@ -94,6 +94,19 @@
       try { inserted = document.execCommand('insertText', false, text); } catch { inserted = false; }
       if (!inserted) { toast(x('That text could not be replaced.')); return false; }
       last = null;
+      // The record is a note about what happened; it never changes the edit,
+      // its undo step, or the caret.
+      try {
+        if (window.NeoHistory && typeof window.NeoHistory.record === 'function') {
+          window.NeoHistory.record({
+            tool: 'rephrase',
+            label: meta && meta.profile ? meta.profile : '',
+            from: entry.text,
+            to: text,
+            inChapter: true
+          });
+        }
+      } catch { /* a record never blocks the replacement */ }
       return true;
     } catch {
       toast(x('That text could not be replaced.'));
@@ -237,15 +250,15 @@
         runProfile(current, profile);
       });
       button.append(label, text, status, retry);
-      const state = { button, label, text, status, retry, state: 'waiting', reply: '' };
+      const state = { button, label, text, status, retry, state: 'waiting', reply: '', name: profile.label };
       current.cards.set(String(profile.id), state);
       button.addEventListener('click', () => {
-        if (state.state === 'text' && state.reply) choose(current, state.reply);
+        if (state.state === 'text' && state.reply) choose(current, state.reply, state.name);
       });
       button.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        if (state.state === 'text' && state.reply) choose(current, state.reply);
+        if (state.state === 'text' && state.reply) choose(current, state.reply, state.name);
       });
       list.appendChild(button);
     }
@@ -275,7 +288,7 @@
       if (Number.isInteger(number) && number >= 1 && number <= profiles.length) {
         const profile = profiles[number - 1];
         const state = current.cards.get(String(profile.id));
-        if (state && state.state === 'text' && state.reply) { event.preventDefault(); choose(current, state.reply); }
+        if (state && state.state === 'text' && state.reply) { event.preventDefault(); choose(current, state.reply, state.name); }
       }
     };
     current.onKey = keyHandler;
@@ -314,12 +327,12 @@
     }
   }
 
-  function choose(current, text) {
+  function choose(current, text, profileLabel) {
     if (!win || win !== current) return;
     if (!(api && api.moreFeatures && api.moreFeatures())) { toast(x('Rephrase is hidden in Simple NEO.')); close(current.session); return; }
     const entry = current.entry;
     close(current.session);
-    replace(entry, text);
+    replace(entry, text, { profile: profileLabel || '' });
   }
 
   window.NeoRephrase = { capture, has, openPending };

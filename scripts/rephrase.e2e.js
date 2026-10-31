@@ -132,6 +132,10 @@ const cards = () => js(`[...document.querySelectorAll('.neo-rephrase-card')].map
   retry: !b.querySelector('.neo-rephrase-retry')?.hidden
 }))`);
 const bodyText = () => js(`document.querySelector('.chapter[data-id="ch-1"] .chapter-body').textContent`);
+const historyFile = () => path.join(dir, 'neo-ext-history.json');
+const historyEntries = () => {
+  try { return JSON.parse(fs.readFileSync(historyFile(), 'utf8')).entries || []; } catch { return []; }
+};
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -189,6 +193,16 @@ test('choosing a card replaces exactly the selection and one undo restores it', 
   assert.equal(await bodyText(), before);
 });
 
+test('the chosen rewrite is recorded in the book history, and undo leaves it there', async () => {
+  const entries = historyEntries();
+  const entry = entries.find((row) => row.tool === 'rephrase' && row.label === 'Natural' && /exhausted/.test(row.to));
+  assert.ok(entry, `history: ${JSON.stringify(entries)}`);
+  assert.equal(entry.from, 'She was very tired and did not want to go on.');
+  assert.equal(entry.chapterId, 'ch-1');
+  assert.equal(entry.chapterNumber, 1);
+  assert.equal(entry.chapterTitle, 'One');
+});
+
 test('Esc stops the queue and leaves the manuscript alone', async () => {
   await select('She was very tired and did not want to go on.');
   await openWindow();
@@ -202,6 +216,7 @@ test('Esc stops the queue and leaves the manuscript alone', async () => {
 });
 
 test('a moved selection writes nothing', async () => {
+  const historyBefore = historyEntries().length;
   await select('She was very tired and did not want to go on.');
   await openWindow();
   await waitFor(`[...document.querySelectorAll('.neo-rephrase-text')].filter((t) => !t.hidden).length >= 1`);
@@ -217,6 +232,7 @@ test('a moved selection writes nothing', async () => {
   const after = await bodyText();
   assert.match(after, /She was exhausted/);
   assert.equal(after.includes('(Natural)'), false, 'no card text was inserted');
+  assert.equal(historyEntries().length, historyBefore, 'a moved selection records nothing');
   await js(`(() => {
     const p = document.querySelector('.chapter[data-id="ch-1"] .chapter-body p');
     p.textContent = p.textContent.replace('She was exhausted', 'She was very tired');

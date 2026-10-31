@@ -176,3 +176,16 @@ test('inventory-ipc: a chapter path that is not a readable file counts as unread
   const out = await inventory.unreadable(deps, book, ['ch-1', 'ch-2']);
   assert.deepEqual(out.ids, ['ch-2']);
 });
+
+test('inventory-ipc: a planted .bak symlink is replaced, not followed', async () => {
+  const { deps, book, file } = room();
+  await inventory.writeStore(deps, book, sample());
+  const outside = path.join(path.dirname(file), 'outside.json');
+  fs.writeFileSync(outside, '{"keep":true}');
+  fs.rmSync(file + '.bak', { force: true });
+  fs.symlinkSync(outside, file + '.bak');
+  const out = await inventory.writeStore(deps, book, sample(300));
+  assert.equal(out.ok, true);
+  assert.equal(fs.readFileSync(outside, 'utf8'), '{"keep":true}', 'nothing was written through the link');
+  assert.equal(fs.lstatSync(file + '.bak').isFile(), true);
+});

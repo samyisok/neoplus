@@ -124,6 +124,18 @@
         if (editor && editor.focus) editor.focus({ preventScroll: true });
         toast(x('That word could not be replaced.'));
       }
+      if (inserted) {
+        // The record is a note about what happened; it never changes the word,
+        // the undo step, or the caret.
+        try {
+          const inChapter = !!(editor && editor.classList && editor.classList.contains('chapter-body'));
+          if (window.NeoHistory && typeof window.NeoHistory.record === 'function') {
+            // No label: the view names the tool from its slug, so a language
+            // change cannot leave a stale word in the history file.
+            window.NeoHistory.record({ tool: 'thesaurus', label: '', from: entry.word, to: text, inChapter });
+          }
+        } catch { /* a record never blocks the replacement */ }
+      }
     } catch (err) {
       report(err);
       toast(x('That word could not be replaced.'));

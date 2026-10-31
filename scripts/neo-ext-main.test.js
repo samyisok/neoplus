@@ -53,6 +53,15 @@ async function makeBook(lib, id, title) {
   return dir;
 }
 
+test('history: the read and add handlers are registered', async () => {
+  const lib = await tmpRoot();
+  const { handlers } = fake(lib);
+  assert.equal(handlers.has('neo-ext:history-read'), true);
+  assert.equal(handlers.has('neo-ext:history-add'), true);
+  const read = await handlers.get('neo-ext:history-read')({}, 'book-missing-1');
+  assert.equal(read.ok, true);
+});
+
 test('menu: Backup and Settings are added once, Backup follows the book state', async () => {
   const lib = await tmpRoot();
   fake(lib);

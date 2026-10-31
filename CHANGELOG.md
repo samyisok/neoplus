@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add a read-only History tab to the right pane recording every replacement by Rephrase and the thesaurus, with both texts, the date, and the chapter number at the moment, stored with the book. (`2026-10-31-adr-014-history-tab`)
 - Add a Records view to the right-hand notes pane: library-wide character and item records, folders, plain-text descriptions, inline confirmation, and highlighted search. (`2026-10-27-adr-005-records-tab`)
 - Add File → Backup Book… for a timestamped copy of the open book and File → Settings… with the backup folder used by manual and daily backups. (`2026-10-25-adr-001-book-backup-and-settings`)
 - Add an offline English Thesaurus… to the editor's right-click menu, with synonyms grouped by part of speech and relation, replacing the word as one undoable edit. (`2026-10-25-adr-002-thesaurus`)

@@ -128,10 +128,21 @@
   css();
   registerGroups();
   wireMenu();
+  // Seam 4: a book is open. The fork's views hear it without naming core's
+  // openBook, so a view that is already showing can reload for the new book.
+  function bookOpened(book) {
+    try {
+      window.dispatchEvent(new CustomEvent('neo-ext:book-opened', {
+        detail: { id: book && typeof book.id === 'string' ? book.id : '' }
+      }));
+    } catch { /* a missing listener is not an error */ }
+  }
+
   window.NeoExt = {
     x,
     toast,
     backupBook,
+    bookOpened,
     openSettings: () => window.NeoSettings.open(),
     lookUpMenu: (items, word) => (window.NeoWordContext ? window.NeoWordContext.lookUpMenu(items, word) : false),
     lookUpChoice: (choice, word) => { if (window.NeoWordContext) window.NeoWordContext.lookUpChoice(choice, word); }

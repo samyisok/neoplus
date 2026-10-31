@@ -44,3 +44,23 @@ test('moreFeatures: not settled means simple NEO, never a throw', () => {
   assert.equal(api.moreFeatures(), false);
   assert.equal(api.spellLanguage(), '');
 });
+
+test('chapterSnapshot: the open chapter, its place in the book, and its own title', () => {
+  const api = load({
+    book: { chapterOrder: ['ch-1', 'ch-2', 'ch-3'], chapterTitles: { 'ch-2': 'The Thaw' } },
+    currentChapterId: 'ch-2'
+  });
+  assert.deepEqual(api.chapterSnapshot(), { chapterId: 'ch-2', chapterNumber: 2, chapterTitle: 'The Thaw' });
+});
+
+test('chapterSnapshot: a chapter with no title keeps the default name out', () => {
+  const api = load({ book: { chapterOrder: ['ch-1', 'ch-2'], chapterTitles: {} }, currentChapterId: 'ch-1' });
+  assert.deepEqual(api.chapterSnapshot(), { chapterId: 'ch-1', chapterNumber: 1, chapterTitle: '' });
+});
+
+test('chapterSnapshot: a chapter outside the order has no number, and no book has none at all', () => {
+  const outside = load({ book: { chapterOrder: ['ch-1'] }, currentChapterId: 'gone' });
+  assert.deepEqual(outside.chapterSnapshot(), { chapterId: 'gone', chapterNumber: 0, chapterTitle: '' });
+  const none = load();
+  assert.deepEqual(none.chapterSnapshot(), { chapterId: '', chapterNumber: 0, chapterTitle: '' });
+});

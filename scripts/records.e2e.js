@@ -118,7 +118,7 @@ test('the right pane offers Notes | Records while writing, and Notes shows the o
   await tick(150);
   const s = await viewState();
   assert.equal(s.tabs, true);
-  assert.deepEqual(s.choices, ['notes', 'records', 'inventory']);
+  assert.deepEqual(s.choices, ['notes', 'records', 'inventory', 'history']);
   assert.equal(s.active, 'notes');
   assert.equal(s.records, false);
   assert.equal(s.sticky, true);

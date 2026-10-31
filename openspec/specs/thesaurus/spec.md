@@ -151,6 +151,9 @@ The system SHALL replace exactly the word the writer right-clicked with the chos
 - An apostrophe inside the chosen synonym SHALL follow the book's typography: a straight `'` becomes the typographic `’` rather than an ASCII mark.
 - The replacement SHALL be undoable with a single undo, restoring the original word in its original position.
 - After replacement the caret SHALL sit after the new word and the editor SHALL keep focus, so typing can continue immediately.
+- A successful replacement SHALL be recorded in the book's History: the word as it stood, the word as it was inserted, the time, the thesaurus as its source, and the chapter number at the time where the replacement happened in a chapter. A replacement in a notes page or a footnote SHALL carry no chapter number.
+- Recording SHALL happen only after the insertion succeeded. A moved word, a failed insertion, or a closed window with no choice SHALL record nothing.
+- Recording SHALL NOT change the replacement, its undo step, the caret, or the manuscript, and an undo after a recorded replacement SHALL leave the entry in place. While Show More Features is off, nothing SHALL be recorded.
 - If the writer does not choose a synonym, nothing SHALL be written to the chapter or notes page.
 - Replacement SHALL work the same in a chapter body, a screenplay line, a poetry line, a footnote, and the notes page.
 
@@ -189,3 +192,18 @@ The system SHALL replace exactly the word the writer right-clicked with the chos
 
 - **WHEN** the writer closes the window without choosing a word
 - **THEN** no chapter, notes page, or sidecar is written
+
+#### Scenario: Recorded in History
+
+- **WHEN** the writer replaces “Batch” with “pile” in chapter 3 while Show More Features is on
+- **THEN** the book's History gains one entry showing “Batch” replaced by “Pile”, the time, and chapter 3
+
+#### Scenario: Nothing replaced, nothing recorded
+
+- **WHEN** the word moved before the writer chose, or the writer closes the window without choosing
+- **THEN** no History entry is added
+
+#### Scenario: A notes page replacement
+
+- **WHEN** the writer replaces a word on the notes page
+- **THEN** the History entry carries no chapter number

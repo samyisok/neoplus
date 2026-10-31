@@ -203,6 +203,18 @@ function init(injected) {
   } catch (err) { log('inventory init: ' + (err && err.message)); }
 
   try {
+    require('./history-main.js').init({
+      bookDir: deps.bookDir,
+      libName: deps.libName,
+      whenLocal: deps.whenLocal,
+      isCloudOnly: deps.isCloudOnly,
+      cloudOnlyAmong: deps.cloudOnlyAmong,
+      writeFileDurable: deps.writeFileDurable,
+      logError: deps.logError
+    }, ipcMain);
+  } catch (err) { log('history init: ' + (err && err.message)); }
+
+  try {
     require('./rephrase-main.js').init({
       readSettings: deps.readSettings,
       writeSettings: deps.writeSettings,

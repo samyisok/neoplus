@@ -341,7 +341,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 | 1 | `index.html` | after `<script src="app.js"></script>` | the `neo-ext/` scripts (api, word forms, side-pane rules, thesaurus lookup, word context, thesaurus and dictionary windows and editors, the side-pane handle, record store/search/list, record tags, the records pane, settings, boot), last on the page; classic scripts share app.js's global scope |
 | 2 | `app.js` | in `switchTab`, after the `$$('.tab').forEach(...)` active-class block | `if (window.NeoExt && NeoExt.tab(name)) return;` — full-width tabs only *(planned)* |
 | 3 | `app.js` | end of `updateCounters`, after `trackDailyWords(total);` | `if (window.NeoExt) NeoExt.counters(book);` *(planned)* |
-| 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` *(planned)* |
+| 4 | `app.js` | end of `openBook`, after `spReportState();` | `if (window.NeoExt) NeoExt.bookOpened(book);` — broadcasts `neo-ext:book-opened` so an open pane view can load the book now on screen |
 | 5 | `main.js` | before `Menu.buildFromTemplate(items).popup(...)` in the `context-menu` handler | `require('./neo-ext/main.js').contextMenu(items, params, win);` |
 | 6 | `main.js` | immediately before `const menu = Menu.buildFromTemplate(simpleTemplate(template, moreState));` in `buildMenu` (not before `setApplicationMenu`: the menu is already built there) | `require('./neo-ext/main.js').appMenu(template, { more: moreState, bookOpen: bookOpenState });` |
 | 7 | `main.js` | inside `app.whenReady().then(...)`, after `ensureLibrary()`, before `createWindow()` | `require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, … })` — `shell` is not imported at the top of main.js |
@@ -350,7 +350,7 @@ Each seam carries `NEO-EXT seam` (a line comment, or an HTML comment before the 
 | 10 | `app.js` | in the macOS Look Up `contextmenu` listener: its item list and its `popMenu(...).then(...)` | `if (window.NeoExtApi) NeoExtApi.lookUpMenu(items, word);` and `else if (window.NeoExtApi) …lookUpChoice(choice, word)` — every non-lookup choice is forwarded; the choice, not the word, decides which feature opens |
 | 11 | `backup-worker.js` | the library-root allowlist in `walk`, after `_catalog.txt` | `name.startsWith('records.json') && !name.endsWith('.tmp')` — the shared records and their `.bak` travel in the daily zip |
 
-Rows 1, 5, 6, 7, 8, 9, 10 and 11 exist today; 2–4 are added with the features that need them. `neo-ext/check-seams.js` asserts the eight that exist.
+Rows 1, 4–11 exist today; 2 and 3 are added with the features that need them. `neo-ext/check-seams.js` asserts the nine that exist.
 
 Right-click menus are Electron's, not the page's: renderer `preventDefault` cannot add to them, hence the `main.js` seam. Menu clicks send `{ type: 'neo-ext', … }` with `win.webContents.send('menu', …)`; `onMenu` in `app.js` is a chain of `if`s, so unknown types are ignored, and `boot.js` subscribes its own `window.neo.onMenu`.
 
@@ -421,6 +421,17 @@ Selecting a word up to a small paragraph (1,200 characters, one block) offers **
 - **Window (`neo-ext/rephrase.js`):** refuses to open over another NEO dialog; one card per snapshot profile (`role=button`, Enter/Space), filled sequentially; a failed card has a focused **Try again** button; Tab stays inside; 30 s per call and a 120 s queue budget; Esc/close/choice/Show More Features off stops pending work and discards late answers; cards and quote are `textContent` only. A 404 is `notFound`, not a host problem; the secret name comes from the settings read; an emptied model/endpoint is refused.
 - **Replacement:** alive check normalises both `range.toString()` and the captured text, then editor focus + `execCommand('insertText')`, so it is one undo step and arrives through the normal `input` path. A moved selection writes nothing.
 - **Never:** opening the window, generating, cancelling, or a failed call writes a chapter, notes, `book.json`, `library.json`, or the library. Logs carry `rephrase: <reason>` only — no URL, key, prompt, selection, or reference text. Pocket has none of this.
+
+### History of replacements (adr-014)
+
+The right pane's fourth view: every replacement a tool made in the open book, newest first, with both texts, the tool (and a Rephrase profile), the time, and the chapter number as it stood then. Read-only — it restores nothing; Snapshots is still where words come back.
+
+- **File:** `neo-ext-history.json` in the book folder, `{ format: 1, entries: [...] }`, read and written by `neo-ext:history-read` / `neo-ext:history-add` with a book id (never a path), an iCloud wait, a `.bak`, a 4 MB and 10 000-entry cap, and core's durable write. The main process stamps `id` (`crypto.randomUUID()`) and `at`; the renderer supplies the meaning. No chapter, notes page, `book.json`, or `library.json` is touched. Both backups carry it because every file in a book folder is copied.
+- **Shape:** `{ id, at, tool, label, from, to, chapterId, chapterNumber, chapterTitle, shortened }`. `tool` is a lowercase slug (`thesaurus`, `rephrase`, and later tools); a side over 5,000 characters is truncated and `shortened` says which side. `chapterNumber` is 1-based at the moment of replacement, and 0 with no `chapterId` for a notes page or footnote.
+- **Merge:** append-only, union by `id`, no tombstones, newest first by `at` then `id` (derived on read, never stored). A write re-reads, merges, appends, validates, and only then writes; the write chain serialises two recordings. A corrupt main file is shown from `.bak` and is never overwritten — the write answers `unreadable` until the writer repairs it. A symlink is refused (`lstat`, `isFile`), and the backup is written to `.bak.tmp` and renamed over `.bak`, so a planted link is replaced and a failed copy keeps the previous backup.
+- **Recorder (`neo-ext/history-record.js`):** one API, `NeoHistory.record({ tool, label, from, to, inChapter })`, called by Thesaurus after `insertText` succeeded with the text actually inserted, and by Rephrase with the chosen card's text and profile. It refuses with no book, Show More Features off, no bridge, a bad tool, empty/unchanged sides. A failure sets the view's notice (never a toast) and logs a reason only; success clears it and asks the view to refresh. A book switched mid-write does not let this view adopt the other book.
+- **View (`neo-ext/history.js`):** registers last with `NeoRecords.registerView`, so the strip reads Notes | Records | Inventory | History and inherits Show More Features, the Manuscript/Notes restriction, `allowedTab`, and Esc. Rows are `textContent` only. A book switch reloads (seam 4, `neo-ext:book-opened`); a read failure keeps no stale rows and is retried next time; a record made while the tab is hidden forces a re-read on return.
+- **Never:** viewing, recording, or a failed record writes a chapter, notes, `book.json`, `library.json`, a snapshot, or a darling. Pocket is untouched: its copy list does not include these files.
 
 ### How the planned features fit
 

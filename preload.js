@@ -101,6 +101,8 @@ contextBridge.exposeInMainWorld('NeoForkNative', {
   rephraseEnd: (payload) => ipcRenderer.invoke('neo-ext:rephrase-end', payload),
   inventoryWrite: (bookId, store) => ipcRenderer.invoke('neo-ext:inventory-write', bookId, store),
   inventoryUnreadable: (bookId, chapterIds) => ipcRenderer.invoke('neo-ext:inventory-unreadable', bookId, chapterIds),
+  historyRead: (bookId) => ipcRenderer.invoke('neo-ext:history-read', bookId),
+  historyAdd: (bookId, entry) => ipcRenderer.invoke('neo-ext:history-add', bookId, entry),
   setContextWord: (word) => ipcRenderer.sendSync('neo-ext:context-word', typeof word === 'string' ? word : ''),
   setContextPhrase: (phrase, hasTag, anchor, inventory, records, rephrase) => ipcRenderer.sendSync('neo-ext:context-phrase', { phrase: typeof phrase === 'string' ? phrase : '', hasTag: !!hasTag, inventory: !!inventory, records: records !== false, rephrase: !!rephrase, anchor: anchor && typeof anchor === 'object' ? anchor : null }),
   clearContextPhrase: () => ipcRenderer.sendSync('neo-ext:context-phrase', null),

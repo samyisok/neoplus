@@ -82,7 +82,13 @@ async function readStore(deps, bookId) {
       }
     } catch { return fail('unreadable'); }
     let bakSize = 0;
-    try { bakSize = (await fsp.stat(file + '.bak')).size; } catch { bakSize = 0; }
+    try {
+      const bak = await fsp.lstat(file + '.bak');
+      // Recovery reads a regular file only: a link could point outside the
+      // library, and a FIFO would wait forever.
+      if (!bak.isFile()) return fail('unreadable');
+      bakSize = bak.size;
+    } catch { bakSize = 0; }
     if (bakSize && bakSize <= fileRules.MAX_BYTES) {
       const bak = await readOne(file + '.bak');
       if (bak.ok) return { ok: true, exists: true, store: bak.store, recovered: true };
@@ -123,7 +129,17 @@ async function writeNow(deps, bookId, payload, options) {
 
   try {
     if (disk.exists && !disk.recovered) {
-      try { await fsp.copyFile(file, file + '.bak'); } catch { /* the write itself decides */ }
+      // Copy to a fresh name and rename over the backup. Rename replaces a
+      // planted `.bak` link itself, and a failed copy leaves the previous
+      // backup in place rather than deleting it first.
+      const tmp = file + '.bak.tmp';
+      try {
+        await fsp.rm(tmp, { force: true });
+        await fsp.copyFile(file, tmp);
+        await fsp.rename(tmp, file + '.bak');
+      } catch (err) {
+        try { deps.logError && deps.logError('inventory backup', err); } catch { /* logging is a nicety */ }
+      }
     }
     const write = deps.writeFileDurable;
     if (typeof write !== 'function') return fail('write');

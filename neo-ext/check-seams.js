@@ -13,10 +13,10 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 // file -> substrings that must be present. Keep in step with the seam table
-// in AGENTS.md; future seams (switchTab, counters, openBook) are added here
-// when they are implemented.
+// in AGENTS.md; the remaining planned seams (switchTab, counters) are added
+// here when they are implemented.
 const SEAMS = [
-  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/inventory-ledger.js', 'neo-ext/lib/inventory-anchor.js', 'neo-ext/lib/records-store.js', 'neo-ext/record-tag-highlight.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js', 'neo-ext/inventory.js', 'neo-ext/lib/rephrase-context.js', 'neo-ext/lib/rephrase-endpoint.js', 'neo-ext/lib/rephrase-prompt.js', 'neo-ext/lib/rephrase-check.js', 'neo-ext/lib/rephrase-reasons.js', 'neo-ext/rephrase-settings.js', 'neo-ext/rephrase.js']],
+  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/inventory-ledger.js', 'neo-ext/lib/inventory-anchor.js', 'neo-ext/lib/history-log.js', 'neo-ext/lib/records-store.js', 'neo-ext/record-tag-highlight.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js', 'neo-ext/inventory.js', 'neo-ext/lib/rephrase-context.js', 'neo-ext/lib/rephrase-endpoint.js', 'neo-ext/lib/rephrase-prompt.js', 'neo-ext/lib/rephrase-check.js', 'neo-ext/lib/rephrase-reasons.js', 'neo-ext/rephrase-settings.js', 'neo-ext/rephrase.js', 'neo-ext/history-record.js', 'neo-ext/history.js']],
   ['backup-worker.js', ['records.json', "!name.endsWith('.tmp')"]],
   ['preload.js', ['NEO-EXT seam', "exposeInMainWorld('NeoForkNative'"]],
   ['main.js', [
@@ -29,7 +29,8 @@ const SEAMS = [
   ['app.js', [
     'NEO-EXT seam',
     'NeoExtApi.lookUpMenu(items, word)',
-    'window.NeoExtApi) window.NeoExtApi.lookUpChoice(choice, word)'
+    'window.NeoExtApi) window.NeoExtApi.lookUpChoice(choice, word)',
+    'NeoExt.bookOpened(book)'
   ]]
 ];
 
@@ -93,6 +94,20 @@ try {
       console.error(`SCRIPT ORDER index.html: ${ordered[i]} must load after ${ordered[i - 1]}`);
       missing++;
     }
+  }
+} catch (err) {
+  console.error('SCRIPT ORDER index.html: could not be checked: ' + (err && err.message));
+  missing++;
+}
+
+// The history view renders what the pure log rules produce.
+try {
+  const page = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const prior = page.indexOf('neo-ext/lib/history-log.js');
+  const here = page.indexOf('neo-ext/history.js');
+  if (prior < 0 || here < 0 || here <= prior) {
+    console.error('SCRIPT ORDER index.html: neo-ext/history.js must load after neo-ext/lib/history-log.js');
+    missing++;
   }
 } catch (err) {
   console.error('SCRIPT ORDER index.html: could not be checked: ' + (err && err.message));

@@ -166,7 +166,7 @@ test('the pane offers Notes | Records | Inventory and keeps the manuscript', asy
   await js(`switchTab('manuscript')`);
   await tick(400);
   const s = await inventoryState();
-  assert.deepEqual(s.tabs, ['Notes', 'Records', 'Inventory']);
+  assert.deepEqual(s.tabs, ['Notes', 'Records', 'Inventory', 'History']);
   await showInventory();
   assert.equal(await js(`document.querySelector('.tab.active')?.dataset.tab || document.body.dataset.tab`), 'manuscript');
   assert.match((await inventoryState()).where, /One|Whole book/);

@@ -2590,6 +2590,7 @@ async function openBook(bookId) {
     setTimeout(() => toast(t('Enter twice = section break · three times = new chapter · {key} shows everything else', { key: KHELP }), 7000), 800);
   }
   spReportState();
+  if (window.NeoExt) NeoExt.bookOpened(book); /* NEO-EXT seam */
 }
 
 // the pages that show a faint word until they have their own
