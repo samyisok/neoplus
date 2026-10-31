@@ -28,5 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep Inventory whole: an unreadable chapter never retires its transactions, a pending save stays with its book, a merge cannot write a ledger NEO would refuse, and Simple NEO stops reading and writing; the dialog sits above the panes and folds reset when reopened. (`2026-10-29-adr-009-inventory-fixes`)
 - Give the Inventory dialog room to work: a larger window with a scrollable item list, new-item fields behind a **+ New item** reveal, and an amount field that takes one sign and digits only. (`2026-10-29-adr-010-inventory-modal-ui`)
 - Make the Inventory dialog follow NEO: it uses the app's modal surface, theme, and Interface Size, keeps focus and scroll through every re-render, shows a picked item even when the search hides it, and keeps one amount contract (sign, digits, separators refused). (`2026-10-29-adr-011-inventory-modal-focus`)
+- Add Rephrase… for a selected phrase or paragraph: the local model writes one rewrite per profile, cards fill as they arrive, and choosing one replaces the selection as a single undoable edit. Settings gain tabs and an AI tab with the endpoint, model, key, and editable profiles. (`2026-10-31-adr-012-rephrase-local-llm`)
 
 ### Security

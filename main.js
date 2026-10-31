@@ -3346,7 +3346,7 @@ app.whenReady().then(() => {
     try { initLanguage(); } catch (err) { logError('language', err); }
     try { checkLibraryWritable(); } catch (err) { logError('library check', err); }
     try { ensureLibrary(); } catch (err) { logError('library', err); }
-    try { require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, app, BrowserWindow, readSettings, writeSettings, logError, bookDir, libName, isCloudOnly, cloudOnlyAmong, requestDownload, whenLocal, writeFileDurable, libraryDir: () => LIBRARY_DIR }); } catch (err) { logError('neo-ext', err); } /* NEO-EXT seam */
+    try { require('./neo-ext/main.js').init({ ipcMain, dialog, shell: require('electron').shell, app, BrowserWindow, readSettings, writeSettings, readSecret, logError, bookDir, libName, isCloudOnly, cloudOnlyAmong, requestDownload, whenLocal, writeFileDurable, libraryDir: () => LIBRARY_DIR }); } catch (err) { logError('neo-ext', err); } /* NEO-EXT seam */
     createWindow();
     try { announceLibraryFallback(); } catch (err) { logError('library notice', err); }
     try { initSpell(); } catch (err) { logError('spell', err); }

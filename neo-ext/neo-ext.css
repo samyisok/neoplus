@@ -702,3 +702,49 @@ body.neo-ext-resizing { cursor: col-resize; user-select: none; }
 }
 
 body.light { --rule: rgba(0, 0, 0, 0.18); }
+
+/* ── adr-012: settings tabs and rephrase ─────────────────────────────── */
+.neo-ext-tabs { display: flex; gap: 14px; border-bottom: 1px solid var(--rule, rgba(255,255,255,0.14)); margin-bottom: 12px; }
+.neo-ext-tab {
+  border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px;
+  padding: 6px 2px 8px; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.neo-ext-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.neo-ext-tab:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.neo-ext-textarea {
+  width: 100%; min-height: 5rem; resize: vertical; font: inherit; font-size: 12px; line-height: 1.5;
+  color: inherit; background: var(--bg); border: 1px solid var(--rule, #3a3a3a); border-radius: 5px; padding: 6px 8px;
+}
+.neo-ext-profiles { display: flex; flex-direction: column; gap: 4px; }
+.neo-ext-profile { display: grid; grid-template-columns: 9rem 1fr 1.8rem; gap: 6px; align-items: center; }
+.neo-ext-profile input {
+  font: inherit; font-size: 12px; color: inherit; background: var(--bg);
+  border: 1px solid var(--rule, #3a3a3a); border-radius: 5px; padding: 4px 6px; min-width: 0;
+}
+.neo-ext-profile-remove, .neo-ext-profile-add {
+  border: 1px solid var(--rule, rgba(255,255,255,0.2)); background: none; color: inherit;
+  font: inherit; font-size: 12px; border-radius: 5px; cursor: pointer; padding: 3px 6px;
+}
+.neo-ext-profile-remove:disabled, .neo-ext-profile-add:disabled { opacity: 0.4; cursor: default; }
+.neo-ext-profile-add { align-self: flex-start; margin-top: 2px; }
+.neo-rephrase-backdrop { z-index: 9000; }
+.neo-rephrase { width: min(42rem, calc(100vw - 2.5rem)); max-height: min(84vh, 48rem); display: flex; flex-direction: column; gap: 8px; }
+.neo-rephrase-title { margin: 0; font-size: 15px; font-weight: 600; }
+.neo-rephrase-quote { margin: 0; color: var(--muted); font-style: italic; font-size: 12px; max-height: 6rem; overflow-y: auto; white-space: pre-wrap; }
+.neo-rephrase-cards { flex: 1 1 auto; min-height: 8rem; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.neo-rephrase-card {
+  display: grid; grid-template-columns: 7rem 1fr; gap: 8px; align-items: start; text-align: left;
+  border: 1px solid var(--rule, rgba(255,255,255,0.16)); background: none; color: inherit;
+  font: inherit; font-size: 13px; line-height: 1.5; border-radius: 6px; padding: 8px 10px; cursor: pointer;
+}
+.neo-rephrase-card:hover { border-color: var(--accent); }
+.neo-rephrase-card:disabled { cursor: progress; }
+.neo-rephrase-label { color: var(--accent); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+.neo-rephrase-text { white-space: pre-wrap; }
+.neo-rephrase-status { grid-column: 2; color: var(--muted); font-size: 11px; }
+.neo-rephrase-retry { grid-column: 2; justify-self: start; color: var(--accent); font-size: 11px; text-decoration: underline; }
+.neo-rephrase-actions { display: flex; justify-content: flex-end; }
+.neo-rephrase-cancel {
+  font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 5px;
+  border: 1px solid var(--rule, rgba(255,255,255,0.2)); background: none; color: inherit; cursor: pointer;
+}

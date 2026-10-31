@@ -16,7 +16,7 @@ const ROOT = path.join(__dirname, '..');
 // in AGENTS.md; future seams (switchTab, counters, openBook) are added here
 // when they are implemented.
 const SEAMS = [
-  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/inventory-ledger.js', 'neo-ext/lib/inventory-anchor.js', 'neo-ext/lib/records-store.js', 'neo-ext/record-tag-highlight.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js', 'neo-ext/inventory.js']],
+  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/inventory-ledger.js', 'neo-ext/lib/inventory-anchor.js', 'neo-ext/lib/records-store.js', 'neo-ext/record-tag-highlight.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js', 'neo-ext/inventory.js', 'neo-ext/lib/rephrase-context.js', 'neo-ext/lib/rephrase-endpoint.js', 'neo-ext/lib/rephrase-prompt.js', 'neo-ext/lib/rephrase-check.js', 'neo-ext/lib/rephrase-reasons.js', 'neo-ext/rephrase-settings.js', 'neo-ext/rephrase.js']],
   ['backup-worker.js', ['records.json', "!name.endsWith('.tmp')"]],
   ['preload.js', ['NEO-EXT seam', "exposeInMainWorld('NeoForkNative'"]],
   ['main.js', [
@@ -72,6 +72,31 @@ for (const [file, anchors] of SEAMS) {
     console.error(`SEAM OUT OF ORDER ${file}: ${order}`);
     missing++;
   }
+}
+
+// The rephrase page scripts must load in dependency order.
+try {
+  const page = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const ordered = [
+    'neo-ext/lib/rephrase-context.js',
+    'neo-ext/lib/rephrase-endpoint.js',
+    'neo-ext/lib/rephrase-prompt.js',
+    'neo-ext/lib/rephrase-check.js',
+    'neo-ext/lib/rephrase-reasons.js',
+    'neo-ext/rephrase-settings.js',
+    'neo-ext/rephrase.js'
+  ];
+  for (let i = 1; i < ordered.length; i += 1) {
+    const prior = page.indexOf(ordered[i - 1]);
+    const here = page.indexOf(ordered[i]);
+    if (prior < 0 || here < 0 || here <= prior) {
+      console.error(`SCRIPT ORDER index.html: ${ordered[i]} must load after ${ordered[i - 1]}`);
+      missing++;
+    }
+  }
+} catch (err) {
+  console.error('SCRIPT ORDER index.html: could not be checked: ' + (err && err.message));
+  missing++;
 }
 
 if (missing) {

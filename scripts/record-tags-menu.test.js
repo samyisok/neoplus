@@ -51,7 +51,7 @@ function room({ phrase = 'Long Chen text', collapsed = false, language = 'fr', t
     NeoForkNative: {
       setContextWord: (w) => calls.word.push(w),
       clearContextWord: () => { calls.word.push(''); },
-      setContextPhrase: (p, has, a, inv, records) => calls.phrase.push([p, has, a, inv, records]),
+      setContextPhrase: (p, has, a, inv, records, rephrase) => calls.phrase.push([p, has, a, inv, records, rephrase]),
       clearContextPhrase: () => { calls.clearedPhrase++; }
     },
     NeoRecords: {
@@ -70,14 +70,14 @@ function room({ phrase = 'Long Chen text', collapsed = false, language = 'fr', t
 test('record-tags-menu: a chapter phrase is stored with its has-tag flag', () => {
   const r = room({ phrase: 'Long Chen', tag: true });
   r.fire();
-  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', true, null, false, true]);
+  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', true, null, false, true, false]);
   assert.equal(r.context.NeoWordContext.current(), null, 'multi-word leaves the lexical word empty');
 });
 
 test('record-tags-menu: the record item is language-free while the lexical item stays English', () => {
   const r = room({ phrase: 'Long Chen', tag: false, language: 'fr' });
   r.fire();
-  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', false, null, false, true]);
+  assert.deepEqual(r.calls.phrase.at(-1), ['Long Chen', false, null, false, true, false]);
   assert.equal(r.context.NeoWordContext.current(), null);
 });
 

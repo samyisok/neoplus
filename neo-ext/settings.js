@@ -154,6 +154,118 @@
       return wrap;
     }
 
+    if (control.type === 'textarea') {
+      const area = document.createElement('textarea');
+      area.id = id;
+      area.className = 'neo-ext-textarea';
+      area.rows = control.rows || 4;
+      area.value = values[control.key] || control.defaultValue || '';
+      area.addEventListener('input', () => { values[control.key] = area.value; });
+      wrap.appendChild(area);
+      return wrap;
+    }
+
+    if (control.type === 'secret') {
+      const line = document.createElement('div');
+      line.className = 'neo-ext-pathline';
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.id = id;
+      input.className = 'neo-ext-path';
+      input.autocomplete = 'off';
+      input.value = '';
+      input.placeholder = values.__hasKey ? x('key saved') : x('API key');
+      input.addEventListener('input', () => { values[control.key] = input.value; values.__keyTouched = true; });
+      const replace = document.createElement('button');
+      replace.type = 'button';
+      replace.className = 'neo-ext-choose';
+      replace.textContent = x('Replace…');
+      replace.addEventListener('click', () => { input.value = ''; values[control.key] = ''; values.__keyTouched = true; input.focus(); });
+      line.append(input, replace);
+      wrap.appendChild(line);
+      if (!values.__secure) {
+        const warn = document.createElement('p');
+        warn.className = 'neo-ext-hint';
+        warn.textContent = x('This computer offers no encrypted secret storage; the key is stored without encryption.');
+        wrap.appendChild(warn);
+      }
+      return wrap;
+    }
+
+    if (control.type === 'profiles') {
+      const holder = document.createElement('div');
+      holder.className = 'neo-ext-profiles';
+      const list = () => (Array.isArray(values[control.key]) ? values[control.key] : []);
+      const paint = () => {
+        holder.textContent = '';
+        const rows = list();
+        rows.forEach((profile, index) => {
+          const row = document.createElement('div');
+          row.className = 'neo-ext-profile';
+          const label = document.createElement('input');
+          label.type = 'text';
+          label.className = 'neo-ext-profile-label';
+          label.placeholder = x('Label');
+          label.value = profile.label || '';
+          label.addEventListener('input', () => { profile.label = label.value; });
+          const instruction = document.createElement('input');
+          instruction.type = 'text';
+          instruction.className = 'neo-ext-profile-instruction';
+          instruction.placeholder = x('Instruction');
+          instruction.value = profile.instruction || '';
+          instruction.addEventListener('input', () => { profile.instruction = instruction.value; });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'neo-ext-profile-remove';
+          remove.textContent = '×';
+          remove.setAttribute('aria-label', x('Remove profile'));
+          remove.disabled = rows.length <= 2;
+          remove.addEventListener('click', () => { rows.splice(index, 1); paint(); });
+          row.append(label, instruction, remove);
+          holder.appendChild(row);
+        });
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'neo-ext-profile-add';
+        add.textContent = '+ ' + x('Profile');
+        add.disabled = rows.length >= (control.max || 8);
+        add.addEventListener('click', () => {
+          rows.push({ label: '', instruction: '' });
+          paint();
+          const inputs = holder.querySelectorAll('.neo-ext-profile-label');
+          inputs[inputs.length - 1]?.focus();
+        });
+        holder.appendChild(add);
+      };
+      values[control.key] = list();
+      paint();
+      wrap.appendChild(holder);
+      return wrap;
+    }
+
+    if (control.type === 'button') {
+      const line = document.createElement('div');
+      line.className = 'neo-ext-pathline';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'neo-ext-choose';
+      button.textContent = x(control.label);
+      const status = document.createElement('span');
+      status.className = 'neo-ext-hint';
+      status.setAttribute('role', 'status');
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        status.textContent = x('Checking…');
+        let res = null;
+        try { res = control.run ? await control.run(values) : null; } catch (err) { res = { ok: false, reason: String(err && err.message || err) }; }
+        button.disabled = false;
+        status.textContent = res && res.ok ? x('Reachable') : (res && res.reason) || x('Could not connect');
+      });
+      line.append(button, status);
+      wrap.appendChild(line);
+      return wrap;
+    }
+
     if (control.type === 'note') {
       const note = document.createElement('p');
       note.className = 'neo-ext-hint';
@@ -186,19 +298,26 @@
 
     let info = null;
     try { info = await bridge.getBackupSettings(); } catch { info = null; }
-    pending = false;
-    if (!info || openEl) return; // another window won the race
+    if (!info || openEl) { pending = false; return; } // another window won the race
 
     const values = {
       backupFolder: info.configured || info.folder || info.defaultFolder || '',
       __useDefault: !info.configured
     };
+    const live = groups.filter(shown);
+    const loads = await Promise.all(live.map(async (group) => {
+      if (typeof group.load !== 'function') return {};
+      try { return (await group.load()) || {}; } catch { return {}; }
+    }));
+    pending = false;
+    for (const part of loads) if (part && typeof part === 'object') Object.assign(values, part);
 
     openEl = document.createElement('div');
     openEl.className = 'modal-backdrop neo-ext-backdrop';
     openEl.innerHTML = `
       <div class="modal neo-ext-settings">
         <h2 id="neo-ext-title"></h2>
+        <div class="neo-ext-tabs" role="tablist"></div>
         <div class="neo-ext-groups"></div>
         <p class="neo-ext-error" role="alert" hidden></p>
         <div class="neo-ext-actions">
@@ -213,18 +332,60 @@
 
     const holder = openEl.querySelector('.neo-ext-groups');
     const errorEl = openEl.querySelector('.neo-ext-error');
-    const live = groups.filter(shown);
+    const tabStrip = openEl.querySelector('.neo-ext-tabs');
+    const tabs = [];
+    for (const group of live) {
+      const name = group.tab || 'General';
+      if (!tabs.includes(name)) tabs.push(name);
+    }
+    const sections = [];
+    const showTab = (name) => {
+      for (const button of tabStrip.querySelectorAll('button')) {
+        const active = button.dataset.tab === name;
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+        button.tabIndex = active ? 0 : -1;
+      }
+      for (const section of sections) section.hidden = section.dataset.tab !== name;
+      const first = sections.find((section) => section.dataset.tab === name);
+      first?.querySelector('input, select, textarea, button')?.focus({ preventScroll: true });
+    };
+    if (tabs.length > 1) {
+      for (const name of tabs) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'neo-ext-tab';
+        button.dataset.tab = name;
+        button.setAttribute('role', 'tab');
+        button.textContent = x(name);
+        button.addEventListener('click', () => showTab(name));
+        button.addEventListener('keydown', (e) => {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+          e.preventDefault();
+          const at = tabs.indexOf(button.dataset.tab);
+          const next = e.key === 'Home' ? 0
+            : e.key === 'End' ? tabs.length - 1
+              : (at + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          tabStrip.querySelector(`button[data-tab="${CSS.escape(tabs[next])}"]`)?.click();
+          tabStrip.querySelector(`button[data-tab="${CSS.escape(tabs[next])}"]`)?.focus();
+        });
+        tabStrip.appendChild(button);
+      }
+    }
     for (const group of live) {
       const section = document.createElement('section');
       section.className = 'neo-ext-group';
       section.dataset.group = group.id;
+      section.dataset.tab = group.tab || 'General';
       const heading = document.createElement('h3');
       heading.textContent = x(group.title);
       section.appendChild(heading);
-      const controls = typeof group.controls === 'function' ? group.controls(info) : (group.controls || []);
+      const controls = typeof group.controls === 'function' ? group.controls(info, values) : (group.controls || []);
       for (const control of controls) section.appendChild(controlRow(group, control, values, info));
       holder.appendChild(section);
+      sections.push(section);
     }
+    if (tabs.length > 1) showTab(tabs[0]);
+    else tabStrip.hidden = true;
 
     openEl.addEventListener('click', (e) => { if (e.target === openEl) close(); });
     openEl.querySelector('.neo-ext-cancel').addEventListener('click', close);
@@ -233,6 +394,16 @@
     openEl.querySelector('.neo-ext-save').addEventListener('click', async () => {
       errorEl.hidden = true;
       const bookId = typeof book !== 'undefined' && book ? book.id : null;
+      for (const group of live) {
+        if (typeof group.validate !== 'function') continue;
+        let checked = null;
+        try { checked = await group.validate(values, { info, bookId }); } catch (err) { checked = { ok: false, reason: String(err && err.message || err) }; }
+        if (checked && checked.ok === false) {
+          errorEl.textContent = checked.reason || x('NEO could not save these settings');
+          errorEl.hidden = false;
+          return;
+        }
+      }
       for (const group of live) {
         if (typeof group.save !== 'function') continue;
         let res = null;

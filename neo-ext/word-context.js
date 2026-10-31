@@ -111,15 +111,48 @@
     } catch { return null; }
   }
 
-  function storePhrase(context) {
+  function storePhrase(context, rephrase) {
     const api = bridge();
     if (!api || typeof api.setContextPhrase !== 'function') return;
     const anchor = anchorFor(context);
     lastAnchor = anchor;
-    lastPhrase = context.phrase;
+    lastPhrase = context ? context.phrase : '';
     // A placeholder paragraph has no anchor, so Inventory has nothing to offer.
-    api.setContextPhrase(context.phrase, hasTag(context.phrase), anchor, !!anchor && inventoryReady(), recordsReady());
+    api.setContextPhrase(
+      context ? context.phrase : '',
+      context ? hasTag(context.phrase) : false,
+      anchor,
+      !!anchor && inventoryReady(),
+      !!context && recordsReady(),
+      !!rephrase
+    );
     phraseStored = true;
+  }
+
+  // The full selection for Rephrase: no 120-character phrase rule, but it must
+  // still sit inside one editable block. Records and Inventory keep their own
+  // shorter rule below.
+  function selectionFull(event) {
+    if (!moreAllowed()) return null;
+    const body = event.target && event.target.closest && event.target.closest('.chapter-body');
+    if (!body || !body.isContentEditable) return null;
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount || selection.isCollapsed) return null;
+    const text = selection.toString();
+    if (!text.replace(/\s+/g, ' ').trim()) return null;
+    try {
+      const range = selection.getRangeAt(0);
+      const element = (node) => (node && node.nodeType === Node.TEXT_NODE ? node.parentElement : node);
+      const start = element(range.startContainer)?.closest('p, li, h1, h2, h3, h4, h5, h6');
+      const end = element(range.endContainer)?.closest('p, li, h1, h2, h3, h4, h5, h6');
+      return {
+        text,
+        range,
+        body,
+        paragraphEl: start,
+        sameBlock: !!(start && start === end)
+      };
+    } catch { return null; }
   }
 
   function pointRange(x0, y0) {
@@ -180,8 +213,14 @@
       clearPhrase();
       const api = bridge();
       if (!api || typeof api.setContextWord !== 'function') return;
+      const full = selectionFull(event);
+      let rephrase = false;
+      try {
+        rephrase = !!(window.NeoRephrase && window.NeoRephrase.capture
+          ? window.NeoRephrase.capture(full) : false);
+      } catch { rephrase = false; }
       const context = selectionContext(event);
-      if (context) storePhrase(context);
+      if (context || rephrase) storePhrase(context, rephrase);
       const editor = event.target && event.target.closest && event.target.closest(EDITOR);
       if (!editor || !editor.isContentEditable || !menuAllowed()) {
         clearWord();
@@ -251,6 +290,9 @@
     if (pending && pending.selected && inventoryReady()) {
       offered.push({ label: (window.NeoExt && window.NeoExt.x ? window.NeoExt.x('Inventory…') : 'Inventory…'), value: 'inventory-open' });
     }
+    if (pending && pending.selected && window.NeoRephrase && window.NeoRephrase.has()) {
+      offered.push({ label: (window.NeoExt && window.NeoExt.x ? window.NeoExt.x('Rephrase…') : 'Rephrase…'), value: 'rephrase-open' });
+    }
     for (const entry of features()) {
       let item = null;
       try { item = entry.feature.lookUpItem(word); } catch { item = null; }
@@ -266,6 +308,10 @@
   // both would put one window on top of the other and, for the thesaurus,
   // replace a word the writer never asked about.
   function lookUpChoice(choice, word) {
+    if (choice === 'rephrase-open') {
+      try { window.NeoRephrase && window.NeoRephrase.openPending(); } catch { /* the page moved on */ }
+      return;
+    }
     if (choice === 'inventory-open') {
       const phrase = lastPhrase || word;
       try {

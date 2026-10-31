@@ -79,6 +79,9 @@
       else if (msg.action === 'backup-book') backupBook();
       else if (msg.action === 'thesaurus' && window.NeoThesaurus) window.NeoThesaurus.openWord(msg.word);
       else if (msg.action === 'dictionary' && window.NeoDictionary) window.NeoDictionary.openWord(msg.word);
+      else if (msg.action === 'rephrase-open' && window.NeoRephrase) {
+        try { window.NeoRephrase.openPending(); } catch { /* the page moved on */ }
+      }
       else if (msg.action === 'inventory-open' && window.NeoInventory) {
         try {
           const opened = window.NeoInventory.openFromSelection(msg.phrase, msg.anchor);

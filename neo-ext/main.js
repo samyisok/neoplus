@@ -202,6 +202,15 @@ function init(injected) {
     }, ipcMain);
   } catch (err) { log('inventory init: ' + (err && err.message)); }
 
+  try {
+    require('./rephrase-main.js').init({
+      readSettings: deps.readSettings,
+      writeSettings: deps.writeSettings,
+      readSecret: deps.readSecret,
+      logError: deps.logError
+    }, ipcMain);
+  } catch (err) { log('rephrase init: ' + (err && err.message)); }
+
   // each lexical feature owns its data, cache, and menu item; this file only
   // hands it the process objects and its place in the menu
   menuRegistry.clear();
@@ -289,7 +298,8 @@ function contextMenu(items, params, win) {
     const present = word ? menuRegistry.items(word) : [];
     const record = phrase ? require('./lib/record-tags-main.js').menuItem(phrase, t) : null;
     const inventory = phrase ? require('./inventory-main.js').menuItem({ phrase: phrase.phrase, inventory: phrase.inventory }, t) : null;
-    if (!present.length && !record && !inventory) return;
+    const rephrase = phrase ? require('./rephrase-main.js').menuItem(phrase, t) : null;
+    if (!present.length && !record && !inventory && !rephrase) return;
     const choose = (item) => () => {
       try {
         const msg = { type: 'neo-ext', action: item.action };
@@ -302,6 +312,7 @@ function contextMenu(items, params, win) {
     const extras = [];
     if (record) extras.push({ label: record.label, click: choose(record) });
     if (inventory) extras.push({ label: inventory.label, click: choose({ ...inventory, anchor: phrase.anchor }) });
+    if (rephrase) extras.push({ label: rephrase.label, click: choose(rephrase) });
     extras.push(...present.map((item) => ({ label: item.label, click: choose(item) })));
     items.unshift(...extras, { type: 'separator' });
   } catch (err) { log('context menu: ' + (err && err.message)); }
