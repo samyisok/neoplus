@@ -44,7 +44,7 @@
 }
 
 .neo-ext-group { padding: 6px 0 14px; }
-.neo-ext-group:not(:last-child) { border-bottom: 1px solid var(--rule, rgba(255, 255, 255, 0.14)); padding-bottom: 16px; margin-bottom: 14px; }
+.neo-ext-group.neo-ext-group-sep { border-bottom: 1px solid var(--rule, rgba(255, 255, 255, 0.14)); padding-bottom: 16px; margin-bottom: 14px; }
 .neo-ext-group h3 { margin: 4px 0 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
 
 .neo-ext-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
@@ -728,7 +728,7 @@ body.light { --rule: rgba(0, 0, 0, 0.18); }
 .neo-ext-profile-remove:disabled, .neo-ext-profile-add:disabled { opacity: 0.4; cursor: default; }
 .neo-ext-profile-add { align-self: flex-start; margin-top: 2px; }
 .neo-rephrase-backdrop { z-index: 9000; }
-.neo-rephrase { width: min(42rem, calc(100vw - 2.5rem)); max-height: min(84vh, 48rem); display: flex; flex-direction: column; gap: 8px; }
+.neo-rephrase { width: min(calc(42rem / var(--ui-zoom, 1)), calc(100vw - 2.5rem)); max-height: min(calc(84vh / var(--ui-zoom, 1)), 48rem); display: flex; flex-direction: column; gap: 8px; }
 .neo-rephrase-title { margin: 0; font-size: 15px; font-weight: 600; }
 .neo-rephrase-quote { margin: 0; color: var(--muted); font-style: italic; font-size: 12px; max-height: 6rem; overflow-y: auto; white-space: pre-wrap; }
 .neo-rephrase-cards { flex: 1 1 auto; min-height: 8rem; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
@@ -738,11 +738,12 @@ body.light { --rule: rgba(0, 0, 0, 0.18); }
   font: inherit; font-size: 13px; line-height: 1.5; border-radius: 6px; padding: 8px 10px; cursor: pointer;
 }
 .neo-rephrase-card:hover { border-color: var(--accent); }
+.neo-rephrase-card:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
 .neo-rephrase-card:disabled { cursor: progress; }
 .neo-rephrase-label { color: var(--accent); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
 .neo-rephrase-text { white-space: pre-wrap; }
 .neo-rephrase-status { grid-column: 2; color: var(--muted); font-size: 11px; }
-.neo-rephrase-retry { grid-column: 2; justify-self: start; color: var(--accent); font-size: 11px; text-decoration: underline; }
+.neo-rephrase-retry { grid-column: 2; justify-self: start; border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 11px; text-decoration: underline; cursor: pointer; }
 .neo-rephrase-actions { display: flex; justify-content: flex-end; }
 .neo-rephrase-cancel {
   font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 5px;

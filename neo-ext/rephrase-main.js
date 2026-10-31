@@ -47,7 +47,7 @@ function keyOf() {
 }
 
 function logReason(reason) {
-  try { deps.logError && deps.logError('rephrase: ' + reason); } catch { /* logging is a nicety */ }
+  try { deps.logError && deps.logError('rephrase', new Error(reason)); } catch { /* logging is a nicety */ }
 }
 
 async function resolveEndpoint(raw, lookup = dns.promises.lookup) {
@@ -70,11 +70,17 @@ function cleanText(value, max) {
   return typeof value === 'string' ? value.slice(0, max) : '';
 }
 
-async function request(url, options, timeoutMs) {
+// The timeout covers the whole answer: a server that sends headers and then
+// stalls cannot leave a card (and its session) hanging forever.
+async function requestJson(url, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs || TIMEOUT);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = null; }
+    return { res, data };
   } finally {
     clearTimeout(timer);
   }
@@ -84,7 +90,7 @@ function reasonForStatus(status, body) {
   if (status === 401 || status === 403) return 'auth';
   const detail = String((body && body.error && (body.error.code || body.error.message)) || '');
   if (/model/i.test(detail)) return 'model';
-  if (status === 404) return 'endpoint';
+  if (status === 404) return 'notFound';
   return 'http';
 }
 
@@ -93,12 +99,12 @@ async function runOne(session, request_) {
   if (!rule.ok) return fail('endpoint');
   const profile = session.profiles[request_.profileId];
   if (!profile) return fail('profile');
-  if (typeof request_.text !== 'string' || request_.text.length > promptRules.MAX_SELECTION) return fail('long');
+  if (typeof request_.text !== 'string' || request_.text.length > promptRules.MAX_SELECTION) return fail('limits');
   const text = request_.text;
   const before = cleanText(request_.before, promptRules.MAX_REFERENCE);
   const after = cleanText(request_.after, promptRules.MAX_REFERENCE);
   if ((typeof request_.before === 'string' && request_.before.length > promptRules.MAX_REFERENCE)
-    || (typeof request_.after === 'string' && request_.after.length > promptRules.MAX_REFERENCE)) return fail('long');
+    || (typeof request_.after === 'string' && request_.after.length > promptRules.MAX_REFERENCE)) return fail('limits');
   if (!text.trim()) return fail('empty');
   const ruleUrl = endpointRules.joinEndpoint(rule.url, '/chat/completions');
   const messages = promptRules.buildMessages({ settings: session, profile, text, before, after });
@@ -114,10 +120,11 @@ async function runOne(session, request_) {
     stream: false
   });
   let res;
+  let data = null;
   try {
-    res = await request(ruleUrl, {
+    ({ res, data } = await requestJson(ruleUrl, {
       method: 'POST', headers, body, redirect: 'manual'
-    }, deps.timeoutMs);
+    }, deps.timeoutMs));
   } catch (err) {
     const reason = err && err.name === 'AbortError' ? 'timeout' : 'network';
     logReason(reason);
@@ -128,8 +135,6 @@ async function runOne(session, request_) {
     const finalUrl = new URL(res.url);
     if (!endpointRules.checkEndpoint(finalUrl.toString()).ok) return fail('endpoint');
   } catch { return fail('endpoint'); }
-  let data = null;
-  try { data = await res.json(); } catch { data = null; }
   if (!res.ok) {
     const reason = reasonForStatus(res.status, data);
     logReason(reason);
@@ -194,7 +199,9 @@ function end(payload) {
 
 async function validate(value) {
   if (value && typeof value.prompt === 'string' && !value.prompt.trim()) return fail('prompt');
+  if (value && typeof value.model === 'string' && !value.model.trim()) return fail('modelId');
   if (value && typeof value.model === 'string' && value.model.length > promptRules.MAX_MODEL) return fail('limits');
+  if (value && typeof value.endpoint === 'string' && !value.endpoint.trim()) return fail('endpoint');
   if (value && typeof value.prompt === 'string' && value.prompt.length > promptRules.MAX_PROMPT) return fail('limits');
   if (value && typeof value.endpoint === 'string' && value.endpoint.length > 200) return fail('limits');
   const rawProfiles = value && Array.isArray(value.profiles) ? value.profiles : [];
@@ -235,7 +242,7 @@ async function save(value) {
 }
 
 function get() {
-  return { ok: true, settings: safeSettings(), hasKey: hasKey(), secureStorage: secureStorage() };
+  return { ok: true, settings: safeSettings(), hasKey: hasKey(), secureStorage: secureStorage(), secret: SECRET };
 }
 
 async function testConnection(input) {
@@ -247,7 +254,7 @@ async function testConnection(input) {
   const headers = {};
   if (key) headers.Authorization = 'Bearer ' + key;
   try {
-    const res = await request(endpointRules.joinEndpoint(rule.url, '/models'), { method: 'GET', headers, redirect: 'manual' }, 5000);
+    const { res } = await requestJson(endpointRules.joinEndpoint(rule.url, '/models'), { method: 'GET', headers, redirect: 'manual' }, 5000);
     if (res.status >= 300 && res.status < 400) return fail('endpoint');
     try {
       if (!endpointRules.checkEndpoint(new URL(res.url).toString()).ok) return fail('endpoint');

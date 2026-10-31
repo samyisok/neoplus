@@ -24,10 +24,13 @@ test('rephrase-check: empty and quoted replies', () => {
   assert.equal(quoted.text, 'She was exhausted and wanted to stop.');
 });
 
-test('rephrase-check: a leading profile label is stripped', () => {
+test('rephrase-check: a labelled quoted reply loses both the label and the quotes', () => {
   const out = check.checkReply({ ...base, reply: 'Natural: She was exhausted and wanted to stop.' });
   assert.equal(out.ok, true);
   assert.equal(out.text, 'She was exhausted and wanted to stop.');
+  const quoted = check.checkReply({ ...base, reply: 'Natural: “She was exhausted and wanted to stop.”' });
+  assert.equal(quoted.ok, true);
+  assert.equal(quoted.text, 'She was exhausted and wanted to stop.');
 });
 
 test('rephrase-check: a terse but real rewrite is accepted', () => {

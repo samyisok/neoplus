@@ -307,6 +307,9 @@ test('one failed profile retries alone', async () => {
   await waitFor(`[...document.querySelectorAll('.neo-rephrase-retry')].filter((t) => !t.hidden).length === 1`);
   const failedLabel = await js(`[...document.querySelectorAll('.neo-rephrase-card')].find((b) => !b.querySelector('.neo-rephrase-retry').hidden)?.querySelector('.neo-rephrase-label')?.textContent`);
   assert.ok(failedLabel, 'one card shows Try again');
+  const retryInfo = await js(`(() => { const b = [...document.querySelectorAll('.neo-rephrase-card')].find((x) => !x.querySelector('.neo-rephrase-retry').hidden); return { tag: b.querySelector('.neo-rephrase-retry').tagName, focused: document.activeElement === b.querySelector('.neo-rephrase-retry') }; })()`);
+  assert.equal(retryInfo.tag, 'BUTTON');
+  assert.equal(retryInfo.focused, true, 'the retry control takes focus');
   await waitFor(`[...document.querySelectorAll('.neo-rephrase-text')].filter((t) => !t.hidden).length === 4`);
   const hitsBefore = hits;
   await js(`(() => { const b = [...document.querySelectorAll('.neo-rephrase-card')].find((x) => !x.querySelector('.neo-rephrase-retry').hidden); b.querySelector('.neo-rephrase-retry').click(); })()`);
@@ -331,6 +334,36 @@ test('Tab stays inside the rephrase window and a second open is refused', async 
   assert.equal(await js(`document.querySelectorAll('.neo-rephrase').length`), 1, 'one window from two near-simultaneous opens');
   await js(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
   await waitFor(`!document.querySelector('.neo-rephrase')`);
+});
+
+test('Rephrase does not open over another dialog', async () => {
+  await js(`NeoSettings.open()`);
+  await waitFor(`!!document.querySelector('.neo-ext-settings')`);
+  const opened = await js(`NeoRephrase.openPending()`);
+  assert.equal(opened, false);
+  assert.equal(await js(`document.querySelectorAll('.neo-rephrase').length`), 0);
+  await js(`document.querySelector('.neo-ext-cancel').click()`);
+  await waitFor(`!document.querySelector('.neo-ext-settings')`);
+});
+
+test('turning Simple NEO off mid-window stops the flow', async () => {
+  await select('She was very tired and did not want to go on.');
+  await openWindow();
+  await waitFor(`[...document.querySelectorAll('.neo-rephrase-text')].filter((t) => !t.hidden).length >= 1`);
+  const before = await bodyText();
+  wc.send('menu', { type: 'moreFeatures', checked: false });
+  await waitFor(`library && library.moreFeatures === false`);
+  await tick(400);
+  const hitsWhenOff = hits;
+  await tick(700);
+  assert.equal(hits, hitsWhenOff, 'no further requests while the switch is off');
+  await js(`(() => { const b = [...document.querySelectorAll('.neo-rephrase-card')].find((x) => !x.querySelector('.neo-rephrase-text').hidden); b?.click(); })()`);
+  await tick(300);
+  assert.equal(await bodyText(), before, 'nothing was replaced');
+  assert.equal(await js(`document.querySelectorAll('.neo-rephrase').length`), 0);
+  wc.send('menu', { type: 'moreFeatures', checked: true });
+  await waitFor(`library && library.moreFeatures === true`);
+  await tick(300);
 });
 
 test('Simple NEO hides the AI tab and the menu item', async () => {

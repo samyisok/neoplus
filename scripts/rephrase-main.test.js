@@ -105,7 +105,7 @@ test('rephrase-main: a window keeps the snapshot it opened with, and caps are en
     assert.match(JSON.stringify(seen[0].body), /OLD instruction/);
     assert.equal((await service.run({ session: started.session, profileId: 9, text: 'a line' })).reason, 'profile');
     assert.equal((await service.run({ session: 'nope', profileId: 0, text: 'a line' })).reason, 'session');
-    assert.equal((await service.run({ session: started.session, profileId: 0, text: 'x'.repeat(1201) })).reason, 'long');
+    assert.equal((await service.run({ session: started.session, profileId: 0, text: 'x'.repeat(1201) })).reason, 'limits');
     service.end({ session: started.session });
     assert.equal((await service.run({ session: started.session, profileId: 0, text: 'a line' })).reason, 'session');
     assert.equal(r.logs.some((line) => /a line|secret-key/.test(line)), false);
@@ -134,7 +134,7 @@ test('rephrase-main: auth, model, network and timeout reasons', async () => {
   const cases = [
     { status: 401, body: '{}', reason: 'auth' },
     { status: 404, body: JSON.stringify({ error: { message: 'model not found' } }), reason: 'model' },
-    { status: 404, body: '{}', reason: 'endpoint' }
+    { status: 404, body: '{}', reason: 'notFound' }
   ];
   for (const item of cases) {
     const { server, base } = await stub((req, res) => { res.writeHead(item.status, { 'Content-Type': 'application/json' }); res.end(item.body); });
@@ -207,6 +207,22 @@ test('rephrase-main: a session expires five minutes after it opened', async () =
   const again = await service.start();
   clock += 6 * 60 * 1000;
   assert.equal((await service.run({ session: again.session, profileId: 0, text: 'a line' })).reason, 'session');
+});
+
+test('rephrase-main: an emptied model is refused, and a stalled body times out', async () => {
+  room();
+  assert.equal((await service.save({ ...good(), model: '   ' })).reason, 'modelId');
+
+  const { server, base } = await stub((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.write('{"choices":[');
+  });
+  try {
+    room({ timeoutMs: 80 });
+    await service.save(good({ endpoint: base + '/v1' }));
+    const started = await service.start();
+    assert.equal((await service.run({ session: started.session, profileId: 0, text: 'a line' })).reason, 'timeout');
+  } finally { server.close(); }
 });
 
 test('rephrase-main: over-long settings are refused, not truncated', async () => {

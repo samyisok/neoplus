@@ -42,5 +42,5 @@
     return '';
   }
 
-  return { MAX_CHARS, CONTEXT_CHARS, evaluate, takeBefore, takeAfter };
+  return { MAX_CHARS, CONTEXT_CHARS, MAX_SELECTION: MAX_CHARS, MAX_REFERENCE: CONTEXT_CHARS, evaluate, takeBefore, takeAfter };
 });

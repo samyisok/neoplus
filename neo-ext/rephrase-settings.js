@@ -38,7 +38,9 @@
         if (!api || typeof api.getRephraseSettings !== 'function') return {};
         let res = null;
         try { res = await api.getRephraseSettings(); } catch { res = null; }
-        const settings = (res && res.settings) || {};
+        const defaults = (window.NeoRephrasePrompt && window.NeoRephrasePrompt.defaultSettings)
+          ? window.NeoRephrasePrompt.defaultSettings() : { endpoint: '', model: '', prompt: '', profiles: [] };
+        const settings = (res && res.settings) || defaults;
         return {
           rephraseEndpoint: settings.endpoint || '',
           rephraseModel: settings.model || '',
@@ -47,16 +49,23 @@
           rephraseKey: '',
           __hasKey: !!(res && res.hasKey),
           __secure: res ? res.secureStorage !== false : true,
+          __secretName: (res && res.secret) || 'rephrase-key',
+          __loadNote: res ? '' : x('These settings could not be loaded; showing the defaults.'),
           __keyTouched: false
         };
       },
-      controls: () => [
+      controls: (info, values) => [
+        ...(values.__loadNote ? [{ type: 'note', text: values.__loadNote }] : []),
         { key: 'rephraseEndpoint', type: 'text', label: 'Endpoint' },
         { key: 'rephraseModel', type: 'text', label: 'Model' },
         { key: 'rephraseKey', type: 'secret', label: 'API key' },
         { key: 'rephrasePrompt', type: 'textarea', label: 'Base instruction', rows: 4 },
         { key: 'rephraseProfiles', type: 'profiles', label: 'Profiles', max: 8 },
-        { type: 'button', label: 'Test connection', run: (values) => bridge().testRephrase({ endpoint: values.rephraseEndpoint, model: values.rephraseModel, key: values.rephraseKey }) }
+        { type: 'button', label: 'Test connection', run: async (values) => {
+          let res = null;
+          try { res = await bridge().testRephrase({ endpoint: values.rephraseEndpoint, key: values.rephraseKey }); } catch { res = null; }
+          return res && res.ok ? { ok: true } : { ok: false, reason: reasonText(res && res.reason) };
+        } }
       ],
       validate: async (values) => {
         const api = bridge();
@@ -73,7 +82,7 @@
         const key = String(values.rephraseKey || '').trim();
         if (key || values.__keyTouched) {
           try {
-            const stored = await window.neo.setSecret('rephrase-key', key);
+            const stored = await window.neo.setSecret(values.__secretName || 'rephrase-key', key);
             if (!stored) return { ok: false, reason: x('The settings were saved, but the key could not be stored.') };
           } catch {
             return { ok: false, reason: x('The settings were saved, but the key could not be stored.') };

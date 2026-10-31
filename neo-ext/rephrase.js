@@ -8,10 +8,9 @@
 
 (function () {
   const rules = window.NeoRephraseContext;
-  const endpointRules = window.NeoRephraseEndpoint;
   const check = window.NeoRephraseCheck;
   const api = window.NeoExtApi;
-  if (!rules || !endpointRules || !check || !api) return;
+  if (!rules || !check || !api) return;
 
   const reasons = window.NeoRephraseReasons;
   const bridge = () => window.NeoForkNative || null;
@@ -102,9 +101,10 @@
     }
   }
 
-  async function runProfile(current, profile, retry = false) {
+  async function runProfile(current, profile) {
     const card = current.cards.get(String(profile.id));
     if (!card || current.closed) return;
+    if (!(api && api.moreFeatures && api.moreFeatures())) { close(current.session); return; }
     card.state = 'writing';
     card.status.textContent = x('writing…');
     card.button.disabled = true;
@@ -143,19 +143,20 @@
       card.text.hidden = false;
       card.status.hidden = true;
       card.button.disabled = false;
-      card.labelText = result.text;
+      card.reply = result.text;
     } else {
       card.state = 'failed';
       card.status.hidden = false;
       card.status.textContent = (result && result.reason) || reasonText('network');
       card.retry.hidden = false;
       card.button.disabled = false;
-      if (retry) card.retry.focus({ preventScroll: true });
+      card.retry.focus({ preventScroll: true });
     }
   }
 
   async function openPending() {
     if (opening || win) { toast(x('A rephrase is already open.')); return false; }
+    if (document.querySelector('.modal-backdrop:not([hidden])')) return false;
     const entry = last;
     const apiBridge = bridge();
     if (!apiBridge || typeof apiBridge.rephraseStart !== 'function') {
@@ -170,6 +171,7 @@
       toast(reasonText(started && started.reason));
       return false;
     }
+    if (document.querySelector('.modal-backdrop:not([hidden])') && !win) { opening = false; try { apiBridge.rephraseEnd({ session: started.session }); } catch { /* page moved on */ } return false; }
     if (last !== entry || !entry || !(api && api.moreFeatures && api.moreFeatures())) {
       opening = false;
       try { apiBridge.rephraseEnd({ session: started.session }); } catch { /* page moved on */ }
@@ -177,9 +179,10 @@
       return false;
     }
 
+    let el = null;
     try {
-    const el = document.createElement('div');
-    el.className = 'modal-backdrop neo-ext-backdrop neo-rephrase-backdrop';
+    el = document.createElement('div');
+    el.className = 'modal-backdrop neo-rephrase-backdrop';
     const card = document.createElement('div');
     card.className = 'modal neo-rephrase';
     card.setAttribute('role', 'dialog');
@@ -208,10 +211,12 @@
     const current = { el, entry, session: started.session, cards: new Map(), closed: false, startedAt: Date.now(), onKey: null };
     const profiles = Array.isArray(started.profiles) ? started.profiles : [];
     for (const profile of profiles) {
-      const button = document.createElement('button');
-      button.type = 'button';
+      const button = document.createElement('div');
       button.className = 'neo-rephrase-card';
       button.dataset.profile = String(profile.id);
+      button.setAttribute('role', 'button');
+      button.tabIndex = 0;
+      button.setAttribute('aria-label', x('Use the {profile} rewrite', { profile: profile.label }));
       const label = document.createElement('span');
       label.className = 'neo-rephrase-label';
       label.textContent = profile.label;
@@ -221,7 +226,8 @@
       const status = document.createElement('span');
       status.className = 'neo-rephrase-status';
       status.textContent = x('waiting…');
-      const retry = document.createElement('span');
+      const retry = document.createElement('button');
+      retry.type = 'button';
       retry.className = 'neo-rephrase-retry';
       retry.textContent = x('Try again');
       retry.hidden = true;
@@ -231,10 +237,15 @@
         runProfile(current, profile);
       });
       button.append(label, text, status, retry);
-      const state = { button, label, text, status, retry, state: 'waiting', labelText: '' };
+      const state = { button, label, text, status, retry, state: 'waiting', reply: '' };
       current.cards.set(String(profile.id), state);
       button.addEventListener('click', () => {
-        if (state.state === 'text' && state.labelText) choose(current, state.labelText);
+        if (state.state === 'text' && state.reply) choose(current, state.reply);
+      });
+      button.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        if (state.state === 'text' && state.reply) choose(current, state.reply);
       });
       list.appendChild(button);
     }
@@ -251,7 +262,8 @@
         return;
       }
       if (event.key === 'Tab') {
-        const focusable = [...current.el.querySelectorAll('button')].filter((node) => !node.disabled);
+        const focusable = [...current.el.querySelectorAll('.neo-rephrase-card, .neo-rephrase-retry, .neo-rephrase-cancel')]
+          .filter((node) => !node.disabled && !node.hidden);
         if (!focusable.length) return;
         const atButton = focusable.indexOf(document.activeElement);
         const next = (atButton + (event.shiftKey ? -1 : 1) + focusable.length) % focusable.length;
@@ -263,7 +275,7 @@
       if (Number.isInteger(number) && number >= 1 && number <= profiles.length) {
         const profile = profiles[number - 1];
         const state = current.cards.get(String(profile.id));
-        if (state && state.state === 'text' && state.labelText) { event.preventDefault(); choose(current, state.labelText); }
+        if (state && state.state === 'text' && state.reply) { event.preventDefault(); choose(current, state.reply); }
       }
     };
     current.onKey = keyHandler;
@@ -277,11 +289,12 @@
     (async () => {
       for (const profile of profiles) {
         if (current.closed) return;
+        if (!(api && api.moreFeatures && api.moreFeatures())) { close(current.session); return; }
         if (Date.now() - current.startedAt > BUDGET_MS) {
           const state = current.cards.get(String(profile.id));
           if (state && state.state === 'waiting') {
             state.state = 'failed';
-            state.status.textContent = x('The local model is slow. Try again.');
+            state.status.textContent = reasonText('slow');
             state.retry.hidden = false;
             state.button.disabled = false;
           }
@@ -293,6 +306,7 @@
     return true;
     } catch {
       try { apiBridge.rephraseEnd({ session: started.session }); } catch { /* page moved on */ }
+      if (el) el.remove();
       if (win && win.session === started.session) { win.el.remove(); win = null; }
       opening = false;
       toast(x('The rephrase window could not open.'));
@@ -302,6 +316,7 @@
 
   function choose(current, text) {
     if (!win || win !== current) return;
+    if (!(api && api.moreFeatures && api.moreFeatures())) { toast(x('Rephrase is hidden in Simple NEO.')); close(current.session); return; }
     const entry = current.entry;
     close(current.session);
     replace(entry, text);

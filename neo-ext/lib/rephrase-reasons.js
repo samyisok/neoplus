@@ -25,6 +25,7 @@
     timeout: 'The local model did not answer in time.',
     network: 'The local model is not reachable.',
     http: 'The local model refused the request.',
+    notFound: 'The endpoint or model was not found. Check Settings → AI.',
     empty: 'The local model returned nothing.',
     context: 'The reply repeated the surrounding text.',
     continuation: 'The reply continued the story instead of rewriting it.',

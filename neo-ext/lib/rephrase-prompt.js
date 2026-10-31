@@ -21,8 +21,12 @@
   const MAX_MODEL = 80;
   const MAX_LABEL = 40;
   const MAX_INSTRUCTION = 500;
-  const MAX_SELECTION = 1200;
-  const MAX_REFERENCE = 700;
+  const contextRules = (() => {
+    try { if (typeof require === 'function') return require('./rephrase-context.js'); } catch { /* browser */ }
+    return typeof globalThis !== 'undefined' ? globalThis.NeoRephraseContext : null;
+  })();
+  const MAX_SELECTION = contextRules ? contextRules.MAX_CHARS : 1200;
+  const MAX_REFERENCE = contextRules ? contextRules.CONTEXT_CHARS : 700;
   const MAX_PROFILES = 8;
 
   const DEFAULT_PROFILES = [

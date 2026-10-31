@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a draggable right-hand pane with a keyboard resize handle: its width is remembered per device, and the page, Darlings, and Outline cards follow it. (`2026-10-25-adr-004-resizable-side-pane`)
 - Add record tags: select a phrase in a chapter to create or find its tagged record, keep several multi-word tags on a record, search the book from a tag, and optionally tint tagged names with the status-bar eye. (`2026-10-28-adr-006-record-tags`)
 - Add Inventory: keep coins, health, and other state as transactions anchored to the phrase that moved them, see balances as of the chapter you are in, jump to each change, and let deleting the words retire the transaction. (`2026-10-29-adr-008-inventory`)
+- Add Rephrase… for a selected phrase or paragraph: the local model writes one rewrite per profile, cards fill as they arrive, and choosing one replaces the selection as a single undoable edit. Settings gain tabs and an AI tab with the endpoint, model, key, and editable profiles. (`2026-10-31-adr-012-rephrase-local-llm`)
 
 ### Changed
 - Include the library's `records.json` and its recovery copy in daily and book backups. (`2026-10-27-adr-005-records-tab`)
@@ -28,6 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep Inventory whole: an unreadable chapter never retires its transactions, a pending save stays with its book, a merge cannot write a ledger NEO would refuse, and Simple NEO stops reading and writing; the dialog sits above the panes and folds reset when reopened. (`2026-10-29-adr-009-inventory-fixes`)
 - Give the Inventory dialog room to work: a larger window with a scrollable item list, new-item fields behind a **+ New item** reveal, and an amount field that takes one sign and digits only. (`2026-10-29-adr-010-inventory-modal-ui`)
 - Make the Inventory dialog follow NEO: it uses the app's modal surface, theme, and Interface Size, keeps focus and scroll through every re-render, shows a picked item even when the search hides it, and keeps one amount contract (sign, digits, separators refused). (`2026-10-29-adr-011-inventory-modal-focus`)
-- Add Rephrase… for a selected phrase or paragraph: the local model writes one rewrite per profile, cards fill as they arrive, and choosing one replaces the selection as a single undoable edit. Settings gain tabs and an AI tab with the endpoint, model, key, and editable profiles. (`2026-10-31-adr-012-rephrase-local-llm`)
+- Harden Rephrase: the timeout covers a stalled response body, the dialog refuses to open over another one, Try again is a keyboard-accessible button, Settings shows sentences instead of reason codes, Simple NEO stops an open window, and the selection limits have one owner. (`2026-10-31-adr-013-rephrase-hardening`)
 
 ### Security

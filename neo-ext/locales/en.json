@@ -136,7 +136,6 @@
   "The reply repeated the surrounding text.": "The reply repeated the surrounding text.",
   "The reply continued the story instead of rewriting it.": "The reply continued the story instead of rewriting it.",
   "The reply was not the right size.": "The reply was not the right size.",
-  "The local model could not write that rewrite.": "The local model could not write that rewrite.",
   "That text moved. Nothing was changed.": "That text moved. Nothing was changed.",
   "That text could not be replaced.": "That text could not be replaced.",
   "Select a paragraph to rephrase.": "Select a paragraph to rephrase.",
@@ -167,5 +166,18 @@
   "That setting could not be saved.": "That setting could not be saved.",
   "Settings saved": "Settings saved",
   "AI": "AI",
-  "General": "General"
+  "General": "General",
+  "Use the {profile} rewrite": "Use the {profile} rewrite",
+  "Rephrase is hidden in Simple NEO.": "Rephrase is hidden in Simple NEO.",
+  "These settings could not be loaded; showing the defaults.": "These settings could not be loaded; showing the defaults.",
+  "A rephrase is already open.": "A rephrase is already open.",
+  "The rephrase window could not open.": "The rephrase window could not open.",
+  "That could not be completed.": "That could not be completed.",
+  "The endpoint or model was not found. Check Settings → AI.": "The endpoint or model was not found. Check Settings → AI.",
+  "That endpoint is not a valid address.": "That endpoint is not a valid address.",
+  "The local model is still writing. Try again in a moment.": "The local model is still writing. Try again in a moment.",
+  "That profile is no longer in the list.": "That profile is no longer in the list.",
+  "The local model refused the request.": "The local model refused the request.",
+  "That value is too long for its field.": "That value is too long for its field.",
+  "That is too many profiles.": "That is too many profiles."
 }

@@ -43,8 +43,8 @@
 
   function checkReply({ reply, text, before, after, label }) {
     if (typeof reply !== 'string') return { ok: false, reason: 'empty' };
-    let body = stripQuotes(reply, text);
-    body = stripLabel(body, label).trim();
+    let body = stripLabel(reply, label).trim();
+    body = stripQuotes(body, text).trim();
     if (!body) return { ok: false, reason: 'empty' };
 
     const source = norm(text);

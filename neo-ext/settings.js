@@ -384,6 +384,10 @@
       holder.appendChild(section);
       sections.push(section);
     }
+    for (const tab of tabs) {
+      const own = sections.filter((section) => section.dataset.tab === tab);
+      own.forEach((section, index) => section.classList.toggle('neo-ext-group-sep', index < own.length - 1));
+    }
     if (tabs.length > 1) showTab(tabs[0]);
     else tabStrip.hidden = true;
 
