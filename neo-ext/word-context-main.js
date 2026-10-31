@@ -35,13 +35,14 @@ function init(deps) {
   ipc.on('neo-ext:context-phrase', (event, payload) => {
     const key = senderKey(event);
     const phrase = payload && typeof payload.phrase === 'string' && payload.phrase.length <= MAX_PHRASE ? payload.phrase : '';
-    if (phrase || (payload && payload.rephrase)) {
+    if (phrase || (payload && payload.rephrase) || (payload && payload.grammar)) {
       state.phrases.set(key, {
         phrase,
         hasTag: !!(payload && payload.hasTag),
         inventory: !!(payload && payload.inventory),
         records: !!(payload && payload.records !== false),
         rephrase: !!(payload && payload.rephrase),
+        grammar: !!(payload && payload.grammar),
         anchor: cleanAnchor(payload && payload.anchor),
         at: state.now()
       });
@@ -76,7 +77,7 @@ function takePhrase(win) {
   const held = state.phrases.get(key);
   state.phrases.delete(key);
   return held && state.now() - held.at < TTL_MS
-    ? { phrase: held.phrase, hasTag: !!held.hasTag, inventory: !!held.inventory, records: held.records !== false, rephrase: !!held.rephrase, anchor: held.anchor || null }
+    ? { phrase: held.phrase, hasTag: !!held.hasTag, inventory: !!held.inventory, records: held.records !== false, rephrase: !!held.rephrase, grammar: !!held.grammar, anchor: held.anchor || null }
     : null;
 }
 

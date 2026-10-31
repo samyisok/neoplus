@@ -1,0 +1,967 @@
+{
+  "version": 1,
+  "corpus": "chapter",
+  "note": "Literary chapter voice; each error case names the exact wrong span in \"quote\", so the place is checked.",
+  "cases": [
+    {
+      "id": "tense-01",
+      "category": "tense",
+      "text": "Du Dong had already broke the eastern gate before the guards arrived.",
+      "expected": "Du Dong had already broken the eastern gate before the guards arrived.",
+      "quote": "broke",
+      "clean": false
+    },
+    {
+      "id": "tense-02",
+      "category": "tense",
+      "text": "Xuan Yuan had knew the town would fall, and still he came.",
+      "expected": "Xuan Yuan had known the town would fall, and still he came.",
+      "quote": "knew",
+      "clean": false
+    },
+    {
+      "id": "tense-03",
+      "category": "tense",
+      "text": "The Dao Armor shaked the street when it took its first step.",
+      "expected": "The Dao Armor shook the street when it took its first step.",
+      "quote": "shaked",
+      "clean": false
+    },
+    {
+      "id": "tense-04",
+      "category": "tense",
+      "text": "She had fell asleep with the ledger open on her chest.",
+      "expected": "She had fallen asleep with the ledger open on her chest.",
+      "quote": "fell",
+      "clean": false
+    },
+    {
+      "id": "tense-05",
+      "category": "tense",
+      "text": "The guards had already began their chants when the ground moved.",
+      "expected": "The guards had already begun their chants when the ground moved.",
+      "quote": "began",
+      "clean": false
+    },
+    {
+      "id": "tense-06",
+      "category": "tense",
+      "text": "I had never saw a Foundation Class cultivator before that morning.",
+      "expected": "I had never seen a Foundation Class cultivator before that morning.",
+      "quote": "saw",
+      "clean": false
+    },
+    {
+      "id": "tense-07",
+      "category": "tense",
+      "text": "He drunk the water in one long swallow and set down the cup.",
+      "expected": "He drank the water in one long swallow and set down the cup.",
+      "quote": "drunk",
+      "clean": false
+    },
+    {
+      "id": "tense-08",
+      "category": "tense",
+      "text": "The bell ringed across the valley long after the smoke had cleared.",
+      "expected": "The bell rang across the valley long after the smoke had cleared.",
+      "quote": "ringed",
+      "clean": false
+    },
+    {
+      "id": "tense-09",
+      "category": "tense",
+      "text": "The old woman sitted on the step and watched us pass.",
+      "expected": "The old woman sat on the step and watched us pass.",
+      "quote": "sitted",
+      "clean": false
+    },
+    {
+      "id": "tense-10",
+      "category": "tense",
+      "text": "The black armor springed from the ruins with a roar.",
+      "expected": "The black armor sprang from the ruins with a roar.",
+      "quote": "springed",
+      "clean": false
+    },
+    {
+      "id": "agreement-01",
+      "category": "agreement",
+      "text": "The bucket of water were still on the table where I had left it.",
+      "expected": "The bucket of water was still on the table where I had left it.",
+      "quote": "were",
+      "clean": false
+    },
+    {
+      "id": "agreement-02",
+      "category": "agreement",
+      "text": "The guards, tired from the road, was already in position.",
+      "expected": "The guards, tired from the road, were already in position.",
+      "quote": "was",
+      "clean": false
+    },
+    {
+      "id": "agreement-03",
+      "category": "agreement",
+      "text": "Each of the white robes carry a ledger and a small brass bell.",
+      "expected": "Each of the white robes carries a ledger and a small brass bell.",
+      "quote": "carry",
+      "clean": false
+    },
+    {
+      "id": "agreement-04",
+      "category": "agreement",
+      "text": "There is three roads out of Ringobell, and only one leads to the pass.",
+      "expected": "There are three roads out of Ringobell, and only one leads to the pass.",
+      "quote": "is",
+      "clean": false
+    },
+    {
+      "id": "agreement-05",
+      "category": "agreement",
+      "text": "The crowd of townsfolk were already running for the square.",
+      "expected": "The crowd of townsfolk was already running for the square.",
+      "quote": "were",
+      "clean": false
+    },
+    {
+      "id": "agreement-06",
+      "category": "agreement",
+      "text": "The list of names have grown long since the last harvest.",
+      "expected": "The list of names has grown long since the last harvest.",
+      "quote": "have",
+      "clean": false
+    },
+    {
+      "id": "agreement-07",
+      "category": "agreement",
+      "text": "One of the elite guards have never lost a duel.",
+      "expected": "One of the elite guards has never lost a duel.",
+      "quote": "have",
+      "clean": false
+    },
+    {
+      "id": "agreement-08",
+      "category": "agreement",
+      "text": "The sound of the spells and the shouting were still in my ears.",
+      "expected": "The sound of the spells and the shouting was still in my ears.",
+      "quote": "were",
+      "clean": false
+    },
+    {
+      "id": "agreement-09",
+      "category": "agreement",
+      "text": "The flock of crows scatter over the broken tower.",
+      "expected": "The flock of crows scatters over the broken tower.",
+      "quote": "scatter",
+      "clean": false
+    },
+    {
+      "id": "agreement-10",
+      "category": "agreement",
+      "text": "He, and not the other guards, were chosen to climb.",
+      "expected": "He, and not the other guards, was chosen to climb.",
+      "quote": "were",
+      "clean": false
+    },
+    {
+      "id": "article-01",
+      "category": "article",
+      "text": "I had never seen an human encased in obsidian armor.",
+      "expected": "I had never seen a human encased in obsidian armor.",
+      "quote": "an",
+      "clean": false
+    },
+    {
+      "id": "article-02",
+      "category": "article",
+      "text": "The armor was engraved with a enigmatic symbols that pulsed.",
+      "expected": "The armor was engraved with an enigmatic symbols that pulsed.",
+      "quote": "a",
+      "clean": false
+    },
+    {
+      "id": "article-03",
+      "category": "article",
+      "text": "He carried a hourglass and a book of spells.",
+      "expected": "He carried an hourglass and a book of spells.",
+      "quote": "a",
+      "clean": false
+    },
+    {
+      "id": "article-04",
+      "category": "article",
+      "text": "Du Dong was an mercenary with very little patience.",
+      "expected": "Du Dong was a mercenary with very little patience.",
+      "quote": "an",
+      "clean": false
+    },
+    {
+      "id": "article-05",
+      "category": "article",
+      "text": "The guards waited for a hour before the gate opened.",
+      "expected": "The guards waited for an hour before the gate opened.",
+      "quote": "a",
+      "clean": false
+    },
+    {
+      "id": "article-06",
+      "category": "article",
+      "text": "She was only scholar in Ringobell who could read the old script.",
+      "expected": "She was the only scholar in Ringobell who could read the old script.",
+      "quote": "",
+      "clean": false
+    },
+    {
+      "id": "article-07",
+      "category": "article",
+      "text": "It was unique chance to see a Foundation Class cultivator fight.",
+      "expected": "It was a unique chance to see a Foundation Class cultivator fight.",
+      "quote": "",
+      "clean": false
+    },
+    {
+      "id": "article-08",
+      "category": "article",
+      "text": "He was honest man, though he was often afraid.",
+      "expected": "He was an honest man, though he was often afraid.",
+      "quote": "",
+      "clean": false
+    },
+    {
+      "id": "article-09",
+      "category": "article",
+      "text": "I need cup of water before I can think.",
+      "expected": "I need a cup of water before I can think.",
+      "quote": "",
+      "clean": false
+    },
+    {
+      "id": "article-10",
+      "category": "article",
+      "text": "He kept umbrella by the door of his shop.",
+      "expected": "He kept an umbrella by the door of his shop.",
+      "quote": "",
+      "clean": false
+    },
+    {
+      "id": "plural-01",
+      "category": "plural",
+      "text": "Three guard came down the street with lanterns.",
+      "expected": "Three guards came down the street with lanterns.",
+      "quote": "guard",
+      "clean": false
+    },
+    {
+      "id": "plural-02",
+      "category": "plural",
+      "text": "The sheeps in the lower field had not been seen for days.",
+      "expected": "The sheep in the lower field had not been seen for days.",
+      "quote": "sheeps",
+      "clean": false
+    },
+    {
+      "id": "plural-03",
+      "category": "plural",
+      "text": "He found two mouses in the grain sack behind the counter.",
+      "expected": "He found two mice in the grain sack behind the counter.",
+      "quote": "mouses",
+      "clean": false
+    },
+    {
+      "id": "plural-04",
+      "category": "plural",
+      "text": "The roofs of the market stalls were covered with leafs.",
+      "expected": "The roofs of the market stalls were covered with leaves.",
+      "quote": "leafs.",
+      "clean": false
+    },
+    {
+      "id": "plural-05",
+      "category": "plural",
+      "text": "She cut the loafs into thick slices for the guards.",
+      "expected": "She cut the loaves into thick slices for the guards.",
+      "quote": "loafs",
+      "clean": false
+    },
+    {
+      "id": "plural-06",
+      "category": "plural",
+      "text": "The childrens were still playing at the edge of the square.",
+      "expected": "The children were still playing at the edge of the square.",
+      "quote": "childrens",
+      "clean": false
+    },
+    {
+      "id": "plural-07",
+      "category": "plural",
+      "text": "The frost took two toes and both foots that winter.",
+      "expected": "The frost took two toes and both feet that winter.",
+      "quote": "foots",
+      "clean": false
+    },
+    {
+      "id": "plural-08",
+      "category": "plural",
+      "text": "The knifes on the counter were dull and spotted with rust.",
+      "expected": "The knives on the counter were dull and spotted with rust.",
+      "quote": "knifes",
+      "clean": false
+    },
+    {
+      "id": "plural-09",
+      "category": "plural",
+      "text": "Two deers crossed the road before the guards could shout.",
+      "expected": "Two deer crossed the road before the guards could shout.",
+      "quote": "deers",
+      "clean": false
+    },
+    {
+      "id": "plural-10",
+      "category": "plural",
+      "text": "The womans at the well said nothing when I passed.",
+      "expected": "The women at the well said nothing when I passed.",
+      "quote": "womans",
+      "clean": false
+    },
+    {
+      "id": "spelling-01",
+      "category": "spelling",
+      "text": "The air carried a definately sweet smell of pine.",
+      "expected": "The air carried a definitely sweet smell of pine.",
+      "quote": "definately",
+      "clean": false
+    },
+    {
+      "id": "spelling-02",
+      "category": "spelling",
+      "text": "He recieved the news without changing his expression.",
+      "expected": "He received the news without changing his expression.",
+      "quote": "recieved",
+      "clean": false
+    },
+    {
+      "id": "spelling-03",
+      "category": "spelling",
+      "text": "The explosion occured just beyond the crossroads.",
+      "expected": "The explosion occurred just beyond the crossroads.",
+      "quote": "occured",
+      "clean": false
+    },
+    {
+      "id": "spelling-04",
+      "category": "spelling",
+      "text": "She kept her fear seperate from her duty.",
+      "expected": "She kept her fear separate from her duty.",
+      "quote": "seperate",
+      "clean": false
+    },
+    {
+      "id": "spelling-05",
+      "category": "spelling",
+      "text": "The hall could accomodate half the town at once.",
+      "expected": "The hall could accommodate half the town at once.",
+      "quote": "accomodate",
+      "clean": false
+    },
+    {
+      "id": "spelling-06",
+      "category": "spelling",
+      "text": "I was embarrased by how easily they believed me.",
+      "expected": "I was embarrassed by how easily they believed me.",
+      "quote": "embarrased",
+      "clean": false
+    },
+    {
+      "id": "spelling-07",
+      "category": "spelling",
+      "text": "The goverment of Ringobell met in the upper room.",
+      "expected": "The government of Ringobell met in the upper room.",
+      "quote": "goverment",
+      "clean": false
+    },
+    {
+      "id": "spelling-08",
+      "category": "spelling",
+      "text": "A dull headake throbbed behind my eyes.",
+      "expected": "A dull headache throbbed behind my eyes.",
+      "quote": "headake",
+      "clean": false
+    },
+    {
+      "id": "spelling-09",
+      "category": "spelling",
+      "text": "The mountain pass was narrow and trecherous.",
+      "expected": "The mountain pass was narrow and treacherous.",
+      "quote": "trecherous.",
+      "clean": false
+    },
+    {
+      "id": "spelling-10",
+      "category": "spelling",
+      "text": "He was inteligent, patient, and very tired.",
+      "expected": "He was intelligent, patient, and very tired.",
+      "quote": "inteligent,",
+      "clean": false
+    },
+    {
+      "id": "capital-01",
+      "category": "capital",
+      "text": "The road ran east toward the town of ringobell.",
+      "expected": "The road ran east toward the town of Ringobell.",
+      "quote": "ringobell.",
+      "clean": false
+    },
+    {
+      "id": "capital-02",
+      "category": "capital",
+      "text": "Xuan yuan raised his hand and the crowd went quiet.",
+      "expected": "Xuan Yuan raised his hand and the crowd went quiet.",
+      "quote": "yuan",
+      "clean": false
+    },
+    {
+      "id": "capital-03",
+      "category": "capital",
+      "text": "Du dong laughed until the rooftops shook.",
+      "expected": "Du Dong laughed until the rooftops shook.",
+      "quote": "dong",
+      "clean": false
+    },
+    {
+      "id": "capital-04",
+      "category": "capital",
+      "text": "They crossed the black mountain pass before dawn.",
+      "expected": "They crossed the Black Mountain pass before dawn.",
+      "quote": "black mountain",
+      "clean": false
+    },
+    {
+      "id": "capital-05",
+      "category": "capital",
+      "text": "The dao armor took a step and the street cracked.",
+      "expected": "The Dao Armor took a step and the street cracked.",
+      "quote": "dao armor",
+      "clean": false
+    },
+    {
+      "id": "capital-06",
+      "category": "capital",
+      "text": "He was a foundation class cultivator, or so the guards said.",
+      "expected": "He was a Foundation Class cultivator, or so the guards said.",
+      "quote": "foundation class",
+      "clean": false
+    },
+    {
+      "id": "capital-07",
+      "category": "capital",
+      "text": "The spell was called the punishment of heaven.",
+      "expected": "The spell was called the Punishment of Heaven.",
+      "quote": "punishment of heaven.",
+      "clean": false
+    },
+    {
+      "id": "capital-08",
+      "category": "capital",
+      "text": "She prayed at the shrine of saint elara.",
+      "expected": "She prayed at the shrine of Saint Elara.",
+      "quote": "saint elara.",
+      "clean": false
+    },
+    {
+      "id": "capital-09",
+      "category": "capital",
+      "text": "He had sailed from the port of san vero.",
+      "expected": "He had sailed from the port of San Vero.",
+      "quote": "san vero.",
+      "clean": false
+    },
+    {
+      "id": "capital-10",
+      "category": "capital",
+      "text": "The festival of the first snow was held in january.",
+      "expected": "The festival of the first snow was held in January.",
+      "quote": "january.",
+      "clean": false
+    },
+    {
+      "id": "preposition-01",
+      "category": "preposition",
+      "text": "Du Dong arrived to the crossroads a moment after the explosion.",
+      "expected": "Du Dong arrived at the crossroads a moment after the explosion.",
+      "quote": "to",
+      "clean": false
+    },
+    {
+      "id": "preposition-02",
+      "category": "preposition",
+      "text": "The scholar was married with a woman from the coast.",
+      "expected": "The scholar was married to a woman from the coast.",
+      "quote": "with",
+      "clean": false
+    },
+    {
+      "id": "preposition-03",
+      "category": "preposition",
+      "text": "The guards insisted in holding the line at the gate.",
+      "expected": "The guards insisted on holding the line at the gate.",
+      "quote": "in",
+      "clean": false
+    },
+    {
+      "id": "preposition-04",
+      "category": "preposition",
+      "text": "His methods were different than the ones we were taught.",
+      "expected": "His methods were different from the ones we were taught.",
+      "quote": "than",
+      "clean": false
+    },
+    {
+      "id": "preposition-05",
+      "category": "preposition",
+      "text": "I had not slept since two days before the attack.",
+      "expected": "I had not slept for two days before the attack.",
+      "quote": "since",
+      "clean": false
+    },
+    {
+      "id": "preposition-06",
+      "category": "preposition",
+      "text": "The captain was responsible of the eastern wall.",
+      "expected": "The captain was responsible for the eastern wall.",
+      "quote": "of",
+      "clean": false
+    },
+    {
+      "id": "preposition-07",
+      "category": "preposition",
+      "text": "I was used to wake before the sun in those days.",
+      "expected": "I was used to waking before the sun in those days.",
+      "quote": "wake",
+      "clean": false
+    },
+    {
+      "id": "preposition-08",
+      "category": "preposition",
+      "text": "Despite of the smoke, the guards held their formation.",
+      "expected": "Despite the smoke, the guards held their formation.",
+      "quote": "of",
+      "clean": false
+    },
+    {
+      "id": "preposition-09",
+      "category": "preposition",
+      "text": "He was good in reading the sky and the moods of crowds.",
+      "expected": "He was good at reading the sky and the moods of crowds.",
+      "quote": "in",
+      "clean": false
+    },
+    {
+      "id": "preposition-10",
+      "category": "preposition",
+      "text": "The council discussed about the armour until midnight.",
+      "expected": "The council discussed the armour until midnight.",
+      "quote": "about",
+      "clean": false
+    },
+    {
+      "id": "pronoun-01",
+      "category": "pronoun",
+      "text": "Their was a smell of burning in the room when I woke.",
+      "expected": "There was a smell of burning in the room when I woke.",
+      "quote": "Their",
+      "clean": false
+    },
+    {
+      "id": "pronoun-02",
+      "category": "pronoun",
+      "text": "Its a long walk from the town hall to the eastern gate.",
+      "expected": "It's a long walk from the town hall to the eastern gate.",
+      "quote": "Its",
+      "clean": false
+    },
+    {
+      "id": "pronoun-03",
+      "category": "pronoun",
+      "text": "Him and two guards dragged the beam across the road.",
+      "expected": "He and two guards dragged the beam across the road.",
+      "quote": "Him",
+      "clean": false
+    },
+    {
+      "id": "pronoun-04",
+      "category": "pronoun",
+      "text": "The armor lost it's balance when the second spell struck.",
+      "expected": "The armor lost its balance when the second spell struck.",
+      "quote": "it's",
+      "clean": false
+    },
+    {
+      "id": "pronoun-05",
+      "category": "pronoun",
+      "text": "Between you and I, the scholar looked frightened.",
+      "expected": "Between you and me, the scholar looked frightened.",
+      "quote": "I,",
+      "clean": false
+    },
+    {
+      "id": "pronoun-06",
+      "category": "pronoun",
+      "text": "Who's armour is standing in the middle of the square?",
+      "expected": "Whose armour is standing in the middle of the square?",
+      "quote": "Who's",
+      "clean": false
+    },
+    {
+      "id": "pronoun-07",
+      "category": "pronoun",
+      "text": "They handed the ledger to my mother and I.",
+      "expected": "They handed the ledger to my mother and me.",
+      "quote": "I.",
+      "clean": false
+    },
+    {
+      "id": "pronoun-08",
+      "category": "pronoun",
+      "text": "Your going to be late if you wait for the guards.",
+      "expected": "You're going to be late if you wait for the guards.",
+      "quote": "Your",
+      "clean": false
+    },
+    {
+      "id": "pronoun-09",
+      "category": "pronoun",
+      "text": "The dog wagged it's tail at every soldier who passed.",
+      "expected": "The dog wagged its tail at every soldier who passed.",
+      "quote": "it's",
+      "clean": false
+    },
+    {
+      "id": "pronoun-10",
+      "category": "pronoun",
+      "text": "The band lost they're way in the smoke.",
+      "expected": "The band lost their way in the smoke.",
+      "quote": "they're",
+      "clean": false
+    },
+    {
+      "id": "comparative-01",
+      "category": "comparative",
+      "text": "The eastern wall is more thicker than the western one.",
+      "expected": "The eastern wall is thicker than the western one.",
+      "quote": "more",
+      "clean": false
+    },
+    {
+      "id": "comparative-02",
+      "category": "comparative",
+      "text": "This winter is colder then the one before it.",
+      "expected": "This winter is colder than the one before it.",
+      "quote": "then",
+      "clean": false
+    },
+    {
+      "id": "comparative-03",
+      "category": "comparative",
+      "text": "She was the most kindest woman in Ringobell.",
+      "expected": "She was the kindest woman in Ringobell.",
+      "quote": "most",
+      "clean": false
+    },
+    {
+      "id": "comparative-04",
+      "category": "comparative",
+      "text": "His armour is gooder than ours and everyone knows it.",
+      "expected": "His armour is better than ours and everyone knows it.",
+      "quote": "gooder",
+      "clean": false
+    },
+    {
+      "id": "comparative-05",
+      "category": "comparative",
+      "text": "The second blast was more worse than the first.",
+      "expected": "The second blast was worse than the first.",
+      "quote": "more",
+      "clean": false
+    },
+    {
+      "id": "comparative-06",
+      "category": "comparative",
+      "text": "The armor moved more fast than any guard could run.",
+      "expected": "The armor moved faster than any guard could run.",
+      "quote": "more fast",
+      "clean": false
+    },
+    {
+      "id": "comparative-07",
+      "category": "comparative",
+      "text": "That was the worstest night of the whole siege.",
+      "expected": "That was the worst night of the whole siege.",
+      "quote": "worstest",
+      "clean": false
+    },
+    {
+      "id": "comparative-08",
+      "category": "comparative",
+      "text": "Her voice grew more louder as the smoke rose.",
+      "expected": "Her voice grew louder as the smoke rose.",
+      "quote": "more",
+      "clean": false
+    },
+    {
+      "id": "comparative-09",
+      "category": "comparative",
+      "text": "The northern road is more steep than I remembered.",
+      "expected": "The northern road is steeper than I remembered.",
+      "quote": "more steep",
+      "clean": false
+    },
+    {
+      "id": "comparative-10",
+      "category": "comparative",
+      "text": "He was the most tallest man in the square.",
+      "expected": "He was the tallest man in the square.",
+      "quote": "most",
+      "clean": false
+    },
+    {
+      "id": "missing-01",
+      "category": "missing",
+      "text": "She suggested to wait until the smoke cleared.",
+      "expected": "She suggested waiting until the smoke cleared.",
+      "quote": "to wait",
+      "clean": false
+    },
+    {
+      "id": "missing-02",
+      "category": "missing",
+      "text": "He was enough tired to sleep where he stood.",
+      "expected": "He was tired enough to sleep where he stood.",
+      "quote": "enough tired",
+      "clean": false
+    },
+    {
+      "id": "missing-03",
+      "category": "missing",
+      "text": "The armour was made of from obsidian and iron.",
+      "expected": "The armour was made of obsidian and iron.",
+      "quote": "from",
+      "clean": false
+    },
+    {
+      "id": "missing-04",
+      "category": "missing",
+      "text": "He asked me where was the town hall.",
+      "expected": "He asked me where the town hall was.",
+      "quote": "was the town hall.",
+      "clean": false
+    },
+    {
+      "id": "missing-05",
+      "category": "missing",
+      "text": "She said me that the eastern gate had fallen.",
+      "expected": "She told me that the eastern gate had fallen.",
+      "quote": "said",
+      "clean": false
+    },
+    {
+      "id": "missing-06",
+      "category": "missing",
+      "text": "I look forward to hear from the scholar again.",
+      "expected": "I look forward to hearing from the scholar again.",
+      "quote": "hear",
+      "clean": false
+    },
+    {
+      "id": "missing-07",
+      "category": "missing",
+      "text": "He walked into the the square without looking back.",
+      "expected": "He walked into the square without looking back.",
+      "quote": "the",
+      "clean": false
+    },
+    {
+      "id": "missing-08",
+      "category": "missing",
+      "text": "We arrived at home long after the fires had died.",
+      "expected": "We arrived home long after the fires had died.",
+      "quote": "at",
+      "clean": false
+    },
+    {
+      "id": "missing-09",
+      "category": "missing",
+      "text": "There was a good news waiting at the inn that night.",
+      "expected": "There was good news waiting at the inn that night.",
+      "quote": "a",
+      "clean": false
+    },
+    {
+      "id": "missing-10",
+      "category": "missing",
+      "text": "It was a such long winter that the well froze.",
+      "expected": "It was such a long winter that the well froze.",
+      "quote": "a such",
+      "clean": false
+    },
+    {
+      "id": "clean-01",
+      "category": "clean",
+      "text": "The smoke drifted over the rooftops of Ringobell, and somewhere a bell began to ring.",
+      "expected": "The smoke drifted over the rooftops of Ringobell, and somewhere a bell began to ring.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-02",
+      "category": "clean",
+      "text": "Xuan Yuan stood at the crossroads with a ledger in one hand and a spell ready in the other.",
+      "expected": "Xuan Yuan stood at the crossroads with a ledger in one hand and a spell ready in the other.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-03",
+      "category": "clean",
+      "text": "Du Dong laughed, and the sound rolled down the street like a cart on cobbles.",
+      "expected": "Du Dong laughed, and the sound rolled down the street like a cart on cobbles.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-04",
+      "category": "clean",
+      "text": "I had never seen a Foundation Class cultivator before, and I hoped never to see one again.",
+      "expected": "I had never seen a Foundation Class cultivator before, and I hoped never to see one again.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-05",
+      "category": "clean",
+      "text": "The guards formed a line behind their leader, and every one of them was pale.",
+      "expected": "The guards formed a line behind their leader, and every one of them was pale.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-06",
+      "category": "clean",
+      "text": "My mother worked at the town hall, which stood on the far side of the square.",
+      "expected": "My mother worked at the town hall, which stood on the far side of the square.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-07",
+      "category": "clean",
+      "text": "He was a tall man with long black hair and a neatly groomed mustache.",
+      "expected": "He was a tall man with long black hair and a neatly groomed mustache.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-08",
+      "category": "clean",
+      "text": "The black armor took a step forward, and the cobblestones cracked beneath it.",
+      "expected": "The black armor took a step forward, and the cobblestones cracked beneath it.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-09",
+      "category": "clean",
+      "text": "Its surface was engraved with symbols that pulsed with a pale, otherworldly light.",
+      "expected": "Its surface was engraved with symbols that pulsed with a pale, otherworldly light.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-10",
+      "category": "clean",
+      "text": "Someone in the crowd shouted that the protector of the city had arrived.",
+      "expected": "Someone in the crowd shouted that the protector of the city had arrived.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-11",
+      "category": "clean",
+      "text": "I tried to remember what this place was and what I had been doing here.",
+      "expected": "I tried to remember what this place was and what I had been doing here.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-12",
+      "category": "clean",
+      "text": "The floor was clean, and the air carried a pine fragrance with a hint of flowers.",
+      "expected": "The floor was clean, and the air carried a pine fragrance with a hint of flowers.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-13",
+      "category": "clean",
+      "text": "The water was cool and refreshing, and I drank until the cup was empty.",
+      "expected": "The water was cool and refreshing, and I drank until the cup was empty.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-14",
+      "category": "clean",
+      "text": "People ran in every direction, and no one looked at the man lying in the mud.",
+      "expected": "People ran in every direction, and no one looked at the man lying in the mud.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-15",
+      "category": "clean",
+      "text": "If the words of the man in black armor were true, the town would not survive the hour.",
+      "expected": "If the words of the man in black armor were true, the town would not survive the hour.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-16",
+      "category": "clean",
+      "text": "The golden palm of light crashed into the armor and burst into a cloud of dust.",
+      "expected": "The golden palm of light crashed into the armor and burst into a cloud of dust.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-17",
+      "category": "clean",
+      "text": "The elite guards had protected Ringobell from beasts and bandits for years.",
+      "expected": "The elite guards had protected Ringobell from beasts and bandits for years.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-18",
+      "category": "clean",
+      "text": "She will be home soon, and she will want to know what happened here.",
+      "expected": "She will be home soon, and she will want to know what happened here.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-19",
+      "category": "clean",
+      "text": "The fire tornado raged where the guards had stood, and the street fell silent.",
+      "expected": "The fire tornado raged where the guards had stood, and the street fell silent.",
+      "quote": "",
+      "clean": true
+    },
+    {
+      "id": "clean-20",
+      "category": "clean",
+      "text": "I turned to see who was speaking, and then the world went dark.",
+      "expected": "I turned to see who was speaking, and then the world went dark.",
+      "quote": "",
+      "clean": true
+    }
+  ]
+}

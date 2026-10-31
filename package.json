@@ -1,7 +1,7 @@
 {
   "name": "neo",
   "productName": "NEO",
-  "version": "1.6.0+fork.16",
+  "version": "1.6.0+fork.17",
   "description": "A word processor for authors. Distraction-free by default.",
   "homepage": "https://github.com/hughhowey/neo",
   "main": "main.js",
@@ -38,6 +38,8 @@
     "test:tags": "electron scripts/record-tags.e2e.js",
     "test:inventory": "electron scripts/inventory.e2e.js",
     "test:rephrase": "electron scripts/rephrase.e2e.js",
+    "test:grammar": "electron scripts/grammar.e2e.js",
+    "test:grammar-model": "node scripts/grammar-model.e2e.js",
     "test:history": "electron scripts/history.e2e.js",
     "test:interface-size": "electron scripts/interface-size.e2e.js"
   },

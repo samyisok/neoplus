@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add Grammar… for a selected passage: the local model lists grammar fixes and style advice, a board shows the corrected text, the original, and joined cards, and Replace applies only the fixes as one undoable edit recorded in History. (`2026-11-01-adr-017-grammar-analysis`)
 - Add Interface text to Settings: enlarge the text in the right pane's Records, Inventory, and History views, in dialogs, and in messages without enlarging their boxes, on its own scale beside Interface Size. (`2026-10-31-adr-016-ui-text-size`)
 - Add Interface Size to Settings → General: enlarge NEO's own interface (not the page) from 90% to 300%, with a live preview, Cancel and Save, the same value as View → Interface Size, and working in Simple NEO too. (`2026-10-31-adr-015-interface-size-setting`)
 - Add a read-only History tab to the right pane recording every replacement by Rephrase and the thesaurus, with both texts, the date, and the chapter number at the moment, stored with the book. (`2026-10-31-adr-014-history-tab`)

@@ -7,13 +7,11 @@
 'use strict';
 
 const crypto = require('crypto');
-const dns = require('dns');
-const endpointRules = require('./lib/rephrase-endpoint.js');
+const client = require('./llm-client.js');
 const promptRules = require('./lib/rephrase-prompt.js');
 
 const SECRET = 'rephrase-key';
 const SESSION_TTL = 5 * 60 * 1000;
-const TIMEOUT = 30000;
 
 let deps = null;
 const sessions = new Map();
@@ -50,53 +48,11 @@ function logReason(reason) {
   try { deps.logError && deps.logError('rephrase', new Error(reason)); } catch { /* logging is a nicety */ }
 }
 
-async function resolveEndpoint(raw, lookup = dns.promises.lookup) {
-  const rule = endpointRules.checkEndpoint(raw);
-  if (!rule.ok) return rule;
-  if (!rule.needsLookup) return rule;
-  try {
-    const answers = await lookup('localhost', { all: true });
-    const list = Array.isArray(answers) ? answers : [answers];
-    if (!list.length || !list.every((a) => endpointRules.isLoopbackAddress(a && a.address))) {
-      return fail('host');
-    }
-  } catch {
-    return fail('host');
-  }
-  return rule;
-}
-
 function cleanText(value, max) {
   return typeof value === 'string' ? value.slice(0, max) : '';
 }
 
-// The timeout covers the whole answer: a server that sends headers and then
-// stalls cannot leave a card (and its session) hanging forever.
-async function requestJson(url, options, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs || TIMEOUT);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    const text = await res.text();
-    let data = null;
-    try { data = JSON.parse(text); } catch { data = null; }
-    return { res, data };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function reasonForStatus(status, body) {
-  if (status === 401 || status === 403) return 'auth';
-  const detail = String((body && body.error && (body.error.code || body.error.message)) || '');
-  if (/model/i.test(detail)) return 'model';
-  if (status === 404) return 'notFound';
-  return 'http';
-}
-
 async function runOne(session, request_) {
-  const rule = await resolveEndpoint(session.endpoint, deps.lookup);
-  if (!rule.ok) return fail('endpoint');
   const profile = session.profiles[request_.profileId];
   if (!profile) return fail('profile');
   if (typeof request_.text !== 'string' || request_.text.length > promptRules.MAX_SELECTION) return fail('limits');
@@ -106,44 +62,19 @@ async function runOne(session, request_) {
   if ((typeof request_.before === 'string' && request_.before.length > promptRules.MAX_REFERENCE)
     || (typeof request_.after === 'string' && request_.after.length > promptRules.MAX_REFERENCE)) return fail('limits');
   if (!text.trim()) return fail('empty');
-  const ruleUrl = endpointRules.joinEndpoint(rule.url, '/chat/completions');
   const messages = promptRules.buildMessages({ settings: session, profile, text, before, after });
-  const key = keyOf();
-  const headers = { 'Content-Type': 'application/json' };
-  if (key) headers.Authorization = 'Bearer ' + key;
-  const body = JSON.stringify({
+  return client.postChat({
+    endpoint: session.endpoint,
     model: session.model,
-    messages: [{ role: 'system', content: messages.system }, { role: 'user', content: messages.user }],
+    key: keyOf(),
+    system: messages.system,
+    user: messages.user,
     temperature: 0.3,
-    top_p: 0.9,
-    max_tokens: 1200,
-    stream: false
+    maxTokens: 1200,
+    timeoutMs: deps.timeoutMs,
+    lookup: deps.lookup,
+    logReason
   });
-  let res;
-  let data = null;
-  try {
-    ({ res, data } = await requestJson(ruleUrl, {
-      method: 'POST', headers, body, redirect: 'manual'
-    }, deps.timeoutMs));
-  } catch (err) {
-    const reason = err && err.name === 'AbortError' ? 'timeout' : 'network';
-    logReason(reason);
-    return fail(reason);
-  }
-  if (res.status >= 300 && res.status < 400) return fail('endpoint');
-  try {
-    const finalUrl = new URL(res.url);
-    if (!endpointRules.checkEndpoint(finalUrl.toString()).ok) return fail('endpoint');
-  } catch { return fail('endpoint'); }
-  if (!res.ok) {
-    const reason = reasonForStatus(res.status, data);
-    logReason(reason);
-    return fail(reason);
-  }
-  const value = data && data.choices && data.choices[0] && data.choices[0].message
-    ? data.choices[0].message.content : '';
-  if (typeof value !== 'string' || !value.trim()) return fail('empty');
-  return { ok: true, text: value.trim() };
 }
 
 function expiry() {
@@ -153,14 +84,13 @@ function expiry() {
 
 function create(dependencies) {
   deps = dependencies || {};
-  if (!deps.lookup) deps.lookup = dns.promises.lookup;
   return { start, run, end, validate, testConnection, get, save };
 }
 
 async function start() {
   expiry();
   const settings = safeSettings();
-  const endpoint = await resolveEndpoint(settings.endpoint, deps.lookup);
+  const endpoint = await client.resolveEndpoint(settings.endpoint, deps.lookup);
   if (!endpoint.ok) return fail(endpoint.reason || 'endpoint');
   const id = 'rephrase-' + crypto.randomUUID();
   if (sessions.size >= 8) {
@@ -210,7 +140,7 @@ async function validate(value) {
     if (profile && typeof profile.instruction === 'string' && profile.instruction.length > promptRules.MAX_INSTRUCTION) return fail('limits');
   }
   const settings = promptRules.normalizeSettings(value);
-  const endpoint = await resolveEndpoint(settings.endpoint, deps.lookup);
+  const endpoint = await client.resolveEndpoint(settings.endpoint, deps.lookup);
   if (!endpoint.ok) return fail(endpoint.reason || 'endpoint');
   if (!settings.model.trim()) return fail('modelId');
   if (!settings.prompt.trim()) return fail('prompt');
@@ -247,24 +177,9 @@ function get() {
 
 async function testConnection(input) {
   const settings = safeSettings();
-  const raw = input && typeof input.endpoint === 'string' && input.endpoint ? input.endpoint : settings.endpoint;
-  const rule = await resolveEndpoint(raw, deps.lookup);
-  if (!rule.ok) return fail('endpoint');
+  const endpoint = input && typeof input.endpoint === 'string' && input.endpoint ? input.endpoint : settings.endpoint;
   const key = input && typeof input.key === 'string' && input.key ? input.key : keyOf();
-  const headers = {};
-  if (key) headers.Authorization = 'Bearer ' + key;
-  try {
-    const { res } = await requestJson(endpointRules.joinEndpoint(rule.url, '/models'), { method: 'GET', headers, redirect: 'manual' }, 5000);
-    if (res.status >= 300 && res.status < 400) return fail('endpoint');
-    try {
-      if (!endpointRules.checkEndpoint(new URL(res.url).toString()).ok) return fail('endpoint');
-    } catch { return fail('endpoint'); }
-    if (res.status === 401 || res.status === 403) return fail('auth');
-    if (!res.ok) return fail('http');
-    return { ok: true };
-  } catch (err) {
-    return fail(err && err.name === 'AbortError' ? 'timeout' : 'network');
-  }
+  return client.probe({ endpoint, key, lookup: deps.lookup, timeoutMs: 5000 });
 }
 
 function init(dependencies, ipcMain) {

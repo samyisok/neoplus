@@ -27,6 +27,8 @@
     http: 'The local model refused the request.',
     notFound: 'The endpoint or model was not found. Check Settings → AI.',
     empty: 'The local model returned nothing.',
+    large: 'The local model returned too much text.',
+    cancelled: 'That request was cancelled.',
     context: 'The reply repeated the surrounding text.',
     continuation: 'The reply continued the story instead of rewriting it.',
     short: 'The reply was not the right size.',

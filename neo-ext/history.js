@@ -51,7 +51,7 @@
     render();
   }
 
-  const TOOL_LABELS = { rephrase: 'Rephrase', thesaurus: 'Thesaurus' };
+  const TOOL_LABELS = { rephrase: 'Rephrase', thesaurus: 'Thesaurus', grammar: 'Grammar' };
 
   function toolLabel(tool) {
     const known = TOOL_LABELS[tool];
@@ -111,7 +111,7 @@
     }
     const entries = model.sorted(state.store.entries || []);
     if (!entries.length) {
-      list.append(el('p', 'neo-hist-empty', x('No replacements recorded yet. Rephrase and the thesaurus record what they change here.')));
+      list.append(el('p', 'neo-hist-empty', x('No replacements recorded yet. Rephrase, Grammar, and the thesaurus record what they change here.')));
       return;
     }
     for (const entry of entries) list.append(row(entry));

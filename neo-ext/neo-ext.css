@@ -789,3 +789,116 @@ body.light { --rule: rgba(0, 0, 0, 0.18); }
   height: calc(28px * var(--ui-text, 1));
 }
 .neo-ext-profile { grid-template-columns: calc(9rem * var(--ui-text, 1)) 1fr calc(1.8rem * var(--ui-text, 1)); }
+
+/* ── adr-017: grammar review ───────────────────────────────────────────── */
+.neo-grammar-backdrop { z-index: 9000; }
+.neo-grammar {
+  width: min(60rem, calc(100vw / var(--ui-zoom, 1) - 2.5rem));
+  max-height: min(calc(90vh / var(--ui-zoom, 1)), 56rem);
+  display: flex; flex-direction: column; gap: 8px; position: relative;
+}
+.neo-grammar-title { margin: 0; padding-right: 30px; font-size: calc(15px * var(--ui-text, 1)); font-weight: 600; }
+.neo-grammar-close {
+  position: absolute; top: 6px; right: 6px; border: 0; background: none; color: var(--muted);
+  width: calc(28px * var(--ui-text, 1)); height: calc(28px * var(--ui-text, 1));
+  font: inherit; font-size: calc(20px * var(--ui-text, 1)); line-height: 1; cursor: pointer;
+}
+.neo-grammar-content { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.neo-grammar-top { display: flex; flex-direction: column; gap: 6px; }
+.neo-grammar-corrected {
+  border: 1px solid var(--rule, rgba(255,255,255,0.16)); border-radius: 6px;
+  padding: 8px 10px; background: rgba(255,255,255,0.03);
+}
+.neo-grammar-label {
+  margin: 0 0 4px; color: var(--muted); font-size: calc(10px * var(--ui-text, 1));
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.neo-grammar-text {
+  font-size: calc(13px * var(--ui-text, 1)); line-height: 1.6;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.neo-grammar-green { background: rgba(94, 170, 112, 0.28); border-radius: 2px; }
+.neo-grammar-red { background: rgba(220, 90, 90, 0.14); border-bottom: 1px solid rgba(220, 90, 90, 0.9); }
+.neo-grammar-yellow { background: rgba(220, 180, 70, 0.14); border-bottom: 1px solid rgba(220, 180, 70, 0.9); }
+.neo-grammar-style {
+  align-self: flex-start; margin-top: 2px; font: inherit; font-size: calc(12px * var(--ui-text, 1));
+  padding: 4px 10px; border-radius: 5px; border: 1px solid var(--rule, rgba(255,255,255,0.2));
+  background: none; color: inherit; cursor: pointer;
+}
+.neo-grammar-style:hover { border-color: var(--accent); color: var(--accent); }
+.neo-grammar-style:disabled { opacity: 0.45; cursor: default; color: inherit; border-color: var(--rule, rgba(255,255,255,0.2)); }
+/* The text keeps the full width and the cards sit under it, on the right, so the
+   connector lines come down to a card's top edge instead of crossing the words. */
+.neo-grammar-body {
+  position: relative; flex: 1 1 auto; min-height: 12rem; overflow: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.neo-grammar-original { min-width: 0; }
+/* A few cards to a row under the text, so a long review is scanned across rather
+   than down a single column. */
+.neo-grammar-cards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 6px; min-width: 0; width: 100%; max-height: 45%; overflow: auto;
+  /* Empty room under the text, so a connector line travels through the gap
+     instead of across the lines of the paragraph. */
+  margin-top: 34px;
+}
+.neo-grammar-card {
+  display: grid; grid-template-columns: 1.8rem 1fr; gap: 2px 8px; align-items: start;
+  border: 1px solid var(--rule, rgba(255,255,255,0.16)); border-top: 2px solid #c05a5a;
+  border-radius: 0 0 6px 6px; padding: 6px 8px;
+}
+.neo-grammar-card[data-kind="style"] { border-top-color: #b99a3e; }
+/* An inserted word has nothing to mark, so its card joins a caret at the gap. */
+.neo-grammar-caret {
+  display: inline-block; width: 2px; height: 1em; vertical-align: text-bottom;
+  border-radius: 1px; background: rgba(220, 90, 90, 0.45);
+}
+.neo-grammar-num {
+  grid-row: span 3; color: var(--muted); font-size: calc(11px * var(--ui-text, 1));
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.neo-grammar-quote { font-size: calc(12px * var(--ui-text, 1)); font-weight: 600; overflow-wrap: anywhere; }
+.neo-grammar-change { color: var(--accent); font-size: calc(11px * var(--ui-text, 1)); overflow-wrap: anywhere; }
+.neo-grammar-why { color: var(--muted); font-size: calc(11px * var(--ui-text, 1)); line-height: 1.45; overflow-wrap: anywhere; }
+.neo-grammar-not-applied {
+  color: #d97b6c; font-size: calc(10px * var(--ui-text, 1));
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.neo-grammar-status { margin: 0; min-height: 1.2em; color: var(--muted); font-size: calc(11px * var(--ui-text, 1)); }
+.neo-grammar-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.neo-grammar-cancel, .neo-grammar-replace {
+  font: inherit; font-size: calc(12px * var(--ui-text, 1)); padding: 5px 12px; border-radius: 5px;
+  border: 1px solid var(--rule, rgba(255,255,255,0.2)); background: none; color: inherit; cursor: pointer;
+}
+.neo-grammar-replace { border-color: var(--accent); color: var(--accent); }
+.neo-grammar-replace:disabled { opacity: 0.4; cursor: default; }
+.neo-grammar-lines { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+.neo-grammar-line { fill: none; stroke-width: 1.2; }
+.neo-grammar-line-grammar { stroke: #c05a5a; }
+.neo-grammar-line-style { stroke: #b99a3e; }
+.neo-grammar-loading, .neo-grammar-failure { margin: 6px 0; color: var(--muted); font-size: calc(12px * var(--ui-text, 1)); }
+/* It is focused so a screen reader reads the wait, but a focus ring around a
+   sentence looks like a selection box. */
+.neo-grammar-loading:focus, .neo-grammar-loading:focus-visible { outline: none; }
+.neo-grammar-retry {
+  border: 0; background: none; padding: 0; color: var(--accent);
+  font: inherit; font-size: calc(11px * var(--ui-text, 1)); text-decoration: underline; cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .neo-grammar-body { grid-template-columns: 1fr; }
+  .neo-grammar-lines { display: none; }
+}
+
+/* The board is a flex column so the action row stays on screen at every size;
+   only the corrected block and the original/cards column share the room. */
+.neo-grammar-content { overflow: hidden; }
+.neo-grammar-board { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.neo-grammar .neo-grammar-body { flex: 1 1 auto; min-height: 0; }
+
+.neo-grammar-notice { margin: 0; color: var(--muted); font-size: calc(11px * var(--ui-text, 1)); }
+.neo-grammar-narrow .neo-grammar-cards { grid-template-columns: 1fr; }
+.neo-grammar-narrow .neo-grammar-lines { display: none; }
+
+/* Overrides the min-height above so the flex column can shrink at 300%. */

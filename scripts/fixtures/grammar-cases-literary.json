@@ -1,0 +1,1086 @@
+{
+  "version": 1,
+  "corpus": "literary",
+  "cases": [
+    {
+      "id": "tense-01",
+      "category": "tense",
+      "text": "She lit the lamp and setted it on the sill.",
+      "expected": "She lit the lamp and set it on the sill.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-02",
+      "category": "tense",
+      "text": "He had wrote three letters before the post came.",
+      "expected": "He had written three letters before the post came.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-03",
+      "category": "tense",
+      "text": "The old man sitted by the fire and watched the embers.",
+      "expected": "The old man sat by the fire and watched the embers.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-04",
+      "category": "tense",
+      "text": "They had drank the last of the wine before the storm broke.",
+      "expected": "They had drunk the last of the wine before the storm broke.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-05",
+      "category": "tense",
+      "text": "The bell ringed twice, and the hall fell silent.",
+      "expected": "The bell rang twice, and the hall fell silent.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-06",
+      "category": "tense",
+      "text": "She has spoke of the coast so often that I dream of it.",
+      "expected": "She has spoken of the coast so often that I dream of it.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-07",
+      "category": "tense",
+      "text": "The boat sunk beneath the grey water before we reached the pier.",
+      "expected": "The boat sank beneath the grey water before we reached the pier.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-08",
+      "category": "tense",
+      "text": "By winter, the garden had growed wild and untended.",
+      "expected": "By winter, the garden had grown wild and untended.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-09",
+      "category": "tense",
+      "text": "He had went to the harbour before dawn.",
+      "expected": "He had gone to the harbour before dawn.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-10",
+      "category": "tense",
+      "text": "The letter was wrote in a hand I did not know.",
+      "expected": "The letter was written in a hand I did not know.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-01",
+      "category": "agreement",
+      "text": "The crate of apples were stacked by the door.",
+      "expected": "The crate of apples was stacked by the door.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-02",
+      "category": "agreement",
+      "text": "Her sisters, who had come down from the north, was waiting in the hall.",
+      "expected": "Her sisters, who had come down from the north, were waiting in the hall.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-03",
+      "category": "agreement",
+      "text": "Each of the lamps burn with a small, steady flame.",
+      "expected": "Each of the lamps burns with a small, steady flame.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-04",
+      "category": "agreement",
+      "text": "There is three ways out of the valley, and only one leads home.",
+      "expected": "There are three ways out of the valley, and only one leads home.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-05",
+      "category": "agreement",
+      "text": "The flock of birds scatter over the water as the boat nears.",
+      "expected": "The flock of birds scatters over the water as the boat nears.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-06",
+      "category": "agreement",
+      "text": "One of the letters have been lost in the crossing.",
+      "expected": "One of the letters has been lost in the crossing.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-07",
+      "category": "agreement",
+      "text": "The sound of voices and laughter were louder than the fire.",
+      "expected": "The sound of voices and laughter was louder than the fire.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-08",
+      "category": "agreement",
+      "text": "The herd move slowly across the plain at dusk.",
+      "expected": "The herd moves slowly across the plain at dusk.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-09",
+      "category": "agreement",
+      "text": "The number of ships in the harbour have doubled since spring.",
+      "expected": "The number of ships in the harbour has doubled since spring.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-10",
+      "category": "agreement",
+      "text": "He, and not his brothers, were chosen to speak.",
+      "expected": "He, and not his brothers, was chosen to speak.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-01",
+      "category": "article",
+      "text": "He was old fisherman who mended his nets in the grey light.",
+      "expected": "He was an old fisherman who mended his nets in the grey light.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-02",
+      "category": "article",
+      "text": "She spoke with a honesty that unsettled them all.",
+      "expected": "She spoke with an honesty that unsettled them all.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-03",
+      "category": "article",
+      "text": "They lived in house at the edge of the marsh.",
+      "expected": "They lived in a house at the edge of the marsh.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-04",
+      "category": "article",
+      "text": "It was hour before the boat came back.",
+      "expected": "It was an hour before the boat came back.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-05",
+      "category": "article",
+      "text": "He walked with air of a man who had lost everything.",
+      "expected": "He walked with the air of a man who had lost everything.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-06",
+      "category": "article",
+      "text": "She was only child, and the house was quiet.",
+      "expected": "She was an only child, and the house was quiet.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-07",
+      "category": "article",
+      "text": "He feels like stranger in his own kitchen.",
+      "expected": "He feels like a stranger in his own kitchen.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-08",
+      "category": "article",
+      "text": "It was unique chance to see the coast from the water.",
+      "expected": "It was a unique chance to see the coast from the water.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-09",
+      "category": "article",
+      "text": "She kept umbrella by the door, though rain was rare.",
+      "expected": "She kept an umbrella by the door, though rain was rare.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-10",
+      "category": "article",
+      "text": "He was honourable man, and he paid what he owed.",
+      "expected": "He was an honourable man, and he paid what he owed.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-01",
+      "category": "plural",
+      "text": "The sheeps crowded the gate at dusk.",
+      "expected": "The sheep crowded the gate at dusk.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-02",
+      "category": "plural",
+      "text": "Three man came down the road with lanterns.",
+      "expected": "Three men came down the road with lanterns.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-03",
+      "category": "plural",
+      "text": "He found two mouses in the grain sack.",
+      "expected": "He found two mice in the grain sack.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-04",
+      "category": "plural",
+      "text": "The roofs of the village houses were covered with leafs.",
+      "expected": "The roofs of the village houses were covered with leaves.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-05",
+      "category": "plural",
+      "text": "She cut the loafs into thick slices.",
+      "expected": "She cut the loaves into thick slices.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-06",
+      "category": "plural",
+      "text": "The childrens played at the water's edge.",
+      "expected": "The children played at the water's edge.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-07",
+      "category": "plural",
+      "text": "He dragged his foots through the snow.",
+      "expected": "He dragged his feet through the snow.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-08",
+      "category": "plural",
+      "text": "The wolves watched from the treeline, and the sheeps stayed near the fire.",
+      "expected": "The wolves watched from the treeline, and the sheep stayed near the fire.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-09",
+      "category": "plural",
+      "text": "Two deers crossed the path before him.",
+      "expected": "Two deer crossed the path before him.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-10",
+      "category": "plural",
+      "text": "The knifes on the table were dull.",
+      "expected": "The knives on the table were dull.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-01",
+      "category": "spelling",
+      "text": "The lantern cast a definately narrow light.",
+      "expected": "The lantern cast a definitely narrow light.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-02",
+      "category": "spelling",
+      "text": "He recieved the news without a word.",
+      "expected": "He received the news without a word.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-03",
+      "category": "spelling",
+      "text": "The accident occured at the bend of the river.",
+      "expected": "The accident occurred at the bend of the river.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-04",
+      "category": "spelling",
+      "text": "She kept her grief seperate from her work.",
+      "expected": "She kept her grief separate from her work.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-05",
+      "category": "spelling",
+      "text": "The inn could accomodate twelve guests.",
+      "expected": "The inn could accommodate twelve guests.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-06",
+      "category": "spelling",
+      "text": "He was embarrased by the praise.",
+      "expected": "He was embarrassed by the praise.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-07",
+      "category": "spelling",
+      "text": "The goverment of the little town changed twice that year.",
+      "expected": "The government of the little town changed twice that year.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-08",
+      "category": "spelling",
+      "text": "A terrible headake kept her from the service.",
+      "expected": "A terrible headache kept her from the service.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-09",
+      "category": "spelling",
+      "text": "The pass was narrow and trecherous.",
+      "expected": "The pass was narrow and treacherous.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-10",
+      "category": "spelling",
+      "text": "She was inteligent, patient, and very tired.",
+      "expected": "She was intelligent, patient, and very tired.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-01",
+      "category": "capital",
+      "text": "The river ran west toward the atlantic.",
+      "expected": "The river ran west toward the Atlantic.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-02",
+      "category": "capital",
+      "text": "He had sailed from the port of marseille.",
+      "expected": "He had sailed from the port of Marseille.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-03",
+      "category": "capital",
+      "text": "The old church was built in the norman style.",
+      "expected": "The old church was built in the Norman style.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-04",
+      "category": "capital",
+      "text": "She read from the gospel of saint john.",
+      "expected": "She read from the gospel of Saint John.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-05",
+      "category": "capital",
+      "text": "The road led north through the sahara.",
+      "expected": "The road led north through the Sahara.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-06",
+      "category": "capital",
+      "text": "His mother was born in county clare.",
+      "expected": "His mother was born in County Clare.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-07",
+      "category": "capital",
+      "text": "The letter mentioned the treaty of versailles.",
+      "expected": "The letter mentioned the treaty of Versailles.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-08",
+      "category": "capital",
+      "text": "They reached the black sea after two days.",
+      "expected": "They reached the Black Sea after two days.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-09",
+      "category": "capital",
+      "text": "He spoke french with a coastal accent.",
+      "expected": "He spoke French with a coastal accent.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-10",
+      "category": "capital",
+      "text": "The festival fell in the month of ramadan.",
+      "expected": "The festival fell in the month of Ramadan.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-01",
+      "category": "preposition",
+      "text": "She arrived to the harbour at dusk.",
+      "expected": "She arrived at the harbour at dusk.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-02",
+      "category": "preposition",
+      "text": "He was married with a woman from the north.",
+      "expected": "He was married to a woman from the north.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-03",
+      "category": "preposition",
+      "text": "They insisted in walking home through the storm.",
+      "expected": "They insisted on walking home through the storm.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-04",
+      "category": "preposition",
+      "text": "The village is famous for its bridge, different than the others.",
+      "expected": "The village is famous for its bridge, different from the others.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-05",
+      "category": "preposition",
+      "text": "He had worked the boats since thirty years.",
+      "expected": "He had worked the boats for thirty years.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-06",
+      "category": "preposition",
+      "text": "She was responsible of the grain stores.",
+      "expected": "She was responsible for the grain stores.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-07",
+      "category": "preposition",
+      "text": "I am used to walk the cliffs before dawn.",
+      "expected": "I am used to walking the cliffs before dawn.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-08",
+      "category": "preposition",
+      "text": "Despite of the fog, the boats went out.",
+      "expected": "Despite the fog, the boats went out.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-09",
+      "category": "preposition",
+      "text": "He is good in reading weather.",
+      "expected": "He is good at reading weather.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-10",
+      "category": "preposition",
+      "text": "They discussed about the harvest until midnight.",
+      "expected": "They discussed the harvest until midnight.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-01",
+      "category": "pronoun",
+      "text": "Their was no light in the window when I passed.",
+      "expected": "There was no light in the window when I passed.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-02",
+      "category": "pronoun",
+      "text": "Its a long walk to the harbour from here.",
+      "expected": "It's a long walk to the harbour from here.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-03",
+      "category": "pronoun",
+      "text": "Him and his brother rowed out at dawn.",
+      "expected": "He and his brother rowed out at dawn.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-04",
+      "category": "pronoun",
+      "text": "The boat lost it's rudder in the squall.",
+      "expected": "The boat lost its rudder in the squall.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-05",
+      "category": "pronoun",
+      "text": "Between you and I, the harvest will fail.",
+      "expected": "Between you and me, the harvest will fail.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-06",
+      "category": "pronoun",
+      "text": "Who's coat is hanging by the fire?",
+      "expected": "Whose coat is hanging by the fire?",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-07",
+      "category": "pronoun",
+      "text": "They gave the last lantern to my sister and I.",
+      "expected": "They gave the last lantern to my sister and me.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-08",
+      "category": "pronoun",
+      "text": "Your going to miss the tide.",
+      "expected": "You're going to miss the tide.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-09",
+      "category": "pronoun",
+      "text": "The dog wagged it's tail at every stranger.",
+      "expected": "The dog wagged its tail at every stranger.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-10",
+      "category": "pronoun",
+      "text": "The crew lost they're way in the fog.",
+      "expected": "The crew lost their way in the fog.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-01",
+      "category": "comparative",
+      "text": "The north road is more shorter than the coast road.",
+      "expected": "The north road is shorter than the coast road.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-02",
+      "category": "comparative",
+      "text": "This winter is colder then the last.",
+      "expected": "This winter is colder than the last.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-03",
+      "category": "comparative",
+      "text": "She was the most kindest woman in the village.",
+      "expected": "She was the kindest woman in the village.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-04",
+      "category": "comparative",
+      "text": "His boat is gooder than mine.",
+      "expected": "His boat is better than mine.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-05",
+      "category": "comparative",
+      "text": "The second storm was more worse than the first.",
+      "expected": "The second storm was worse than the first.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-06",
+      "category": "comparative",
+      "text": "He rowed more fast than his brother.",
+      "expected": "He rowed faster than his brother.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-07",
+      "category": "comparative",
+      "text": "The eastern cliff is the most dangerousest.",
+      "expected": "The eastern cliff is the most dangerous.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-08",
+      "category": "comparative",
+      "text": "That was the worse night of the winter.",
+      "expected": "That was the worst night of the winter.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-09",
+      "category": "comparative",
+      "text": "Her voice grew more louder in the hall.",
+      "expected": "Her voice grew louder in the hall.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-10",
+      "category": "comparative",
+      "text": "The path was more steep than I remembered.",
+      "expected": "The path was steeper than I remembered.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-01",
+      "category": "missing",
+      "text": "She suggested to wait until the tide turned.",
+      "expected": "She suggested waiting until the tide turned.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-02",
+      "category": "missing",
+      "text": "He was enough tired to sleep where he stood.",
+      "expected": "He was tired enough to sleep where he stood.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-03",
+      "category": "missing",
+      "text": "The both of them rowed in silence.",
+      "expected": "Both of them rowed in silence.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-04",
+      "category": "missing",
+      "text": "He asked me where was the boat kept.",
+      "expected": "He asked me where the boat was kept.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-05",
+      "category": "missing",
+      "text": "She said me that the road was closed.",
+      "expected": "She told me that the road was closed.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-06",
+      "category": "missing",
+      "text": "I look forward to hear from you.",
+      "expected": "I look forward to hearing from you.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-07",
+      "category": "missing",
+      "text": "He made me to carry the nets.",
+      "expected": "He made me carry the nets.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-08",
+      "category": "missing",
+      "text": "We arrived at home long after dark.",
+      "expected": "We arrived home long after dark.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-09",
+      "category": "missing",
+      "text": "There was a good news waiting at the inn.",
+      "expected": "There was good news waiting at the inn.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-10",
+      "category": "missing",
+      "text": "It was a such long winter that the river froze.",
+      "expected": "It was such a long winter that the river froze.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "clean-01",
+      "category": "clean",
+      "text": "The lantern threw a small yellow circle on the wet stones, and the rain went on.",
+      "expected": "The lantern threw a small yellow circle on the wet stones, and the rain went on.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-02",
+      "category": "clean",
+      "text": "She had come from the north with nothing but a coat and a letter.",
+      "expected": "She had come from the north with nothing but a coat and a letter.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-03",
+      "category": "clean",
+      "text": "By the time the boats returned, the tide had turned and the sky had cleared.",
+      "expected": "By the time the boats returned, the tide had turned and the sky had cleared.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-04",
+      "category": "clean",
+      "text": "He was a tall man, quiet in the way of those who have spent years at sea.",
+      "expected": "He was a tall man, quiet in the way of those who have spent years at sea.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-05",
+      "category": "clean",
+      "text": "The village kept its dead in a small walled yard above the water.",
+      "expected": "The village kept its dead in a small walled yard above the water.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-06",
+      "category": "clean",
+      "text": "No one spoke of the winter of the drowned sheep.",
+      "expected": "No one spoke of the winter of the drowned sheep.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-07",
+      "category": "clean",
+      "text": "Its rigging sang in the wind, and the hull answered with a low groan.",
+      "expected": "Its rigging sang in the wind, and the hull answered with a low groan.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-08",
+      "category": "clean",
+      "text": "She learned to read the weather before she learned to read words.",
+      "expected": "She learned to read the weather before she learned to read words.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-09",
+      "category": "clean",
+      "text": "The road to the harbour was narrow, rutted, and always wet.",
+      "expected": "The road to the harbour was narrow, rutted, and always wet.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-10",
+      "category": "clean",
+      "text": "There were three lamps in the window, and all of them were burning.",
+      "expected": "There were three lamps in the window, and all of them were burning.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-11",
+      "category": "clean",
+      "text": "He had written the letter twice and burned the first one.",
+      "expected": "He had written the letter twice and burned the first one.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-12",
+      "category": "clean",
+      "text": "Between the cliffs and the sea there was only a strip of grey shingle.",
+      "expected": "Between the cliffs and the sea there was only a strip of grey shingle.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-13",
+      "category": "clean",
+      "text": "The child carried water from the well without being asked.",
+      "expected": "The child carried water from the well without being asked.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-14",
+      "category": "clean",
+      "text": "She was the kindest woman in the village, and the most stubborn.",
+      "expected": "She was the kindest woman in the village, and the most stubborn.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-15",
+      "category": "clean",
+      "text": "They waited for the fog to lift, and it did not lift until noon.",
+      "expected": "They waited for the fog to lift, and it did not lift until noon.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-16",
+      "category": "clean",
+      "text": "The older fishermen said the tide would turn before dark.",
+      "expected": "The older fishermen said the tide would turn before dark.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-17",
+      "category": "clean",
+      "text": "He kept his father's knife in a leather sheath at his belt.",
+      "expected": "He kept his father's knife in a leather sheath at his belt.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-18",
+      "category": "clean",
+      "text": "Every door on the street was shut, and every window was dark.",
+      "expected": "Every door on the street was shut, and every window was dark.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-19",
+      "category": "clean",
+      "text": "She had never seen the sea calm in that season.",
+      "expected": "She had never seen the sea calm in that season.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-20",
+      "category": "clean",
+      "text": "The church bell rang twice, then stopped as though ashamed.",
+      "expected": "The church bell rang twice, then stopped as though ashamed.",
+      "before": "",
+      "after": "",
+      "clean": true
+    }
+  ]
+}

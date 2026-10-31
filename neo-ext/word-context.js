@@ -111,7 +111,7 @@
     } catch { return null; }
   }
 
-  function storePhrase(context, rephrase) {
+  function storePhrase(context, rephrase, grammar) {
     const api = bridge();
     if (!api || typeof api.setContextPhrase !== 'function') return;
     const anchor = anchorFor(context);
@@ -124,7 +124,8 @@
       anchor,
       !!anchor && inventoryReady(),
       !!context && recordsReady(),
-      !!rephrase
+      !!rephrase,
+      !!grammar
     );
     phraseStored = true;
   }
@@ -219,8 +220,13 @@
         rephrase = !!(window.NeoRephrase && window.NeoRephrase.capture
           ? window.NeoRephrase.capture(full) : false);
       } catch { rephrase = false; }
+      let grammar = false;
+      try {
+        grammar = !!(window.NeoGrammar && window.NeoGrammar.capture
+          ? window.NeoGrammar.capture(full) : false);
+      } catch { grammar = false; }
       const context = selectionContext(event);
-      if (context || rephrase) storePhrase(context, rephrase);
+      if (context || rephrase || grammar) storePhrase(context, rephrase, grammar);
       const editor = event.target && event.target.closest && event.target.closest(EDITOR);
       if (!editor || !editor.isContentEditable || !menuAllowed()) {
         clearWord();
@@ -293,6 +299,9 @@
     if (pending && pending.selected && window.NeoRephrase && window.NeoRephrase.has()) {
       offered.push({ label: (window.NeoExt && window.NeoExt.x ? window.NeoExt.x('Rephrase…') : 'Rephrase…'), value: 'rephrase-open' });
     }
+    if (pending && pending.selected && window.NeoGrammar && window.NeoGrammar.has()) {
+      offered.push({ label: (window.NeoExt && window.NeoExt.x ? window.NeoExt.x('Grammar…') : 'Grammar…'), value: 'grammar-open' });
+    }
     for (const entry of features()) {
       let item = null;
       try { item = entry.feature.lookUpItem(word); } catch { item = null; }
@@ -310,6 +319,10 @@
   function lookUpChoice(choice, word) {
     if (choice === 'rephrase-open') {
       try { window.NeoRephrase && window.NeoRephrase.openPending(); } catch { /* the page moved on */ }
+      return;
+    }
+    if (choice === 'grammar-open') {
+      try { window.NeoGrammar && window.NeoGrammar.openPending(); } catch { /* the page moved on */ }
       return;
     }
     if (choice === 'inventory-open') {

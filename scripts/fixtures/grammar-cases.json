@@ -1,0 +1,1088 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "tense-01",
+      "category": "tense",
+      "text": "He walk to the store yesterday.",
+      "expected": "He walked to the store yesterday.",
+      "before": "The previous day had been long.",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-02",
+      "category": "tense",
+      "text": "She runned home quickly.",
+      "expected": "She ran home quickly.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-03",
+      "category": "tense",
+      "text": "I have went to Paris.",
+      "expected": "I have gone to Paris.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-04",
+      "category": "tense",
+      "text": "The book was wrote by him.",
+      "expected": "The book was written by him.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-05",
+      "category": "tense",
+      "text": "They goed to the beach last week.",
+      "expected": "They went to the beach last week.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-06",
+      "category": "tense",
+      "text": "She has ate dinner already.",
+      "expected": "She has eaten dinner already.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-07",
+      "category": "tense",
+      "text": "We seen the movie last night.",
+      "expected": "We saw the movie last night.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-08",
+      "category": "tense",
+      "text": "He don't have a car.",
+      "expected": "He doesn't have a car.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-09",
+      "category": "tense",
+      "text": "I could of done it.",
+      "expected": "I could have done it.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "tense-10",
+      "category": "tense",
+      "text": "She swimmed in the lake.",
+      "expected": "She swam in the lake.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-01",
+      "category": "agreement",
+      "text": "She don't like coffee.",
+      "expected": "She doesn't like coffee.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-02",
+      "category": "agreement",
+      "text": "The dogs is barking.",
+      "expected": "The dogs are barking.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-03",
+      "category": "agreement",
+      "text": "We was late for the meeting.",
+      "expected": "We were late for the meeting.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-04",
+      "category": "agreement",
+      "text": "The news are bad.",
+      "expected": "The news is bad.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-05",
+      "category": "agreement",
+      "text": "One of my friend is here.",
+      "expected": "One of my friends is here.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-06",
+      "category": "agreement",
+      "text": "Each of the students are ready.",
+      "expected": "Each of the students is ready.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-07",
+      "category": "agreement",
+      "text": "He don't know the answer.",
+      "expected": "He doesn't know the answer.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-08",
+      "category": "agreement",
+      "text": "The box of books are heavy.",
+      "expected": "The box of books is heavy.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-09",
+      "category": "agreement",
+      "text": "There is three dogs.",
+      "expected": "There are three dogs.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "agreement-10",
+      "category": "agreement",
+      "text": "Each of the boys have a ball.",
+      "expected": "Each of the boys has a ball.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-01",
+      "category": "article",
+      "text": "I saw a apple on the table.",
+      "expected": "I saw an apple on the table.",
+      "before": "The market was busy.",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-02",
+      "category": "article",
+      "text": "He was slim young man.",
+      "expected": "He was a slim young man.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-03",
+      "category": "article",
+      "text": "She is best student in class.",
+      "expected": "She is the best student in class.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-04",
+      "category": "article",
+      "text": "We waited for hour.",
+      "expected": "We waited for an hour.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-05",
+      "category": "article",
+      "text": "He bought a umbrella.",
+      "expected": "He bought an umbrella.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-06",
+      "category": "article",
+      "text": "He is honest man.",
+      "expected": "He is an honest man.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-07",
+      "category": "article",
+      "text": "I need pen.",
+      "expected": "I need a pen.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-08",
+      "category": "article",
+      "text": "It was unique opportunity.",
+      "expected": "It was a unique opportunity.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-09",
+      "category": "article",
+      "text": "He is European citizen.",
+      "expected": "He is a European citizen.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "article-10",
+      "category": "article",
+      "text": "She has MBA.",
+      "expected": "She has an MBA.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-01",
+      "category": "plural",
+      "text": "He bought two loaf of bread.",
+      "expected": "He bought two loaves of bread.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-02",
+      "category": "plural",
+      "text": "The childs are outside.",
+      "expected": "The children are outside.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-03",
+      "category": "plural",
+      "text": "The deers are grazing.",
+      "expected": "The deer are grazing.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-04",
+      "category": "plural",
+      "text": "She has many mouses.",
+      "expected": "She has many mice.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-05",
+      "category": "plural",
+      "text": "There are five womans.",
+      "expected": "There are five women.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-06",
+      "category": "plural",
+      "text": "He ate two sandwichs.",
+      "expected": "He ate two sandwiches.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-07",
+      "category": "plural",
+      "text": "The sheeps are grazing.",
+      "expected": "The sheep are grazing.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-08",
+      "category": "plural",
+      "text": "We need more informations.",
+      "expected": "We need more information.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-09",
+      "category": "plural",
+      "text": "She gave me two advices.",
+      "expected": "She gave me two pieces of advice.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "plural-10",
+      "category": "plural",
+      "text": "The knifes are sharp.",
+      "expected": "The knives are sharp.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-01",
+      "category": "spelling",
+      "text": "He is definately coming.",
+      "expected": "He is definitely coming.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-02",
+      "category": "spelling",
+      "text": "She recieved a letter.",
+      "expected": "She received a letter.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-03",
+      "category": "spelling",
+      "text": "The accident occured yesterday.",
+      "expected": "The accident occurred yesterday.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-04",
+      "category": "spelling",
+      "text": "He is a seperate person.",
+      "expected": "He is a separate person.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-05",
+      "category": "spelling",
+      "text": "We need to accomodate them.",
+      "expected": "We need to accommodate them.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-06",
+      "category": "spelling",
+      "text": "The resturant is closed.",
+      "expected": "The restaurant is closed.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-07",
+      "category": "spelling",
+      "text": "She is very inteligent.",
+      "expected": "She is very intelligent.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-08",
+      "category": "spelling",
+      "text": "I have a headake.",
+      "expected": "I have a headache.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-09",
+      "category": "spelling",
+      "text": "The goverment announced it.",
+      "expected": "The government announced it.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "spelling-10",
+      "category": "spelling",
+      "text": "He was embarrased.",
+      "expected": "He was embarrassed.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-01",
+      "category": "capital",
+      "text": "Underneath the blue metal shell were crystal muscles made from Qi Crystals.",
+      "expected": "Underneath the blue metal shell were crystal muscles made from Qi crystals.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-02",
+      "category": "capital",
+      "text": "i went to the store.",
+      "expected": "I went to the store.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-03",
+      "category": "capital",
+      "text": "The capital of france is Paris.",
+      "expected": "The capital of France is Paris.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-04",
+      "category": "capital",
+      "text": "We visited the eiffel tower.",
+      "expected": "We visited the Eiffel Tower.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-05",
+      "category": "capital",
+      "text": "My birthday is in january.",
+      "expected": "My birthday is in January.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-06",
+      "category": "capital",
+      "text": "He speaks english.",
+      "expected": "He speaks English.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-07",
+      "category": "capital",
+      "text": "The nile is long.",
+      "expected": "The Nile is long.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-08",
+      "category": "capital",
+      "text": "She read the book on monday.",
+      "expected": "She read the book on Monday.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-09",
+      "category": "capital",
+      "text": "The company is called acme.",
+      "expected": "The company is called Acme.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "capital-10",
+      "category": "capital",
+      "text": "We drove to the grand canyon.",
+      "expected": "We drove to the Grand Canyon.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-01",
+      "category": "preposition",
+      "text": "She arrived to the station.",
+      "expected": "She arrived at the station.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-02",
+      "category": "preposition",
+      "text": "He is married with a doctor.",
+      "expected": "He is married to a doctor.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-03",
+      "category": "preposition",
+      "text": "Despite of the rain, we went out.",
+      "expected": "Despite the rain, we went out.",
+      "before": "",
+      "after": "",
+      "clean": false,
+      "accept": [
+        "In spite of the rain, we went out."
+      ]
+    },
+    {
+      "id": "preposition-04",
+      "category": "preposition",
+      "text": "I am used to get up early.",
+      "expected": "I am used to getting up early.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-05",
+      "category": "preposition",
+      "text": "He has worked here since three years.",
+      "expected": "He has worked here for three years.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-06",
+      "category": "preposition",
+      "text": "She is good in chess.",
+      "expected": "She is good at chess.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-07",
+      "category": "preposition",
+      "text": "We discussed about the plan.",
+      "expected": "We discussed the plan.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-08",
+      "category": "preposition",
+      "text": "He insisted to come.",
+      "expected": "He insisted on coming.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-09",
+      "category": "preposition",
+      "text": "I am responsible of the team.",
+      "expected": "I am responsible for the team.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "preposition-10",
+      "category": "preposition",
+      "text": "The train is different than the bus.",
+      "expected": "The train is different from the bus.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-01",
+      "category": "pronoun",
+      "text": "Their going to the park.",
+      "expected": "They're going to the park.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-02",
+      "category": "pronoun",
+      "text": "Its raining outside.",
+      "expected": "It's raining outside.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-03",
+      "category": "pronoun",
+      "text": "Him is going home.",
+      "expected": "He is going home.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-04",
+      "category": "pronoun",
+      "text": "The dog wagged it's tail.",
+      "expected": "The dog wagged its tail.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-05",
+      "category": "pronoun",
+      "text": "Your welcome.",
+      "expected": "You're welcome.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-06",
+      "category": "pronoun",
+      "text": "They're car is new.",
+      "expected": "Their car is new.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-07",
+      "category": "pronoun",
+      "text": "Who's book is this?",
+      "expected": "Whose book is this?",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-08",
+      "category": "pronoun",
+      "text": "He gave the book to I.",
+      "expected": "He gave the book to me.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-09",
+      "category": "pronoun",
+      "text": "Between you and I, this is wrong.",
+      "expected": "Between you and me, this is wrong.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "pronoun-10",
+      "category": "pronoun",
+      "text": "The team lost it's game.",
+      "expected": "The team lost its game.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-01",
+      "category": "comparative",
+      "text": "He is tallest than his brother.",
+      "expected": "He is taller than his brother.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-02",
+      "category": "comparative",
+      "text": "She is more smarter than me.",
+      "expected": "She is smarter than me.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-03",
+      "category": "comparative",
+      "text": "This is the most easiest test.",
+      "expected": "This is the easiest test.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-04",
+      "category": "comparative",
+      "text": "He runs more fast than me.",
+      "expected": "He runs faster than me.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-05",
+      "category": "comparative",
+      "text": "My car is gooder than yours.",
+      "expected": "My car is better than yours.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-06",
+      "category": "comparative",
+      "text": "This book is interestinger.",
+      "expected": "This book is more interesting.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-07",
+      "category": "comparative",
+      "text": "The weather is more hotter today.",
+      "expected": "The weather is hotter today.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-08",
+      "category": "comparative",
+      "text": "He is the most tallest.",
+      "expected": "He is the tallest.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-09",
+      "category": "comparative",
+      "text": "This is the worse movie.",
+      "expected": "This is the worst movie.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "comparative-10",
+      "category": "comparative",
+      "text": "He is more tall than his father.",
+      "expected": "He is taller than his father.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-01",
+      "category": "missing",
+      "text": "I look forward to hear from you.",
+      "expected": "I look forward to hearing from you.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-02",
+      "category": "missing",
+      "text": "She suggested to go early.",
+      "expected": "She suggested going early.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-03",
+      "category": "missing",
+      "text": "I am looking forward to meet you.",
+      "expected": "I am looking forward to meeting you.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-04",
+      "category": "missing",
+      "text": "He is enough old to drive.",
+      "expected": "He is old enough to drive.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-05",
+      "category": "missing",
+      "text": "The both of them agreed.",
+      "expected": "Both of them agreed.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-06",
+      "category": "missing",
+      "text": "He asked me where was I going.",
+      "expected": "He asked me where I was going.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-07",
+      "category": "pronoun",
+      "text": "She gave the book to I.",
+      "expected": "She gave the book to me.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-08",
+      "category": "missing",
+      "text": "I have a good news.",
+      "expected": "I have good news.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-09",
+      "category": "missing",
+      "text": "We arrived at home.",
+      "expected": "We arrived home.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "missing-10",
+      "category": "missing",
+      "text": "She made me to laugh.",
+      "expected": "She made me laugh.",
+      "before": "",
+      "after": "",
+      "clean": false
+    },
+    {
+      "id": "clean-01",
+      "category": "clean",
+      "text": "He walked to the store yesterday.",
+      "expected": "He walked to the store yesterday.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-02",
+      "category": "clean",
+      "text": "She doesn't like coffee.",
+      "expected": "She doesn't like coffee.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-03",
+      "category": "clean",
+      "text": "I saw an apple on the table.",
+      "expected": "I saw an apple on the table.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-04",
+      "category": "clean",
+      "text": "The dogs are barking.",
+      "expected": "The dogs are barking.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-05",
+      "category": "clean",
+      "text": "He is taller than his brother.",
+      "expected": "He is taller than his brother.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-06",
+      "category": "clean",
+      "text": "We were late for the meeting.",
+      "expected": "We were late for the meeting.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-07",
+      "category": "clean",
+      "text": "They're going to the park.",
+      "expected": "They're going to the park.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-08",
+      "category": "clean",
+      "text": "It's raining outside.",
+      "expected": "It's raining outside.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-09",
+      "category": "clean",
+      "text": "He bought two loaves of bread.",
+      "expected": "He bought two loaves of bread.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-10",
+      "category": "clean",
+      "text": "She ran home quickly.",
+      "expected": "She ran home quickly.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-11",
+      "category": "clean",
+      "text": "Underneath the blue metal shell were crystal muscles made from Qi crystals.",
+      "expected": "Underneath the blue metal shell were crystal muscles made from Qi crystals.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-12",
+      "category": "clean",
+      "text": "He was a slim young man.",
+      "expected": "He was a slim young man.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-13",
+      "category": "clean",
+      "text": "The children are playing outside.",
+      "expected": "The children are playing outside.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-14",
+      "category": "clean",
+      "text": "She has eaten dinner already.",
+      "expected": "She has eaten dinner already.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-15",
+      "category": "clean",
+      "text": "The news is bad.",
+      "expected": "The news is bad.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-16",
+      "category": "clean",
+      "text": "The box of books is heavy.",
+      "expected": "The box of books is heavy.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-17",
+      "category": "clean",
+      "text": "He speaks English.",
+      "expected": "He speaks English.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-18",
+      "category": "clean",
+      "text": "My birthday is in January.",
+      "expected": "My birthday is in January.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-19",
+      "category": "clean",
+      "text": "She arrived at the station.",
+      "expected": "She arrived at the station.",
+      "before": "",
+      "after": "",
+      "clean": true
+    },
+    {
+      "id": "clean-20",
+      "category": "clean",
+      "text": "The dog wagged its tail.",
+      "expected": "The dog wagged its tail.",
+      "before": "",
+      "after": "",
+      "clean": true
+    }
+  ]
+}

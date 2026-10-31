@@ -47,7 +47,7 @@ function room({ phrase = 'saw 200 gold coins', selected = true, books = true, re
     NeoForkNative: {
       setContextWord: () => {},
       clearContextWord: () => {},
-      setContextPhrase: (p2, has, a, inv, records, rephrase) => calls.phrase.push([p2, has, a, inv, records, rephrase]),
+      setContextPhrase: (p2, has, a, inv, records, rephrase, grammar) => calls.phrase.push([p2, has, a, inv, records, rephrase, grammar]),
       clearContextPhrase: () => {}
     },
     NeoRecords: records ? {
@@ -80,7 +80,7 @@ test('inventory-menu: a selection stores the phrase, the anchor, and the invento
 test('inventory-menu: an unreadable records file does not disable Inventory', () => {
   const r = room({ records: false });
   r.fire();
-  assert.deepEqual(r.calls.phrase.at(-1), ['saw 200 gold coins', false, anchor, true, false, false]);
+  assert.deepEqual(r.calls.phrase.at(-1), ['saw 200 gold coins', false, anchor, true, false, false, false]);
 });
 
 test('inventory-menu: the native item is one line and only when it applies', () => {

@@ -82,6 +82,9 @@
       else if (msg.action === 'rephrase-open' && window.NeoRephrase) {
         try { window.NeoRephrase.openPending(); } catch { /* the page moved on */ }
       }
+      else if (msg.action === 'grammar-open' && window.NeoGrammar) {
+        try { window.NeoGrammar.openPending(); } catch { /* the page moved on */ }
+      }
       else if (msg.action === 'inventory-open' && window.NeoInventory) {
         try {
           const opened = window.NeoInventory.openFromSelection(msg.phrase, msg.anchor);
