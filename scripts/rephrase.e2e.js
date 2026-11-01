@@ -144,12 +144,25 @@ test('settings gain General and AI tabs with the local endpoint', async () => {
   await js(`NeoSettings.open()`);
   await waitFor(`!!document.querySelector('.neo-ext-tabs')`);
   const tabs = await js(`[...document.querySelectorAll('.neo-ext-tab')].map((b) => b.textContent)`);
-  assert.deepEqual(tabs, ['General', 'AI']);
+  assert.deepEqual(tabs, ['General', 'AI Rephrasing', 'AI Grammar']);
   await js(`document.querySelector('.neo-ext-tab').focus()`);
   await js(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`);
   await tick(150);
-  assert.equal(await js(`document.querySelector('.neo-ext-tab[aria-selected="true"]')?.textContent`), 'AI');
-  await js(`[...document.querySelectorAll('.neo-ext-tab')].find((b) => b.textContent === 'AI').click()`);
+  assert.equal(await js(`document.querySelector('.neo-ext-tab[aria-selected="true"]')?.textContent`), 'AI Rephrasing');
+  await js(`[...document.querySelectorAll('.neo-ext-tab')].find((b) => b.textContent === 'AI Rephrasing').click()`);
+  assert.equal(await js(`!!document.querySelector('[data-group="rephrase"] [data-key="rephrasePrompt"] .neo-ext-reset')`), true,
+    'the rewriting prompt offers to restore its default');
+  assert.equal(await js(`!!document.querySelector('.neo-ext-profiles-reset')`), true,
+    'and the profiles offer to be restored too');
+  const restored = await js(`(async () => {
+    const before = document.querySelectorAll('.neo-ext-profile').length;
+    document.querySelector('.neo-ext-profile-remove:not([disabled])').click();
+    const afterRemove = document.querySelectorAll('.neo-ext-profile').length;
+    document.querySelector('.neo-ext-profiles-reset').click();
+    return { before, afterRemove, afterRestore: document.querySelectorAll('.neo-ext-profile').length };
+  })()`);
+  assert.equal(restored.afterRemove, restored.before - 1);
+  assert.equal(restored.afterRestore, restored.before, 'Restore default profiles puts the shipped list back');
   await tick(200);
   assert.equal(await js(`document.querySelector('#neo-ext-rephrase-rephraseEndpoint')?.value`), endpoint);
   assert.equal(await js(`document.querySelectorAll('.neo-ext-profile').length`), 5);
@@ -266,7 +279,7 @@ test('the macOS one-word Look Up popup offers Rephrase…', async () => {
 test('an invalid endpoint blocks every settings write', async () => {
   await js(`NeoSettings.open()`);
   await waitFor(`!!document.querySelector('.neo-ext-tabs')`);
-  await js(`[...document.querySelectorAll('.neo-ext-tab')].find((b) => b.textContent === 'AI').click()`);
+  await js(`[...document.querySelectorAll('.neo-ext-tab')].find((b) => b.textContent === 'AI Rephrasing').click()`);
   await tick(150);
   const file = path.join(tmp, 'app', 'settings.json');
   const before = fs.readFileSync(file, 'utf8');

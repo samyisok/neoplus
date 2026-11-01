@@ -254,3 +254,125 @@ test('grammar-main: a pass waits longer than the client default when nothing is 
     client.postChat = original;
   }
 });
+
+test('grammar-main: the Grammar settings supply endpoint, model, prompt, and its own key', async () => {
+  const client = require('../neo-ext/llm-client.js');
+  const original = client.postChat;
+  let seen = null;
+  client.postChat = async (options) => { seen = options; return { ok: true, text: 'CLEAN' }; };
+  try {
+    const r = room('http://127.0.0.1:8080/v1', {
+      readSettings: () => ({
+        rephrase: { endpoint: 'http://127.0.0.1:8080/v1', model: 'rewrite-model', prompt: 'rewrite' },
+        grammar: { endpoint: 'http://127.0.0.1:8081/v1', model: 'grammar-model', prompt: 'MY OWN PROMPT' }
+      }),
+      readSecret: (name) => (name === 'grammar-key' ? 'grammar-secret' : 'rewrite-secret')
+    });
+    const started = await service.start();
+    assert.equal(started.ok, true);
+    await service.runGrammar({ session: started.session, text: 'He stood here.' }, r.owner || '');
+    assert.equal(seen.endpoint, 'http://127.0.0.1:8081/v1');
+    assert.equal(seen.model, 'grammar-model');
+    assert.equal(seen.system, 'MY OWN PROMPT');
+    assert.equal(seen.key, 'grammar-secret', 'Grammar prefers its own key');
+  } finally {
+    client.postChat = original;
+  }
+});
+
+test('grammar-main: an empty prompt keeps the built-in one and the Rewrite key still works', async () => {
+  const client = require('../neo-ext/llm-client.js');
+  const original = client.postChat;
+  let seen = null;
+  client.postChat = async (options) => { seen = options; return { ok: true, text: 'CLEAN' }; };
+  try {
+    const r = room('http://127.0.0.1:8080/v1', {
+      readSettings: () => ({ rephrase: { endpoint: 'http://127.0.0.1:8080/v1', model: 'rewrite-model' }, grammar: { prompt: '' } }),
+      readSecret: (name) => (name === 'grammar-key' ? '' : 'rewrite-secret')
+    });
+    const started = await service.start();
+    await service.runGrammar({ session: started.session, text: 'He stood here.' }, r.owner || '');
+    assert.equal(seen.system, require('../neo-ext/lib/grammar-prompt.js').GRAMMAR_SYSTEM);
+    assert.equal(seen.key, 'rewrite-secret');
+    assert.equal(seen.endpoint, 'http://127.0.0.1:8080/v1');
+    assert.equal(seen.model, 'rewrite-model');
+  } finally {
+    client.postChat = original;
+  }
+});
+
+test('grammar-main: saving writes a grammar block and an empty model keeps following Rewrite', async () => {
+  const written = [];
+  room('http://127.0.0.1:8080/v1', {
+    readSettings: () => ({ libraryDir: '/books', rephrase: { endpoint: 'http://127.0.0.1:8080/v1', model: 'rewrite-model' } }),
+    writeSettings: (value) => written.push(value)
+  });
+  const inherited = await service.validateSettings({ endpoint: '', model: '', prompt: '' });
+  assert.equal(inherited.ok, true, 'an empty field is not an error, it follows Rewrite');
+  assert.equal(inherited.resolved.model, 'rewrite-model');
+
+  const ok = await service.saveSettings({ endpoint: 'http://127.0.0.1:8080/v1', model: 'qwen3.5-4b', prompt: 'be strict' });
+  assert.equal(ok.ok, true);
+  assert.equal(written.length, 1);
+  assert.equal(written[0].grammar.model, 'qwen3.5-4b');
+  assert.equal(written[0].grammar.prompt, 'be strict');
+  assert.equal(written[0].libraryDir, '/books', 'the other settings survive');
+});
+
+test('grammar-main: a save refuses to overwrite a settings file that cannot be read', async () => {
+  const written = [];
+  let broken = false;
+  room('http://127.0.0.1:8080/v1', {
+    readSettings: () => (broken ? {} : { libraryDir: '/books', rephrase: { endpoint: 'http://127.0.0.1:8080/v1' } }),
+    writeSettings: (value) => written.push(value),
+    settingsBroken: () => broken
+  });
+  const first = await service.saveSettings({ endpoint: 'http://127.0.0.1:8080/v1', model: 'qwen3.5-4b' });
+  assert.equal(first.ok, true);
+  broken = true;
+  const lost = await service.saveSettings({ endpoint: 'http://127.0.0.1:8080/v1', model: 'qwen3.5-4b' });
+  assert.equal(lost.ok, false, 'a broken file must not be replaced by the grammar block');
+  assert.equal(written.length, 1, 'nothing else was written');
+});
+
+test('grammar-main: a save reports failure when there is nowhere to write', async () => {
+  room('http://127.0.0.1:8080/v1', { writeSettings: undefined });
+  const out = await service.saveSettings({ endpoint: 'http://127.0.0.1:8080/v1', model: 'qwen3.5-4b' });
+  assert.equal(out.ok, false, 'a missing writer is not a successful save');
+});
+
+test('grammar-main: clearing the grammar key does not silently borrow the Rewrite key', async () => {
+  const client = require('../neo-ext/llm-client.js');
+  const original = client.postChat;
+  let seen = null;
+  client.postChat = async (options) => { seen = options; return { ok: true, text: 'CLEAN' }; };
+  try {
+    const r = room('http://127.0.0.1:8080/v1', {
+      readSettings: () => ({ grammar: { keyCleared: true } }),
+      readSecret: (name) => (name === 'grammar-key' ? '' : 'rewrite-secret')
+    });
+    const started = await service.start();
+    await service.runGrammar({ session: started.session, text: 'He stood here.' }, r.owner || '');
+    assert.equal(seen.key, '', 'a cleared key stays cleared');
+  } finally {
+    client.postChat = original;
+  }
+});
+
+test('grammar-main: Test connection cannot aim the stored key at another port', async () => {
+  const client = require('../neo-ext/llm-client.js');
+  const original = client.probe;
+  let seen = null;
+  client.probe = async (options) => { seen = options; return { ok: true }; };
+  try {
+    room('http://127.0.0.1:8080/v1', {
+      readSettings: () => ({ grammar: { endpoint: 'http://127.0.0.1:8080/v1' } }),
+      readSecret: (name) => (name === 'grammar-key' ? 'grammar-secret' : 'rewrite-secret')
+    });
+    await service.testConnection({ endpoint: 'http://127.0.0.1:9999/v1' });
+    assert.equal(seen.endpoint, 'http://127.0.0.1:8080/v1', 'the stored endpoint is used when no key is typed');
+    assert.equal(seen.key, 'grammar-secret');
+  } finally {
+    client.probe = original;
+  }
+});

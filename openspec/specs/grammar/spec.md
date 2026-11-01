@@ -359,3 +359,97 @@ Grammar SHALL be a Show More Features tool and SHALL NOT exist in Pocket.
 
 - **WHEN** NEO runs in Pocket
 - **THEN** Grammar is absent
+
+### Requirement: Grammar has its own AI settings
+The system SHALL keep the grammar pass's endpoint, model, and prompt in
+`settings.json` under `grammar`, on this device, separate from the Rewrite settings.
+
+#### Scenario: A writer changes the grammar model
+- **WHEN** the writer opens Settings → Grammar, sets a model, and saves
+- **THEN** `settings.json` holds `grammar.model` with that value
+- **AND** the next grammar pass asks that model
+
+#### Scenario: A writer leaves the endpoint empty
+- **WHEN** `grammar.endpoint` is empty
+- **THEN** the grammar pass uses the Rewrite endpoint
+- **AND** the Grammar tab leaves the field empty, showing the inherited endpoint as its placeholder
+
+#### Scenario: Saving does not pin an inherited value
+- **WHEN** the writer saves the Grammar tab with an empty endpoint or model
+- **THEN** the stored value stays empty
+- **AND** a later change to the Rewrite endpoint or model reaches the grammar pass
+
+#### Scenario: A settings file that cannot be read is never replaced
+- **WHEN** `settings.json` exists but does not parse, or is empty
+- **THEN** saving the Grammar tab writes nothing and says it could not save
+- **AND** the chosen library folder, export folder, and window bounds survive
+
+#### Scenario: A failed load is not saved over
+- **WHEN** the Grammar settings could not be loaded
+- **THEN** the tab says so and refuses to save
+- **AND** the stored prompt and values are left as they were
+
+### Requirement: A custom prompt replaces the built-in one
+The grammar pass SHALL send the prompt stored in `grammar.prompt` as the system
+message, and SHALL send the built-in grammar prompt when that value is empty or
+whitespace.
+
+#### Scenario: A custom prompt is used
+- **WHEN** `grammar.prompt` holds text
+- **THEN** the request's system message is that text
+- **AND** the selection and its context are still sent as data in the user turn
+
+#### Scenario: A blank prompt keeps NEO's prompt
+- **WHEN** `grammar.prompt` is empty
+- **THEN** the request's system message is the built-in grammar prompt
+
+### Requirement: Grammar keeps its own key
+The grammar pass SHALL read the encrypted secret `grammar-key` and SHALL fall back
+to `rephrase-key` when it is unset. The key SHALL never be returned to the window.
+
+#### Scenario: A separate key is stored
+- **WHEN** `grammar-key` exists
+- **THEN** the grammar request carries that key
+- **AND** the Rewrite passes keep using `rephrase-key`
+
+#### Scenario: No grammar key
+- **WHEN** `grammar-key` is unset
+- **THEN** the grammar request carries `rephrase-key`
+
+### Requirement: Settings are validated before they are stored
+Saving the Grammar tab SHALL validate the endpoint that the settings resolve to with
+the loopback rule, refuse a model that resolves to nothing, and cap the endpoint,
+model, and prompt lengths. A blank endpoint or model is not an error: it means the
+Rewrite value is used.
+
+#### Scenario: A remote endpoint is refused
+- **WHEN** the endpoint that the settings resolve to is not a loopback http(s) address
+- **THEN** the settings are not written and the window says why
+
+#### Scenario: An empty model follows Rewrite
+- **WHEN** the model field is blank and the Rewrite model is set
+- **THEN** the settings are written with an empty model
+- **AND** the grammar pass asks the Rewrite model
+
+#### Scenario: A prompt with no default to compare against
+- **WHEN** the writer edits the prompt
+- **THEN** the exact text is stored, compared to the built-in text with line endings
+  and surrounding space normalised
+
+### Requirement: Clearing the key is not the same as never setting one
+The system SHALL remember that the writer cleared the grammar key, so a cleared key
+is not replaced by `rephrase-key`.
+
+#### Scenario: The writer clears the grammar key
+- **WHEN** the writer empties the key field and saves
+- **THEN** `grammar.keyCleared` is stored
+- **AND** the grammar request carries no key rather than `rephrase-key`
+
+### Requirement: A settings save never erases the rest of the file
+The system SHALL refuse to write the Grammar settings when `settings.json` cannot be
+read, rather than replacing it with the grammar block alone.
+
+#### Scenario: The settings file is unreadable
+- **WHEN** the settings read comes back empty after this session has already seen
+  settings
+- **THEN** nothing is written and the window says the settings could not be saved

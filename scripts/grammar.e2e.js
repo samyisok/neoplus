@@ -42,6 +42,13 @@ const server = http.createServer((req, res) => {
         : '{"quote":"stood","example":"remained","message":"corrected only"}\n'
           + '{"quote":"pile of bodies","example":"heap of bodies","message":"word"}';
       if (styleMode === 'filtered') content = '{"quote":"stood","example":"remained","message":"corrected only"}';
+      if (styleMode === 'slow') {
+        setTimeout(() => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+        }, 700);
+        return;
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ choices: [{ message: { content } }] }));
       return;
@@ -348,11 +355,25 @@ test('a style answer whose suggestions are all filtered says nothing to suggest'
   await waitFor(`!!document.querySelector('.neo-grammar-board')`);
   await js(`document.querySelector('.neo-grammar-style').click()`);
   await waitFor(`/nothing to suggest/i.test(document.querySelector('.neo-grammar-notice')?.textContent || '')`);
-  assert.equal(await js(`document.querySelector('.neo-grammar-style').textContent`), 'No style suggestions');
+  assert.equal(await js(`!!document.querySelector('.neo-grammar-top .neo-grammar-notice')`), true, 'the notice sits under the button');
   assert.equal(await js(`document.querySelectorAll('.neo-grammar-card[data-kind="style"]').length`), 0);
   assert.equal(await js(`document.querySelectorAll('.neo-grammar-card').length`), 3);
   await closeWindow();
   styleMode = 'ok';
+});
+
+test('the style pass shows a wheel beside the button while it waits', async () => {
+  mode = 'issues';
+  styleMode = 'slow';
+  await select('He stand in the midle of the pile of bodies. He wore white hat.');
+  await openWindow();
+  await waitFor(`!!document.querySelector('.neo-grammar-board')`);
+  await js(`document.querySelector('.neo-grammar-style').click()`);
+  await waitFor(`(() => { const s = document.querySelector('.neo-grammar-spinner'); return !!s && !s.hidden; })()`);
+  assert.equal(await js(`document.querySelector('.neo-grammar-style').disabled`), true);
+  await waitFor(`(() => { const s = document.querySelector('.neo-grammar-spinner'); return !!s && s.hidden; })()`);
+  styleMode = 'ok';
+  await closeWindow();
 });
 
 test('a failed style pass leaves the grammar board standing', async () => {
@@ -589,7 +610,7 @@ test('a style CLEAN answer says there are no suggestions and keeps the board', a
   await js(`document.querySelector('.neo-grammar-style').click()`);
   await waitFor(`/nothing to suggest/i.test(document.querySelector('.neo-grammar-notice')?.textContent || '')`);
   assert.equal(await js(`document.querySelectorAll('.neo-grammar-card').length`), 3);
-  assert.equal(await js(`document.querySelector('.neo-grammar-style').textContent`), 'No style suggestions');
+  assert.equal(await js(`document.querySelector('.neo-grammar-style').textContent`), 'Suggest style', 'the notice carries the news, not the button');
   await closeWindow();
   styleMode = 'ok';
 });
@@ -661,6 +682,93 @@ test('a session lost while the board is open restarts on Suggest style', async (
   await waitFor(`document.querySelectorAll('.neo-grammar-card[data-kind="style"]').length >= 1`);
   assert.equal(styleHits, before + 1, 'the restarted session answered');
   await closeWindow();
+});
+
+test('Settings has a Grammar tab with its own endpoint, model, key, and prompt', async () => {
+  await js(`NeoExt.openSettings()`);
+  await waitFor(`!!document.querySelector('.neo-ext-settings')`);
+  await tick(150);
+  const tabs = await js(`[...document.querySelectorAll('.neo-ext-tab')].map((button) => button.dataset.tab)`);
+  assert.ok(tabs.includes('AI Grammar'), JSON.stringify(tabs));
+  await js(`[...document.querySelectorAll('.neo-ext-tab')].find((button) => button.dataset.tab === 'AI Grammar')?.click()`);
+  await tick(150);
+
+  const fields = await js(`(() => {
+    const section = document.querySelector('[data-group="grammar"]');
+    if (!section) return null;
+    const has = (key) => !!section.querySelector('[data-key="' + key + '"]');
+    return { endpoint: has('grammarEndpoint'), model: has('grammarModel'), key: has('grammarKey'), prompt: has('grammarPrompt') };
+  })()`);
+  assert.deepEqual(fields, { endpoint: true, model: true, key: true, prompt: true });
+
+  const prefill = await js(`(() => {
+    const section = document.querySelector('[data-group="grammar"]');
+    const row = section.querySelector('[data-key="grammarPrompt"]');
+    return {
+      text: row.querySelector('textarea').value,
+      reset: !!row.querySelector('.neo-ext-reset'),
+      config: typeof window.NeoGrammarConfig,
+      endpoint: section.querySelector('#neo-ext-grammar-grammarEndpoint').value,
+      placeholder: section.querySelector('#neo-ext-grammar-grammarEndpoint').placeholder
+    };
+  })()`);
+  assert.equal(prefill.config, 'object', 'the config module is loaded in the window');
+  assert.equal(prefill.endpoint, '', 'an unset endpoint is stored empty so it keeps following Rewrite');
+  assert.equal(prefill.placeholder, endpoint, 'and the inherited value is shown as the placeholder');
+  assert.match(prefill.text, /grammar checker/i, 'the prompt field shows the prompt in force');
+  assert.equal(prefill.reset, true, 'and offers to restore it');
+
+  await js(`(() => {
+    const section = document.querySelector('[data-group="grammar"]');
+    const set = (key, value) => {
+      const row = section.querySelector('[data-key="' + key + '"]');
+      const input = row.querySelector('textarea, input');
+      input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    set('grammarModel', 'grammar-test-model');
+    set('grammarPrompt', 'MY GRAMMAR PROMPT');
+  })()`);
+  const restored = await js(`(() => {
+    const section = document.querySelector('[data-group="grammar"]');
+    const row = section.querySelector('[data-key="grammarPrompt"]');
+    const area = row.querySelector('textarea');
+    area.value = 'edited';
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+    row.querySelector('.neo-ext-reset').click();
+    return area.value;
+  })()`);
+  assert.match(restored, /grammar checker/i, 'Restore default prompt puts the built-in text back');
+  await js(`(() => {
+    const row = document.querySelector('[data-group="grammar"] [data-key="grammarPrompt"]');
+    const area = row.querySelector('textarea');
+    area.value = 'MY GRAMMAR PROMPT';
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await js(`document.querySelector('.neo-ext-save').click()`);
+  await waitFor(`!document.querySelector('.neo-ext-settings')`);
+
+  const saved = JSON.parse(fs.readFileSync(path.join(tmp, 'app', 'settings.json'), 'utf8'));
+  assert.equal(saved.grammar.model, 'grammar-test-model');
+  assert.equal(saved.grammar.prompt, 'MY GRAMMAR PROMPT');
+  assert.ok(saved.rephrase, 'the Rewrite settings survive');
+});
+
+test('saving the untouched default prompt keeps following NEO\'s prompt', async () => {
+  const before = JSON.parse(fs.readFileSync(path.join(tmp, 'app', 'settings.json'), 'utf8'));
+  assert.equal(before.grammar.prompt, 'MY GRAMMAR PROMPT', 'the previous test stored a custom prompt');
+
+  await js(`NeoExt.openSettings()`);
+  await waitFor(`!!document.querySelector('.neo-ext-settings')`);
+  await tick(150);
+  await js(`[...document.querySelectorAll('.neo-ext-tab')].find((button) => button.dataset.tab === 'AI Grammar')?.click()`);
+  await tick(150);
+  await js(`document.querySelector('[data-group="grammar"] [data-key="grammarPrompt"] .neo-ext-reset').click()`);
+  await js(`document.querySelector('.neo-ext-save').click()`);
+  await waitFor(`!document.querySelector('.neo-ext-settings')`);
+
+  const after = JSON.parse(fs.readFileSync(path.join(tmp, 'app', 'settings.json'), 'utf8'));
+  assert.equal(after.grammar.prompt, '', 'an untouched default is stored empty, so NEO keeps owning it');
 });
 
 test('Simple NEO has no Grammar entry', async () => {

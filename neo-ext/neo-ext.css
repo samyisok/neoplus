@@ -48,10 +48,18 @@
 .neo-ext-group.neo-ext-group-sep { border-bottom: 1px solid var(--rule, rgba(255, 255, 255, 0.14)); padding-bottom: 16px; margin-bottom: 14px; }
 .neo-ext-group h3 { margin: 4px 0 10px; font-size: calc(13px * var(--ui-text, 1)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.75; }
 
-.neo-ext-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.neo-ext-row > label { font-size: calc(13px * var(--ui-text, 1)); }
+/* Each setting is its own block: padding and a tinted panel keep a label from
+   reading as part of the block above it. The label sits close to its own field. */
+.neo-ext-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 12px; margin-bottom: 12px;
+  border-radius: 8px; background: rgba(255, 255, 255, 0.025);
+}
+.neo-ext-row > label { margin: 0; font-size: calc(13px * var(--ui-text, 1)); opacity: 0.9; }
 
 .neo-ext-pathline { display: flex; gap: 8px; align-items: center; }
+/* The Replace… and Choose… buttons match the height of the field beside them. */
+.neo-ext-pathline .neo-ext-choose { align-self: stretch; padding: 0 12px; }
 .neo-ext-path {
   flex: 1 1 auto;
   min-width: 0;
@@ -66,6 +74,7 @@
   flex: none;
   font: inherit;
   padding: 6px 10px;
+  line-height: 1.4;
   border-radius: 6px;
   border: 1px solid var(--rule, rgba(255, 255, 255, 0.2));
   background: transparent;
@@ -825,6 +834,14 @@ body.light { --rule: rgba(0, 0, 0, 0.18); }
   padding: 4px 10px; border-radius: 5px; border: 1px solid var(--rule, rgba(255,255,255,0.2));
   background: none; color: inherit; cursor: pointer;
 }
+.neo-grammar-style-row { display: flex; align-items: center; gap: 8px; }
+.neo-grammar-spinner {
+  width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto;
+  border: 2px solid var(--rule, rgba(255,255,255,0.25)); border-top-color: var(--accent);
+  animation: neo-grammar-spin 0.9s linear infinite;
+}
+@keyframes neo-grammar-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .neo-grammar-spinner { animation-duration: 2.4s; } }
 .neo-grammar-style:hover { border-color: var(--accent); color: var(--accent); }
 .neo-grammar-style:disabled { opacity: 0.45; cursor: default; color: inherit; border-color: var(--rule, rgba(255,255,255,0.2)); }
 /* The text keeps the full width and the cards sit under it, on the right, so the

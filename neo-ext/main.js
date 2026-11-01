@@ -25,6 +25,22 @@ function libraryDir() {
   try { return deps && deps.libraryDir ? deps.libraryDir() : ''; } catch { return ''; }
 }
 
+// The core reader turns a corrupt settings.json into {}, which cannot be told apart
+// from a fresh install. Reading the file itself answers the real question, so a
+// feature that writes settings can refuse to replace a lost file with its own block.
+function settingsBroken() {
+  try {
+    const { app } = require('electron');
+    const target = require('path').join(app.getPath('userData'), 'settings.json');
+    const text = fs.readFileSync(target, 'utf8');
+    if (!text.trim()) return true;
+    JSON.parse(text);
+    return false;
+  } catch (err) {
+    return !!(err && err.code !== 'ENOENT');
+  }
+}
+
 function configuredFolder() {
   const read = (deps && deps.readSettings) || (() => ({}));
   return settings.readSettingsSafe(read).backupFolder || '';
@@ -219,15 +235,18 @@ function init(injected) {
       readSettings: deps.readSettings,
       writeSettings: deps.writeSettings,
       readSecret: deps.readSecret,
-      logError: deps.logError
+      logError: deps.logError,
+      settingsBroken
     }, ipcMain);
   } catch (err) { log('rephrase init: ' + (err && err.message)); }
 
   try {
     require('./grammar-main.js').init({
       readSettings: deps.readSettings,
+      writeSettings: deps.writeSettings,
       readSecret: deps.readSecret,
-      logError: deps.logError
+      logError: deps.logError,
+      settingsBroken
     }, ipcMain);
   } catch (err) { log('grammar init: ' + (err && err.message)); }
 

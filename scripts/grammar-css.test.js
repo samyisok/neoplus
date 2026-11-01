@@ -43,3 +43,32 @@ test('grammar css: a card meets its line with a top border, not a left one', () 
   assert.match(card, /border-top:\s*2px solid/);
   assert.doesNotMatch(card, /border-left:\s*2px solid/);
 });
+
+test('grammar css: the style wheel turns beside the button', () => {
+  const spinner = blocks('.neo-grammar-spinner').join('\n');
+  assert.match(spinner, /animation:\s*neo-grammar-spin/);
+  assert.match(spinner, /width:\s*14px/);
+  const row = blocks('.neo-grammar-style-row').join('\n');
+  assert.match(row, /display:\s*flex/);
+});
+
+test('grammar css: settings blocks are airy and their buttons match the field height', () => {
+  const fs2 = require('node:fs');
+  const path2 = require('node:path');
+  const sheet = fs2.readFileSync(path2.join(__dirname, '..', 'neo-ext', 'neo-ext.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+  const pick = (selector) => {
+    const out = [];
+    const re = /([^{}]+)\{([^}]*)\}/g;
+    let m;
+    while ((m = re.exec(sheet))) {
+      if (m[1].split(',').some((part) => part.trim() === selector)) out.push(m[2]);
+    }
+    return out.join('\n');
+  };
+  const row = pick('.neo-ext-row');
+  assert.match(row, /padding:\s*10px 12px/, 'each setting is a padded block');
+  assert.match(row, /background:/, 'and reads as one panel');
+  assert.match(pick('.neo-ext-row > label'), /margin:\s*0/, 'the label hugs its own field');
+  assert.match(pick('.neo-ext-pathline .neo-ext-choose'), /align-self:\s*stretch/, 'Replace… matches the key field height');
+});

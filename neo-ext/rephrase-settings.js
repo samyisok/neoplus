@@ -28,7 +28,7 @@
     if (!window.NeoSettings || typeof window.NeoSettings.registerGroup !== 'function') return;
     window.NeoSettings.registerGroup({
       id: 'rephrase',
-      tab: 'AI',
+      tab: 'AI Rephrasing',
       title: 'Rewriting with a local model',
       show: () => {
         try { return !!(window.NeoExtApi && window.NeoExtApi.moreFeatures()); } catch { return false; }
@@ -59,8 +59,14 @@
         { key: 'rephraseEndpoint', type: 'text', label: 'Endpoint' },
         { key: 'rephraseModel', type: 'text', label: 'Model' },
         { key: 'rephraseKey', type: 'secret', label: 'API key' },
-        { key: 'rephrasePrompt', type: 'textarea', label: 'Base instruction', rows: 4 },
-        { key: 'rephraseProfiles', type: 'profiles', label: 'Profiles', max: 8 },
+        { key: 'rephrasePrompt', type: 'textarea', label: 'Base instruction', rows: 4,
+          reset: 'Restore default prompt',
+          resetValue: () => (window.NeoRephrasePrompt && window.NeoRephrasePrompt.defaultSettings
+            ? window.NeoRephrasePrompt.defaultSettings().prompt : '') },
+        { key: 'rephraseProfiles', type: 'profiles', label: 'Profiles', max: 8,
+          reset: 'Restore default profiles',
+          resetValue: () => (window.NeoRephrasePrompt && window.NeoRephrasePrompt.defaultSettings
+            ? window.NeoRephrasePrompt.defaultSettings().profiles : []) },
         { type: 'button', label: 'Test connection', run: async (values) => {
           let res = null;
           try { res = await bridge().testRephrase({ endpoint: values.rephraseEndpoint, key: values.rephraseKey }); } catch { res = null; }

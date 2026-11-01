@@ -126,6 +126,7 @@
       input.id = id;
       input.className = 'neo-ext-path';
       input.value = values[control.key] || control.defaultValue || '';
+      if (control.placeholder) input.placeholder = control.placeholder;
       input.addEventListener('input', () => { values[control.key] = input.value; });
       wrap.appendChild(input);
       return wrap;
@@ -165,6 +166,22 @@
       area.value = values[control.key] || control.defaultValue || '';
       area.addEventListener('input', () => { values[control.key] = area.value; });
       wrap.appendChild(area);
+      // A prompt can be put back to the text NEO ships without hunting for it.
+      if (control.reset) {
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.className = 'neo-ext-reset';
+        reset.textContent = x(control.reset);
+        reset.addEventListener('click', () => {
+          const value = typeof control.resetValue === 'function'
+            ? String(control.resetValue(values) || '')
+            : String(control.defaultValue || '');
+          area.value = value;
+          values[control.key] = value;
+          area.focus();
+        });
+        wrap.appendChild(reset);
+      }
       return wrap;
     }
 
@@ -227,6 +244,19 @@
           row.append(label, instruction, remove);
           holder.appendChild(row);
         });
+        // Putting the shipped profiles back saves retyping them after an experiment.
+        if (control.reset) {
+          const reset = document.createElement('button');
+          reset.type = 'button';
+          reset.className = 'neo-ext-profile-add neo-ext-profiles-reset';
+          reset.textContent = x(control.reset);
+          reset.addEventListener('click', () => {
+            const next = typeof control.resetValue === 'function' ? control.resetValue(values) : [];
+            values[control.key] = (Array.isArray(next) ? next : []).map((p) => ({ ...p }));
+            paint();
+          });
+          holder.appendChild(reset);
+        }
         const add = document.createElement('button');
         add.type = 'button';
         add.className = 'neo-ext-profile-add';

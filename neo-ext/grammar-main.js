@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const client = require('./llm-client.js');
 const settingsRules = require('./lib/rephrase-prompt.js');
 const promptRules = require('./lib/grammar-prompt.js');
+const configRules = require('./lib/grammar-config.js');
 
 const SECRET = 'rephrase-key';
 const SESSION_TTL = 15 * 60 * 1000;
@@ -29,14 +30,35 @@ function fail(reason) {
 function safeSettings() {
   try {
     const all = deps && typeof deps.readSettings === 'function' ? deps.readSettings() : {};
-    return settingsRules.normalizeSettings(all && all.rephrase);
+    // Grammar reads its own block first and takes what Rewrite already has for the
+    // endpoint and model, so one configured model serves both tools.
+    return configRules.normalizeSettings(all && all.grammar, settingsRules.normalizeSettings(all && all.rephrase));
   } catch {
-    return settingsRules.defaultSettings();
+    return configRules.defaultSettings();
   }
 }
 
-function keyOf() {
-  try { return deps && typeof deps.readSecret === 'function' ? deps.readSecret(SECRET) : ''; } catch { return ''; }
+function secureStorage() {
+  try {
+    const { safeStorage } = require('electron');
+    return !!(safeStorage && safeStorage.isEncryptionAvailable());
+  } catch { return false; }
+}
+
+function readSecret(name) {
+  try { return deps && typeof deps.readSecret === 'function' ? deps.readSecret(name) : ''; } catch { return ''; }
+}
+
+// Grammar has its own key; a writer who never set one keeps using the Rewrite key.
+function keyOf(settings) {
+  const config = settings && typeof settings === 'object' ? settings : safeSettings();
+  const own = readSecret(configRules.SECRET);
+  if (config.keyCleared) return own;
+  return own || readSecret(SECRET);
+}
+
+function hasKey() {
+  return !!keyOf();
 }
 
 function logReason(reason) {
@@ -80,6 +102,9 @@ async function start(owner) {
   sessions.set(id, {
     endpoint: settings.endpoint,
     model: settings.model,
+    // The prompt is snapshotted with the rest, so a settings change mid-window
+    // does not rewrite the question already asked.
+    system: configRules.systemFor(settings, promptRules.GRAMMAR_SYSTEM),
     owner: owner || '',
     at: now(),
     busy: false,
@@ -97,7 +122,8 @@ async function runGrammarOne(session, payload) {
   const messages = promptRules.grammarMessages({
     text,
     before: clean(payload.before, promptRules.MAX_REFERENCE),
-    after: clean(payload.after, promptRules.MAX_REFERENCE)
+    after: clean(payload.after, promptRules.MAX_REFERENCE),
+    system: session.system
   });
   return client.postChat({
     endpoint: session.endpoint,
@@ -190,9 +216,90 @@ function senderId(event) {
   return id === undefined || id === null ? '' : String(id);
 }
 
+function getSettings() {
+  let own = null;
+  try {
+    const all = deps && typeof deps.readSettings === 'function' ? deps.readSettings() : {};
+    own = all && typeof all === 'object' ? all.grammar : null;
+  } catch {
+    own = null;
+  }
+  return {
+    ok: true,
+    // `stored` is what the file holds (empty means "follow"), `settings` is what the
+    // pass will use once the fallbacks are applied.
+    stored: configRules.storedSettings(own),
+    settings: safeSettings(),
+    defaultPrompt: promptRules.GRAMMAR_SYSTEM,
+    hasKey: hasKey(),
+    secureStorage: secureStorage(),
+    secret: configRules.SECRET
+  };
+}
+
+async function validateSettings(value) {
+  const raw = value && typeof value === 'object' ? value : {};
+  if (typeof raw.endpoint === 'string' && raw.endpoint.length > configRules.MAX_ENDPOINT) return fail('limits');
+  if (typeof raw.model === 'string' && raw.model.length > configRules.MAX_MODEL) return fail('limits');
+  if (typeof raw.prompt === 'string' && raw.prompt.length > configRules.MAX_PROMPT) return fail('limits');
+  // An empty endpoint or model is not an error: it means "follow the Rewrite
+  // setting". Only a value that resolves to nothing is refused.
+  const stored = configRules.storedSettings(raw);
+  const resolved = configRules.normalizeSettings(stored, safeSettings());
+  if (!resolved.model.trim()) return fail('modelId');
+  const endpoint = await client.resolveEndpoint(resolved.endpoint, deps.lookup);
+  if (!endpoint.ok) return fail(endpoint.reason || 'endpoint');
+  return { ok: true, settings: stored, resolved };
+}
+
+// Writing {} + grammar over a settings file that could not be read would erase
+// libraryDir, the export folder, and the window bounds. The core reader reports a
+// corrupt file as {} just like a fresh install, so the file itself is asked.
+function settingsLost() {
+  try {
+    return typeof deps.settingsBroken === 'function' && !!deps.settingsBroken();
+  } catch {
+    return false;
+  }
+}
+
+async function saveSettings(value) {
+  const checked = await validateSettings(value);
+  if (!checked.ok) return checked;
+  if (typeof deps.writeSettings !== 'function') return fail('save');
+  if (settingsLost()) {
+    logReason('save');
+    return fail('save');
+  }
+  try {
+    const all = deps.readSettings ? deps.readSettings() : {};
+    deps.writeSettings({ ...(all && typeof all === 'object' ? all : {}), grammar: checked.settings });
+    return { ok: true, settings: checked.settings };
+  } catch {
+    logReason('save');
+    return fail('save');
+  }
+}
+
+async function testConnection(input) {
+  const settings = safeSettings();
+  const typed = input && typeof input.key === 'string' ? input.key : '';
+  const asked = input && typeof input.endpoint === 'string' && input.endpoint ? input.endpoint : '';
+  // The stored key goes only to the endpoint already in settings; a different
+  // endpoint needs a key typed beside it, so the window cannot aim the secret at
+  // another loopback listener.
+  const endpoint = typed && asked ? asked : settings.endpoint;
+  const key = typed || keyOf(settings);
+  return client.probe({ endpoint, key, lookup: deps.lookup, timeoutMs: 5000 });
+}
+
 function init(dependencies, ipcMain) {
   create(dependencies);
   if (!ipcMain || typeof ipcMain.handle !== 'function') return;
+  ipcMain.handle('neo-ext:get-grammar-settings', () => getSettings());
+  ipcMain.handle('neo-ext:save-grammar-settings', (_e, value) => saveSettings(value));
+  ipcMain.handle('neo-ext:validate-grammar-settings', (_e, value) => validateSettings(value));
+  ipcMain.handle('neo-ext:test-grammar', (_e, input) => testConnection(input));
   ipcMain.handle('neo-ext:grammar-start', (event) => start(senderId(event)));
   ipcMain.handle('neo-ext:grammar-run', (event, payload) => runGrammar(payload, senderId(event)));
   ipcMain.handle('neo-ext:grammar-style', (event, payload) => runStyle(payload, senderId(event)));
@@ -201,5 +308,6 @@ function init(dependencies, ipcMain) {
 
 module.exports = {
   init, create, start, runGrammar, runStyle, end, menuItem,
+  getSettings, validateSettings, saveSettings, testConnection,
   SECRET, SESSION_TTL, MAX_SESSIONS, GRAMMAR_TIMEOUT_MS, sessions
 };

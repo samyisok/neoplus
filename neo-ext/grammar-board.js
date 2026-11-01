@@ -127,7 +127,14 @@
     style.disabled = model.corrected.length > MAX_CORRECTED || model.blank;
     if (model.corrected.length > MAX_CORRECTED) style.title = x('The corrected text is too long to review for style.');
     else if (model.blank) style.title = x('The passage is empty.');
-    top.append(corrected, style);
+    // The style pass can take a while on a local model, so the wait is visible
+    // beside the button that started it.
+    const spinner = element(doc, 'span', 'neo-grammar-spinner');
+    spinner.hidden = true;
+    spinner.setAttribute('aria-hidden', 'true');
+    const styleRow = element(doc, 'div', 'neo-grammar-style-row');
+    styleRow.append(style, spinner);
+    top.append(corrected, styleRow);
 
     const body = element(doc, 'div', 'neo-grammar-body');
     body.tabIndex = 0;
@@ -190,6 +197,10 @@
     status.setAttribute('role', 'status');
     const notice = element(doc, 'p', 'neo-grammar-notice', model.notice);
     notice.setAttribute('role', 'status');
+    // "Nothing to suggest." belongs beside the button that asked, not under the
+    // window where it reads as a page-level message.
+    notice.hidden = !model.notice;
+    top.append(notice);
     const actions = element(doc, 'div', 'neo-grammar-actions');
     const close = element(doc, 'button', 'neo-grammar-cancel', x('Close'));
     close.type = 'button';
@@ -200,12 +211,11 @@
     if (model.blank) replace.title = x('The passage would be emptied.');
     actions.append(close, replace);
     root.append(top, body, status);
-    if (model.notice) root.append(notice);
     root.append(actions);
 
     return {
       element: root, top, corrected: correctedText, original: originalText,
-      cards, body, svg, status, notice, style, close, replace, model
+      cards, body, svg, status, notice, style, spinner, close, replace, model
     };
   }
 

@@ -161,6 +161,14 @@ async function validate(value) {
 async function save(value) {
   const checked = await validate(value);
   if (!checked.ok) return checked;
+  // A corrupt settings.json reads as {}, and writing {} + rephrase would forget the
+  // chosen library folder.
+  try {
+    if (typeof deps.settingsBroken === 'function' && deps.settingsBroken()) {
+      logReason('save');
+      return fail('save');
+    }
+  } catch { /* an unknown state is not a broken file */ }
   try {
     const all = deps.readSettings ? deps.readSettings() : {};
     deps.writeSettings({ ...all, rephrase: checked.settings });

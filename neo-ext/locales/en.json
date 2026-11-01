@@ -206,7 +206,7 @@
   "Text grows in the side pane, dialogs, and messages. The shelf and menus follow Interface Size.": "Text grows in the side pane, dialogs, and messages. The shelf and menus follow Interface Size.",
   "The interface settings could not be saved.": "The interface settings could not be saved.",
   "Grammar": "Grammar",
-  "Grammar\u2026": "Grammar\u2026",
+  "Grammar…": "Grammar…",
   "Corrected": "Corrected",
   "Your text": "Your text",
   "Suggest style": "Suggest style",
@@ -218,7 +218,7 @@
   "Nothing was applied.": "Nothing was applied.",
   "The passage would be emptied.": "The passage would be emptied.",
   "The correction is too long to apply.": "The correction is too long to apply.",
-  "Checking the text\u2026": "Checking the text\u2026",
+  "Checking the text…": "Checking the text…",
   "The answer could not be read.": "The answer could not be read.",
   "That grammar window expired. Try again.": "That grammar window expired. Try again.",
   "The style pass could not be read.": "The style pass could not be read.",
@@ -230,6 +230,5 @@
   "Replace": "Replace",
   "(no replacement)": "(no replacement)",
   "(insert)": "(insert)",
-  "No style suggestions": "No style suggestions",
   "Nothing to suggest.": "Nothing to suggest."
 }

@@ -141,9 +141,9 @@
     current.content.textContent = '';
     current.content.setAttribute('aria-busy', 'false');
     current.content.append(view.element);
-    if (current.styleEmpty) view.style.textContent = x('No style suggestions');
     view.style.addEventListener('click', () => {
       suggestStyle(current).catch(() => {
+        if (current.closed || win !== current) return;
         current.styleBusy = false;
         current.styleNotice = x('The style pass could not be read.');
         try { renderBoardView(current); } catch { /* gone */ }
@@ -262,6 +262,7 @@
     if (current.view) {
       current.view.style.textContent = x('Suggest style');
       current.view.style.disabled = true;
+      if (current.view.spinner) current.view.spinner.hidden = false;
     }
     let raw = await sendStyle(current);
     if (current.closed) return;

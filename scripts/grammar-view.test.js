@@ -382,3 +382,18 @@ test('grammar-view: drawLines joins an insertion caret with exactly one line', (
   assert.equal(lines.length, 1, 'the caret yields one connector line');
   assert.match(lines[0].attrs.d, /^M /);
 });
+
+test('grammar-view: the style wait shows a spinner by the button and the notice sits under it', () => {
+  const g = load();
+  const text = 'He stood here.';
+  const parsed = issues.parse('CLEAN', text);
+  const model = g.NeoGrammarBoard.buildModel({ text }, parsed, [], 'Nothing to suggest.');
+  const view = g.NeoGrammarBoard.renderBoard(g.document, model);
+  assert.equal(view.spinner.hidden, true, 'no wheel until the pass starts');
+  const row = byClass(view.element, 'neo-grammar-style-row')[0];
+  assert.ok(row && row.children.includes(view.style), 'the button is in its own row');
+  assert.ok(row.children.includes(view.spinner), 'the wheel sits beside the button');
+  assert.equal(view.notice.hidden, false);
+  assert.ok(view.top.children.includes(view.notice), 'the notice is under the button, not at the window bottom');
+  assert.equal(view.notice.textContent, 'Nothing to suggest.');
+});

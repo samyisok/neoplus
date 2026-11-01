@@ -86,3 +86,14 @@ test('grammar-prompt: caps match the selection rules and the corrected reference
   });
   assert.equal(corrected.user.includes('TAIL'), false);
 });
+
+test('grammar-prompt: a prompt set in Settings replaces the built-in one', () => {
+  const custom = 'You are my own checker.';
+  const messages = prompt.grammarMessages({ text: 'He stand here.', before: '', after: '', system: custom });
+  assert.equal(messages.system, custom);
+  assert.match(messages.user, /<selection>\nHe stand here\.\n<\/selection>/);
+
+  const blank = prompt.grammarMessages({ text: 'He stand here.', before: '', after: '', system: '   ' });
+  assert.equal(blank.system, prompt.GRAMMAR_SYSTEM);
+  assert.equal(prompt.grammarMessages({ text: 'x' }).system, prompt.GRAMMAR_SYSTEM);
+});

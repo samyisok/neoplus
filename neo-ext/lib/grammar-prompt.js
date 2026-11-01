@@ -117,9 +117,12 @@
     return typeof value === 'string' ? value.replaceAll(String.fromCharCode(0), '').slice(0, max) : '';
   }
 
-  function grammarMessages({ text, before, after } = {}) {
+  // Settings may carry the writer's own system prompt; an empty one keeps the
+  // prompt NEO ships, so the field can stay blank.
+  function grammarMessages({ text, before, after, system } = {}) {
+    const custom = typeof system === 'string' ? system.trim() : '';
     return {
-      system: GRAMMAR_SYSTEM,
+      system: custom || GRAMMAR_SYSTEM,
       user: [
         '<reference side="before">',
         asData(clean(before, MAX_REFERENCE)),
