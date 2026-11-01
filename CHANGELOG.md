@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Give Grammar its own AI settings in Settings → AI Grammar — endpoint, model, API key, and an editable prompt with Restore default prompt — falling back to the Rewrite settings whenever a field is left empty; the Rewrite tab becomes AI Rephrasing and gains Restore default prompt and Restore default profiles. (`2026-11-01-adr-018-grammar-settings`)
 - Add Grammar… for a selected passage: the local model lists grammar fixes and style advice, a board shows the corrected text, the original, and joined cards, and Replace applies only the fixes as one undoable edit recorded in History. (`2026-11-01-adr-017-grammar-analysis`)
 - Add Interface text to Settings: enlarge the text in the right pane's Records, Inventory, and History views, in dialogs, and in messages without enlarging their boxes, on its own scale beside Interface Size. (`2026-10-31-adr-016-ui-text-size`)
 - Add Interface Size to Settings → General: enlarge NEO's own interface (not the page) from 90% to 300%, with a live preview, Cancel and Save, the same value as View → Interface Size, and working in Simple NEO too. (`2026-10-31-adr-015-interface-size-setting`)
@@ -22,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Rephrase… for a selected phrase or paragraph: the local model writes one rewrite per profile, cards fill as they arrive, and choosing one replaces the selection as a single undoable edit. Settings gain tabs and an AI tab with the endpoint, model, key, and editable profiles. (`2026-10-31-adr-012-rephrase-local-llm`)
 
 ### Changed
+- Keep the writer's words where they are easy to read: the Grammar text keeps the full width, the cards sit under it in rows, and each line leaves the middle of the marked word for the middle of its card's top border, with a gap so it does not cross the sentence. (`2026-11-01-adr-017-grammar-analysis`)
+- Rename the Settings tabs to AI Rephrasing and AI Grammar, and give each setting its own padded block so a label is not read as part of the block above, with Replace…/Choose… matching the field height. (`2026-11-01-adr-018-grammar-settings`)
 - Include the library's `records.json` and its recovery copy in daily and book backups. (`2026-10-27-adr-005-records-tab`)
 - Move the Thesaurus and the new Dictionary to the Open English WordNet 2025 edition, so both features share one maintained source and one licence story (CC BY 4.0 plus the WordNet notice, both shipped with the data). (`2026-10-25-adr-003-dictionary`)
 - Let the Records search match a record's tags as well as its title and description, and forward every fork choice from the macOS Look Up popup to its feature. (`2026-10-28-adr-006-record-tags`)
@@ -30,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 ### Removed
 ### Fixed
+- Fix the Grammar board's quiet failures: a whole-sentence answer highlights only the changed word, a report the model repeats becomes one card instead of a not-applied twin, a fix found in the context paragraphs is dropped, a missing article joins a line through a caret, Suggest style shows a wheel and its "Nothing to suggest." sits under the button, and a pass waits 90 seconds rather than 30. (`2026-11-01-adr-017-grammar-analysis`)
 - Keep Inventory whole: an unreadable chapter never retires its transactions, a pending save stays with its book, a merge cannot write a ledger NEO would refuse, and Simple NEO stops reading and writing; the dialog sits above the panes and folds reset when reopened. (`2026-10-29-adr-009-inventory-fixes`)
 - Give the Inventory dialog room to work: a larger window with a scrollable item list, new-item fields behind a **+ New item** reveal, and an amount field that takes one sign and digits only. (`2026-10-29-adr-010-inventory-modal-ui`)
 - Make the Inventory dialog follow NEO: it uses the app's modal surface, theme, and Interface Size, keeps focus and scroll through every re-render, shows a picked item even when the search hides it, and keeps one amount contract (sign, digits, separators refused). (`2026-10-29-adr-011-inventory-modal-focus`)
