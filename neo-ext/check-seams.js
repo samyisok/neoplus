@@ -16,8 +16,8 @@ const ROOT = path.join(__dirname, '..');
 // in AGENTS.md; the remaining planned seams (switchTab, counters) are added
 // here when they are implemented.
 const SEAMS = [
-  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/interface-size.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/inventory-ledger.js', 'neo-ext/lib/inventory-anchor.js', 'neo-ext/lib/history-log.js', 'neo-ext/lib/records-store.js', 'neo-ext/record-tag-highlight.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js', 'neo-ext/inventory.js', 'neo-ext/lib/rephrase-context.js', 'neo-ext/lib/rephrase-endpoint.js', 'neo-ext/lib/rephrase-prompt.js', 'neo-ext/lib/rephrase-check.js', 'neo-ext/lib/rephrase-reasons.js', 'neo-ext/rephrase-settings.js', 'neo-ext/rephrase.js', 'neo-ext/grammar.js', 'neo-ext/lib/grammar-issues.js', 'neo-ext/lib/grammar-prompt.js', 'neo-ext/grammar-board.js', 'neo-ext/history-record.js', 'neo-ext/history.js']],
-  ['backup-worker.js', ['records.json', "!name.endsWith('.tmp')"]],
+  ['index.html', ['NEO-EXT seam', 'neo-ext/boot.js', 'neo-ext/settings.js', 'neo-ext/interface-size.js', 'neo-ext/api.js', 'neo-ext/thesaurus-window.js', 'neo-ext/thesaurus.js', 'neo-ext/lib/word-forms.js', 'neo-ext/lib/thesaurus-lookup.js', 'neo-ext/word-context.js', 'neo-ext/dictionary-window.js', 'neo-ext/dictionary.js', 'neo-ext/lib/side-resize.js', 'neo-ext/side-resize.js', 'neo-ext/lib/record-tags.js', 'neo-ext/lib/inventory-ledger.js', 'neo-ext/lib/inventory-anchor.js', 'neo-ext/lib/history-log.js', 'neo-ext/lib/records-store.js', 'neo-ext/record-tag-highlight.js', 'neo-ext/lib/records-search.js', 'neo-ext/records-list.js', 'neo-ext/records.js', 'neo-ext/inventory.js', 'neo-ext/lib/rephrase-context.js', 'neo-ext/lib/rephrase-endpoint.js', 'neo-ext/lib/rephrase-prompt.js', 'neo-ext/lib/rephrase-check.js', 'neo-ext/lib/rephrase-reasons.js', 'neo-ext/rephrase-settings.js', 'neo-ext/grammar-settings.js', 'neo-ext/rephrase.js', 'neo-ext/grammar.js', 'neo-ext/lib/grammar-issues.js', 'neo-ext/lib/grammar-prompt.js', 'neo-ext/lib/grammar-config.js', 'neo-ext/grammar-board.js', 'neo-ext/history-record.js', 'neo-ext/history.js']],
+  ['backup-worker.js', ['NEO-EXT seam', 'records.json', "!name.endsWith('.tmp')", 'isSymbolicLink']],
   ['preload.js', ['NEO-EXT seam', "exposeInMainWorld('NeoForkNative'"]],
   ['main.js', [
     'NEO-EXT seam',
@@ -31,7 +31,7 @@ const SEAMS = [
     'NeoExtApi.lookUpMenu(items, word)',
     'window.NeoExtApi) window.NeoExtApi.lookUpChoice(choice, word)',
     'NeoExt.bookOpened(book)',
-    'NeoExt.uiZoom(library, moreOn())',
+    'NeoExt.uiZoom(library, moreOn()) : (moreOn() ? snapZoom(library.uiZoom) : 1); /* NEO-EXT seam */',
     'NeoExt.uiText(library)',
     "'uiZoom', 'uiText'",
     "k !== 'uiText'"
@@ -44,13 +44,23 @@ function orderProblem(file, text) {
   if (file === 'main.js') {
     const seam = text.indexOf('.appMenu(template, { more: moreState, bookOpen: bookOpenState });');
     const built = text.indexOf('Menu.buildFromTemplate(simpleTemplate(template, moreState))');
-    if (seam < 0 || built < 0) return null;
+    if (seam < 0 || built < 0) return 'ordering anchor missing: upstream moved buildMenu, re-place the appMenu seam';
     return seam < built ? null : 'appMenu seam must sit before Menu.buildFromTemplate(simpleTemplate(...))';
+  }
+  if (file === 'index.html') {
+    const boot = text.indexOf('neo-ext/boot.js');
+    const settings = text.indexOf('neo-ext/settings.js');
+    const size = text.indexOf('neo-ext/interface-size.js');
+    const rephrase = text.indexOf('neo-ext/rephrase.js');
+    if (boot < 0 || settings < 0 || size < 0 || rephrase < 0) return 'index.html is missing a fork script: boot, settings, interface-size, or rephrase';
+    if (boot < settings || boot < size) return 'boot.js must load after settings.js and interface-size.js';
+    if (boot > rephrase) return 'boot.js must load before the feature modules it wires (rephrase and later)';
+    return null;
   }
   if (file === 'app.js') {
     const add = text.indexOf('NeoExtApi.lookUpMenu(items, word)');
     const menu = text.indexOf('popMenu(e.clientX, e.clientY, items)');
-    if (add < 0 || menu < 0) return null;
+    if (add < 0 || menu < 0) return 'ordering anchor missing: upstream moved the Look Up popup, re-place the seam';
     return add < menu ? null : 'lookUpMenu seam must sit before the Look Up popMenu call';
   }
   return null;

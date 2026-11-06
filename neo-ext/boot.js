@@ -1,8 +1,10 @@
 // NEO fork — renderer boot for neo-ext (adr-001)
 //
-// Loaded last on the page. Wires the fork menu messages, registers the
-// Settings groups, and gives the window its own toast (NEO's #hint is
-// text-only, and the backup result carries a Reveal action).
+// Loaded after settings.js and interface-size.js, and BEFORE the feature modules
+// (rephrase, grammar, records, inventory, history): it wires the fork menu
+// messages those modules answer, registers the Settings groups, and gives the
+// window its own toast (NEO's #hint is text-only, and the backup result carries
+// a Reveal action).
 
 'use strict';
 
