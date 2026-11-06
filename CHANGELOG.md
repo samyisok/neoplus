@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Rephrase… for a selected phrase or paragraph: the local model writes one rewrite per profile, cards fill as they arrive, and choosing one replaces the selection as a single undoable edit. Settings gain tabs and an AI tab with the endpoint, model, key, and editable profiles. (`2026-10-31-adr-012-rephrase-local-llm`)
 
 ### Changed
+- Merge upstream 1.6.1–1.6.3 into the fork: chapter headings with no title, snapshot thinning keeping unavailable history, typewriter scrolling at a page top, soft-hyphen marks, EPUB subtitles, quotes following the writer's own language, the portable .exe installer, Vietnamese and French, and File → Library Folder… now moving the books and offering NEO Pocket's iCloud folder. (`2026-11-07-adr-019-merge-upstream-1-6-3`)
 - Keep the writer's words where they are easy to read: the Grammar text keeps the full width, the cards sit under it in rows, and each line leaves the middle of the marked word for the middle of its card's top border, with a gap so it does not cross the sentence. (`2026-11-01-adr-017-grammar-analysis`)
 - Rename the Settings tabs to AI Rephrasing and AI Grammar, and give each setting its own padded block so a label is not read as part of the block above, with Replace…/Choose… matching the field height. (`2026-11-01-adr-018-grammar-settings`)
 - Include the library's `records.json` and its recovery copy in daily and book backups. (`2026-10-27-adr-005-records-tab`)
