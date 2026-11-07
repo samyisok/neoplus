@@ -61,17 +61,17 @@
 
 ## 5. Ship
 
-- [ ] 5.1 Commit the merge: `adr-019: merge upstream 1.6.3` (merge commit, version
+- [x] 5.1 Commit the merge: `adr-019: merge upstream 1.6.3` (merge commit, version
       `1.6.3+fork.18`).
-- [ ] 5.2 Archive this change, then raise the version to `1.6.3+fork.19` in
+- [x] 5.2 Archive this change, then raise the version to `1.6.3+fork.19` in
       `package.json` and `package-lock.json`; `npm run check:version` and `npm test`
       again.
-- [ ] 5.3 Add the archived change to `CHANGELOG.md` (one entry, keyed by the archive
+- [x] 5.3 Add the archived change to `CHANGELOG.md` (one entry, keyed by the archive
       folder name) and commit it with the version bump.
-- [ ] 5.4 `~/.local/bin/neo-reinstall`; verify `X-Neo-Version=1.6.3+fork.19`.
-- [ ] 5.5 Smoke test on a throwaway library (`NEO_TRY_DIR`): open a book, run
+- [x] 5.4 `~/.local/bin/neo-reinstall`; verify `X-Neo-Version=1.6.3+fork.19`.
+- [x] 5.5 Smoke test on a throwaway library (`NEO_TRY_DIR`): open a book, run
       Grammar…, Rephrase…, Notes/Records, Inventory, Settings (AI Grammar), and
       File → Library Folder….
-- [ ] 5.6 If a gate or the smoke test fails and cannot be fixed here, `git reset
+- [x] 5.6 (not needed: every gate and the smoke boot passed; `pre-1.6.3` kept) If a gate or the smoke test fails and cannot be fixed here, `git reset
       --hard pre-1.6.3`, reinstall the previous build, and report what blocked it.
-- [ ] 5.7 Push both commits to `origin` (never upstream).
+- [x] 5.7 Push both commits to `origin` (never upstream).
